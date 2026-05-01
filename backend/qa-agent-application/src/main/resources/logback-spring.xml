@@ -3,11 +3,11 @@
 
     <contextName>logback</contextName>
 
-    <!-- Disable verbose logback internal status output on console. -->
+    <!-- 关闭 Logback 自己的内部状态输出 -->
     <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 
     <!-- 日志输出路径 -->
-    <property name="LOG_PATH" value="${user.dir}/logs"/>
+    <property name="LOG_PATH" value="./logs"/>
 
     <!-- ========= 开发环境降噪 ========= -->
     <springProfile name="dev">

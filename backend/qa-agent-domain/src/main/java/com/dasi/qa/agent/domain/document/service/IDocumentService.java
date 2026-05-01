@@ -1,0 +1,31 @@
+package com.dasi.qa.agent.domain.document.service;
+
+import com.dasi.qa.agent.types.model.request.document.DocumentChunkRequest;
+import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
+import com.dasi.qa.agent.types.model.response.document.DocumentChunkResponse;
+import com.dasi.qa.agent.types.model.response.document.SourceDocumentResponse;
+
+import java.util.List;
+
+public interface IDocumentService {
+
+    SourceDocumentResponse detailSourceDocument(String id);
+
+    List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request);
+
+    SourceDocumentResponse createSourceDocument(SourceDocumentRequest request);
+
+    SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request);
+
+    void deleteSourceDocument(String id);
+
+    DocumentChunkResponse detailDocumentChunk(String id);
+
+    List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request);
+
+    DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request);
+
+    DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request);
+
+    void deleteDocumentChunk(String id);
+}

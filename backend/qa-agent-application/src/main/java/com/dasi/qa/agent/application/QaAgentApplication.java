@@ -1,9 +1,15 @@
 package com.dasi.qa.agent.application;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 
-@SpringBootApplication(scanBasePackages = "com.dasi.qa.agent")
+@EnableCaching
+@SpringBootApplication(
+    scanBasePackages = "com.dasi.qa.agent",
+    exclude = UserDetailsServiceAutoConfiguration.class
+)
 public class QaAgentApplication {
 
     public static void main(String[] args) {
