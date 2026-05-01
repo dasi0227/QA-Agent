@@ -2,6 +2,7 @@ package com.dasi.qa.agent.application.configuration;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
@@ -54,11 +55,15 @@ public class MyBatisConfiguration {
     ) throws Exception {
         MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
-        factoryBean.setMapperLocations(resolveMapperLocations(mybatisProperties.getMysqlMapperLocations()));
+        Resource[] mysqlMapperLocations = resolveMapperLocations(mybatisProperties.getMysqlMapperLocations());
+        if (mysqlMapperLocations.length > 0) {
+            factoryBean.setMapperLocations(mysqlMapperLocations);
+        }
         MybatisConfiguration mybatisConfiguration = new MybatisConfiguration();
         mybatisConfiguration.setMapUnderscoreToCamelCase(mybatisProperties.isMapUnderscoreToCamelCase());
         mybatisConfiguration.setCacheEnabled(mybatisProperties.isCacheEnabled());
         factoryBean.setConfiguration(mybatisConfiguration);
+        factoryBean.setGlobalConfig(new GlobalConfig().setBanner(false));
         factoryBean.setPlugins(interceptor);
         return factoryBean.getObject();
     }
@@ -70,7 +75,10 @@ public class MyBatisConfiguration {
     ) throws Exception {
         SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
-        factoryBean.setMapperLocations(resolveMapperLocations(mybatisProperties.getPostgresMapperLocations()));
+        Resource[] postgresMapperLocations = resolveMapperLocations(mybatisProperties.getPostgresMapperLocations());
+        if (postgresMapperLocations.length > 0) {
+            factoryBean.setMapperLocations(postgresMapperLocations);
+        }
         org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
         configuration.setMapUnderscoreToCamelCase(mybatisProperties.isMapUnderscoreToCamelCase());
         configuration.setCacheEnabled(mybatisProperties.isCacheEnabled());

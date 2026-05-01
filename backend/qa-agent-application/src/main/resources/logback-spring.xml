@@ -12,6 +12,7 @@
     <!-- ========= 开发环境降噪 ========= -->
     <springProfile name="dev">
         <logger name="com.zaxxer.hikari" level="ERROR"/>
+        <logger name="com.baomidou.mybatisplus.extension.spring.MybatisPlusApplicationContextAware" level="OFF"/>
         <logger name="org.redisson" level="ERROR"/>
         <logger name="io.netty.resolver.dns" level="ERROR"/>
         <logger name="org.springframework.amqp" level="ERROR"/>

@@ -1,3 +1,9 @@
 spring:
+    main:
+        banner-mode: off
     profiles:
         active: dev
+
+mybatis-plus:
+    global-config:
+        banner: false
