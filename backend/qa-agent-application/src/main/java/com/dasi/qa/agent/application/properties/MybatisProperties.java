@@ -11,10 +11,6 @@ public class MybatisProperties {
 
     private String postgresMapperLocations;
 
-    private String typeAliasesPackage;
-
-    private String typeHandlersPackage;
-
     private boolean mapUnderscoreToCamelCase;
 
     private boolean cacheEnabled;

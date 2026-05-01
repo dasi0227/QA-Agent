@@ -2,7 +2,6 @@ package com.dasi.qa.agent.application.configuration;
 
 import com.dasi.qa.agent.application.properties.DatasourceProperties;
 import com.zaxxer.hikari.HikariDataSource;
-import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -16,21 +15,15 @@ import javax.sql.DataSource;
 @EnableConfigurationProperties(DatasourceProperties.class)
 public class DataSourceConfiguration {
 
-    private HikariDataSource mysqlDataSource;
-
-    private HikariDataSource postgresDataSource;
-
     @Bean(name = "mysqlDataSource")
     @Primary
     public DataSource mysqlDataSource(DatasourceProperties properties) {
-        this.mysqlDataSource = buildDataSource("qa-agent-mysql", properties.getMysql());
-        return this.mysqlDataSource;
+        return buildDataSource("qa-agent-mysql", properties.getMysql());
     }
 
     @Bean(name = "postgresDataSource")
     public DataSource postgresDataSource(DatasourceProperties properties) {
-        this.postgresDataSource = buildDataSource("qa-agent-postgres", properties.getPostgres());
-        return this.postgresDataSource;
+        return buildDataSource("qa-agent-postgres", properties.getPostgres());
     }
 
     @Bean(name = "mysqlTransactionManager")
@@ -45,16 +38,6 @@ public class DataSourceConfiguration {
         @Qualifier("postgresDataSource") DataSource dataSource
     ) {
         return new DataSourceTransactionManager(dataSource);
-    }
-
-    @PreDestroy
-    public void closeDataSources() {
-        if (mysqlDataSource != null) {
-            mysqlDataSource.close();
-        }
-        if (postgresDataSource != null) {
-            postgresDataSource.close();
-        }
     }
 
     private HikariDataSource buildDataSource(String poolName, DatasourceProperties.Node node) {

@@ -33,8 +33,6 @@ qa-agent:
     mybatis:
         mysql-mapper-locations: classpath*:mapper/mysql/**/*.xml
         postgres-mapper-locations: classpath*:mapper/postgres/**/*.xml
-        type-aliases-package: com.dasi.qa.agent.infrastructure.persistent
-        type-handlers-package: com.dasi.qa.agent.infrastructure.persistent.handler
         map-underscore-to-camel-case: true
         cache-enabled: false
         overflow: false
