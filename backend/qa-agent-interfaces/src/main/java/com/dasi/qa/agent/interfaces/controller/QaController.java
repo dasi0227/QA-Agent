@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.dasi.qa.agent.domain.qa.service.IQaService;
+import com.dasi.qa.agent.domain.qa.service.crud.IQaCrudService;
 import com.dasi.qa.agent.types.model.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.model.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.model.response.qa.QaItemResponse;
@@ -17,9 +17,9 @@ import java.util.List;
 @RestController
 public class QaController {
 
-    private final IQaService qaService;
+    private final IQaCrudService qaService;
 
-    public QaController(IQaService qaService) {
+    public QaController(IQaCrudService qaService) {
         this.qaService = qaService;
     }
 

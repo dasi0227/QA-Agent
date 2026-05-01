@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.dasi.qa.agent.domain.identity.service.IIdentityService;
+import com.dasi.qa.agent.domain.identity.service.crud.IProfileCrudService;
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.model.response.identity.UserAccountResponse;
@@ -17,9 +17,9 @@ import java.util.List;
 @RestController
 public class IdentityController {
 
-    private final IIdentityService identityService;
+    private final IProfileCrudService identityService;
 
-    public IdentityController(IIdentityService identityService) {
+    public IdentityController(IProfileCrudService identityService) {
         this.identityService = identityService;
     }
 

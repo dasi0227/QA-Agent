@@ -1,9 +1,9 @@
-package com.dasi.qa.agent.domain.identity.service;
+package com.dasi.qa.agent.domain.identity.service.crud;
 
 import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
-import com.dasi.qa.agent.domain.service.support.AbstractDomainServiceSupport;
-import com.dasi.qa.agent.domain.util.UserContext;
+import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
@@ -15,39 +15,42 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Service
-public class IdentityService extends AbstractDomainServiceSupport implements IIdentityService {
-
-    private static final String USER_ACCOUNT_CACHE_NAME = "identity:user-account";
-    private static final String USER_PROFILE_CACHE_NAME = "identity:user-profile";
+public class ProfileCrudService implements IProfileCrudService {
 
     private final IIdentityRepository repository;
     private final PasswordEncoder passwordEncoder;
+    private final UserContextUtil userContext;
 
-    public IdentityService(IIdentityRepository repository, PasswordEncoder passwordEncoder, UserContext userContext) {
-        super(userContext);
+    public ProfileCrudService(IIdentityRepository repository, PasswordEncoder passwordEncoder, UserContextUtil userContext) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        this.userContext = userContext;
     }
 
     @Override
-    @Cacheable(cacheNames = USER_ACCOUNT_CACHE_NAME, key = "@cacheKeyBuilder.detail('identity:user-account', 'self', #id)")
+    @Cacheable(
+        cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_DETAIL_KEY, 'self', #id)"
+    )
     public UserAccountResponse detailUserAccount(String id) {
         return repository.detailUserAccount(id, id);
     }
 
     @Override
-    @Cacheable(cacheNames = USER_ACCOUNT_CACHE_NAME, key = "@cacheKeyBuilder.query('identity:user-account', 'self', #request)")
+    @Cacheable(
+        cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_QUERY_KEY, 'self', #request)"
+    )
     public List<UserAccountResponse> queryUserAccount(UserAccountRequest request) {
         return repository.queryUserAccount(request, request.getId());
     }
 
     @Override
-    @CacheEvict(cacheNames = USER_ACCOUNT_CACHE_NAME, allEntries = true)
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public UserAccountResponse createUserAccount(UserAccountRequest request) {
         if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())) {
             throw new ApiException(ResultCode.BAD_REQUEST);
@@ -59,13 +62,11 @@ public class IdentityService extends AbstractDomainServiceSupport implements IId
         if (StrUtil.isNotBlank(request.getPassword())) {
             request.setPassword(passwordEncoder.encode(request.getPassword()));
         }
-        request.setCreatedAt(LocalDateTime.now());
-        request.setUpdatedAt(LocalDateTime.now());
         return repository.createUserAccount(request, request.getId());
     }
 
     @Override
-    @CacheEvict(cacheNames = USER_ACCOUNT_CACHE_NAME, allEntries = true)
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public UserAccountResponse updateUserAccount(UserAccountRequest request) {
         if (request.getId() == null || request.getId().isBlank()) {
             throw new ApiException(ResultCode.BAD_REQUEST);
@@ -75,53 +76,64 @@ public class IdentityService extends AbstractDomainServiceSupport implements IId
         } else {
             request.setPassword(passwordEncoder.encode(request.getPassword()));
         }
-        request.setUpdatedAt(LocalDateTime.now());
         return repository.updateUserAccount(request, request.getId());
     }
 
     @Override
-    @CacheEvict(cacheNames = USER_ACCOUNT_CACHE_NAME, allEntries = true)
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public void deleteUserAccount(String id) {
         repository.deleteUserAccount(id, id);
     }
 
     @Override
-    @Cacheable(cacheNames = USER_PROFILE_CACHE_NAME, key = "@cacheKeyBuilder.detail('identity:user-profile', @userContextImpl.getUserId(), #id)")
+    @Cacheable(
+        cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_DETAIL_KEY, @userContext.getUserId(), #id)"
+    )
     public UserProfileResponse detailUserProfile(String id) {
         return repository.detailUserProfile(currentUserId(), currentUserId());
     }
 
     @Override
-    @Cacheable(cacheNames = USER_PROFILE_CACHE_NAME, key = "@cacheKeyBuilder.query('identity:user-profile', @userContextImpl.getUserId(), #request)")
+    @Cacheable(
+        cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_QUERY_KEY, @userContext.getUserId(), #request)"
+    )
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request) {
-        request.setUserId(currentUserId());
-        return repository.queryUserProfile(request, currentUserId());
+        String userId = currentUserId();
+        request.setUserId(userId);
+        return repository.queryUserProfile(request, userId);
     }
 
     @Override
-    @CacheEvict(cacheNames = USER_PROFILE_CACHE_NAME, allEntries = true)
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public UserProfileResponse createUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
         request.setId(userId);
         request.setUserId(userId);
-        request.setCreatedAt(LocalDateTime.now());
-        request.setUpdatedAt(LocalDateTime.now());
         return repository.createUserProfile(request, userId);
     }
 
     @Override
-    @CacheEvict(cacheNames = USER_PROFILE_CACHE_NAME, allEntries = true)
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public UserProfileResponse updateUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
         request.setId(userId);
         request.setUserId(userId);
-        request.setUpdatedAt(LocalDateTime.now());
         return repository.updateUserProfile(request, userId);
     }
 
     @Override
-    @CacheEvict(cacheNames = USER_PROFILE_CACHE_NAME, allEntries = true)
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public void deleteUserProfile(String id) {
         repository.deleteUserProfile(currentUserId(), currentUserId());
+    }
+
+    private String currentUserId() {
+        String userId = userContext.getUserId();
+        if (userId == null) {
+            throw new ApiException(ResultCode.UNAUTHORIZED);
+        }
+        return userId;
     }
 }

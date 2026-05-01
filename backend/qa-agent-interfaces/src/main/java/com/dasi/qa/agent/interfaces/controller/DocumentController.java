@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.dasi.qa.agent.domain.document.service.IDocumentService;
+import com.dasi.qa.agent.domain.document.service.crud.IDocumentCrudService;
 import com.dasi.qa.agent.types.model.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.model.response.document.DocumentChunkResponse;
@@ -17,9 +17,9 @@ import java.util.List;
 @RestController
 public class DocumentController {
 
-    private final IDocumentService documentService;
+    private final IDocumentCrudService documentService;
 
-    public DocumentController(IDocumentService documentService) {
+    public DocumentController(IDocumentCrudService documentService) {
         this.documentService = documentService;
     }
 

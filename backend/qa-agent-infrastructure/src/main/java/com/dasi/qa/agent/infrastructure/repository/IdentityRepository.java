@@ -23,12 +23,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 @Repository
-public class IdentityRepositoryImpl implements IIdentityRepository {
+public class IdentityRepository implements IIdentityRepository {
 
     private final UserAccountMapper userAccountMapper;
     private final UserProfileMapper userProfileMapper;
 
-    public IdentityRepositoryImpl(UserAccountMapper userAccountMapper, UserProfileMapper userProfileMapper) {
+    public IdentityRepository(UserAccountMapper userAccountMapper, UserProfileMapper userProfileMapper) {
         this.userAccountMapper = userAccountMapper;
         this.userProfileMapper = userProfileMapper;
     }

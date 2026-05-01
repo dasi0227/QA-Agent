@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.practice.service;
+package com.dasi.qa.agent.domain.practice.service.crud;
 
 import com.dasi.qa.agent.types.model.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.model.request.practice.PracticeSessionRequest;
@@ -7,7 +7,7 @@ import com.dasi.qa.agent.types.model.response.practice.PracticeSessionResponse;
 
 import java.util.List;
 
-public interface IPracticeService {
+public interface IPracticeCrudService {
 
     PracticeSessionResponse detailPracticeSession(String id);
 

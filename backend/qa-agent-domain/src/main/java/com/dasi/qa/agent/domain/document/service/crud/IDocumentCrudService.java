@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.document.service;
+package com.dasi.qa.agent.domain.document.service.crud;
 
 import com.dasi.qa.agent.types.model.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
@@ -7,7 +7,7 @@ import com.dasi.qa.agent.types.model.response.document.SourceDocumentResponse;
 
 import java.util.List;
 
-public interface IDocumentService {
+public interface IDocumentCrudService {
 
     SourceDocumentResponse detailSourceDocument(String id);
 

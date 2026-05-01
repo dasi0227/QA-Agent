@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.identity.service;
+package com.dasi.qa.agent.domain.identity.service.auth;
 
 import com.dasi.qa.agent.types.model.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;

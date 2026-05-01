@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.identity.service;
+package com.dasi.qa.agent.domain.identity.service.crud;
 
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
@@ -7,7 +7,7 @@ import com.dasi.qa.agent.types.model.response.identity.UserProfileResponse;
 
 import java.util.List;
 
-public interface IIdentityService {
+public interface IProfileCrudService {
 
     UserAccountResponse detailUserAccount(String id);
 

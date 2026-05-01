@@ -5,17 +5,17 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.dasi.qa.agent.domain.practice.repository.IPracticeRepository;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItemEntity;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
+import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
+import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunkEntity;
+import com.dasi.qa.agent.infrastructure.persistent.entity.SourceDocumentEntity;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.DocumentChunkMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.model.request.practice.PracticeSessionItemRequest;
-import com.dasi.qa.agent.types.model.request.practice.PracticeSessionRequest;
+import com.dasi.qa.agent.types.model.request.document.DocumentChunkRequest;
+import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
+import com.dasi.qa.agent.types.model.response.document.DocumentChunkResponse;
+import com.dasi.qa.agent.types.model.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.model.response.BaseResponse;
-import com.dasi.qa.agent.types.model.response.practice.PracticeSessionItemResponse;
-import com.dasi.qa.agent.types.model.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Repository;
 
@@ -23,64 +23,64 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 @Repository
-public class PracticeRepositoryImpl implements IPracticeRepository {
+public class DocumentRepository implements IDocumentRepository {
 
-    private final PracticeSessionMapper practiceSessionMapper;
-    private final PracticeSessionItemMapper practiceSessionItemMapper;
+    private final SourceDocumentMapper sourceDocumentMapper;
+    private final DocumentChunkMapper documentChunkMapper;
 
-    public PracticeRepositoryImpl(PracticeSessionMapper practiceSessionMapper, PracticeSessionItemMapper practiceSessionItemMapper) {
-        this.practiceSessionMapper = practiceSessionMapper;
-        this.practiceSessionItemMapper = practiceSessionItemMapper;
+    public DocumentRepository(SourceDocumentMapper sourceDocumentMapper, DocumentChunkMapper documentChunkMapper) {
+        this.sourceDocumentMapper = sourceDocumentMapper;
+        this.documentChunkMapper = documentChunkMapper;
     }
 
     @Override
-    public PracticeSessionResponse detailPracticeSession(String id, String userId) {
-        return detail(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, id, userId);
+    public SourceDocumentResponse detailSourceDocument(String id, String userId) {
+        return detail(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, id, userId);
     }
 
     @Override
-    public List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request, String userId) {
-        return query(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, request, userId);
+    public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request, String userId) {
+        return query(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
-    public PracticeSessionResponse createPracticeSession(PracticeSessionRequest request, String userId) {
-        return create(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, request);
+    public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request, String userId) {
+        return create(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request);
     }
 
     @Override
-    public PracticeSessionResponse updatePracticeSession(PracticeSessionRequest request, String userId) {
-        return update(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, request);
+    public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request, String userId) {
+        return update(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request);
     }
 
     @Override
-    public void deletePracticeSession(String id, String userId) {
-        practiceSessionMapper.deleteById(id);
+    public void deleteSourceDocument(String id, String userId) {
+        sourceDocumentMapper.deleteById(id);
     }
 
     @Override
-    public PracticeSessionItemResponse detailPracticeSessionItem(String id, String userId) {
-        return detail(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, id, userId);
+    public DocumentChunkResponse detailDocumentChunk(String id, String userId) {
+        return detail(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, id, userId);
     }
 
     @Override
-    public List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request, String userId) {
-        return query(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, request, userId);
+    public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request, String userId) {
+        return query(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
-    public PracticeSessionItemResponse createPracticeSessionItem(PracticeSessionItemRequest request, String userId) {
-        return create(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, request);
+    public DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request, String userId) {
+        return create(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request);
     }
 
     @Override
-    public PracticeSessionItemResponse updatePracticeSessionItem(PracticeSessionItemRequest request, String userId) {
-        return update(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, request);
+    public DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request, String userId) {
+        return update(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request);
     }
 
     @Override
-    public void deletePracticeSessionItem(String id, String userId) {
-        practiceSessionItemMapper.deleteById(id);
+    public void deleteDocumentChunk(String id, String userId) {
+        documentChunkMapper.deleteById(id);
     }
 
     private <E, R extends BaseResponse> R detail(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, String id, String userId) {

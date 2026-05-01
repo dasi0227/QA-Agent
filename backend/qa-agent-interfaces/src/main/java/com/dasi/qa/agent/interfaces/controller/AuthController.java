@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.dasi.qa.agent.domain.identity.service.IAuthService;
+import com.dasi.qa.agent.domain.identity.service.auth.IAuthService;
 import com.dasi.qa.agent.types.model.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;
 import com.dasi.qa.agent.types.model.request.auth.RegisterRequest;

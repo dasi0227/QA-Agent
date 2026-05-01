@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.identity.service;
+package com.dasi.qa.agent.domain.identity.service.auth;
 
 import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
@@ -14,7 +14,6 @@ import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -47,8 +46,6 @@ public class AuthService implements IAuthService {
         accountRequest.setEmail(request.getEmail());
         accountRequest.setPassword(passwordEncoder.encode(request.getPassword()));
         accountRequest.setStatus("ACTIVE");
-        accountRequest.setCreatedAt(LocalDateTime.now());
-        accountRequest.setUpdatedAt(LocalDateTime.now());
         UserAccountResponse created = identityRepository.createUserAccount(accountRequest, accountRequest.getId());
         return buildAuthResponse(created);
     }

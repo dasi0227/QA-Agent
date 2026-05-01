@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.interfaces.interceptor;
 
 import com.dasi.qa.agent.domain.util.JwtUtil;
-import com.dasi.qa.agent.domain.util.UserContext;
+import com.dasi.qa.agent.domain.util.UserContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,9 +14,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class JwtInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
-    private final UserContext userContext;
+    private final UserContextUtil userContext;
 
-    public JwtInterceptor(JwtUtil jwtUtil, UserContext userContext) {
+    public JwtInterceptor(JwtUtil jwtUtil, UserContextUtil userContext) {
         this.jwtUtil = jwtUtil;
         this.userContext = userContext;
     }

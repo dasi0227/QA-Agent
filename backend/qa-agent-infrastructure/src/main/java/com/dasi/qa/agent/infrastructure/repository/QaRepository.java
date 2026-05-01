@@ -23,12 +23,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 @Repository
-public class QaRepositoryImpl implements IQaRepository {
+public class QaRepository implements IQaRepository {
 
     private final QaSetMapper qaSetMapper;
     private final QaItemMapper qaItemMapper;
 
-    public QaRepositoryImpl(QaSetMapper qaSetMapper, QaItemMapper qaItemMapper) {
+    public QaRepository(QaSetMapper qaSetMapper, QaItemMapper qaItemMapper) {
         this.qaSetMapper = qaSetMapper;
         this.qaItemMapper = qaItemMapper;
     }

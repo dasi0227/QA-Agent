@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.dasi.qa.agent.domain.practice.service.IPracticeService;
+import com.dasi.qa.agent.domain.practice.service.crud.IPracticeCrudService;
 import com.dasi.qa.agent.types.model.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.model.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.model.response.practice.PracticeSessionItemResponse;
@@ -17,9 +17,9 @@ import java.util.List;
 @RestController
 public class PracticeController {
 
-    private final IPracticeService practiceService;
+    private final IPracticeCrudService practiceService;
 
-    public PracticeController(IPracticeService practiceService) {
+    public PracticeController(IPracticeCrudService practiceService) {
         this.practiceService = practiceService;
     }
 

@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.qa.service;
+package com.dasi.qa.agent.domain.qa.service.crud;
 
 import com.dasi.qa.agent.types.model.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.model.request.qa.QaSetRequest;
@@ -7,7 +7,7 @@ import com.dasi.qa.agent.types.model.response.qa.QaSetResponse;
 
 import java.util.List;
 
-public interface IQaService {
+public interface IQaCrudService {
 
     QaSetResponse detailQaSet(String id);
 
