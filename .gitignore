@@ -1,0 +1,54 @@
+# OS / file explorer noise
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend (React + Vite)
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Java / Spring Boot
+target/
+build/
+out/
+.gradle/
+*.class
+*.jar
+*.war
+
+# Python / tooling caches
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Project-local brainstorming / temporary artifacts
+.superpowers/
+
+# Local object storage fallback
+backend/storage/
