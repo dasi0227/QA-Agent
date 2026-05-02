@@ -21,4 +21,6 @@ public class UserAccountRequest extends BaseRequest {
     private String password;
 
     private String status;
+
+    private String avatar;
 }

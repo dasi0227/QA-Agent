@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.identity.service.auth;
 
 import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
+import com.dasi.qa.agent.domain.util.IAliOssUtil;
 import com.dasi.qa.agent.domain.util.JwtUtil;
 import com.dasi.qa.agent.domain.util.UserContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -13,6 +14,7 @@ import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.model.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.model.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,12 +27,18 @@ public class AuthService implements IAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final UserContextUtil userContext;
+    private final IAliOssUtil aliOssUtil;
 
-    public AuthService(IIdentityRepository identityRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, UserContextUtil userContext) {
+    @Value("${qa-agent.avatar.default-url:}")
+    private String defaultAvatarUrl;
+
+    public AuthService(IIdentityRepository identityRepository, PasswordEncoder passwordEncoder,
+                       JwtUtil jwtUtil, UserContextUtil userContext, IAliOssUtil aliOssUtil) {
         this.identityRepository = identityRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.userContext = userContext;
+        this.aliOssUtil = aliOssUtil;
     }
 
     @Override
@@ -50,6 +58,9 @@ public class AuthService implements IAuthService {
         accountRequest.setEmail(request.getEmail());
         accountRequest.setPassword(passwordEncoder.encode(request.getPassword()));
         accountRequest.setStatus("ACTIVE");
+        if (StrUtil.isNotBlank(defaultAvatarUrl)) {
+            accountRequest.setAvatar(defaultAvatarUrl);
+        }
         UserAccountResponse created = identityRepository.createUserAccount(accountRequest, accountRequest.getId());
         return buildAuthResponse(created);
     }
@@ -110,6 +121,7 @@ public class AuthService implements IAuthService {
                 .email(account.getEmail())
                 .status(account.getStatus())
                 .profileCompleted(profileCompleted)
+                .avatar(aliOssUtil.getPublicUrl(account.getAvatar()))
                 .accessToken(includeTokens ? jwtUtil.generateAccessToken(account.getId()) : null)
                 .refreshToken(includeTokens ? jwtUtil.generateRefreshToken(account.getId()) : null)
                 .build();

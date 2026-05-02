@@ -28,6 +28,8 @@ public class UserAccountEntity {
 
     private String status;
 
+    private String avatar;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

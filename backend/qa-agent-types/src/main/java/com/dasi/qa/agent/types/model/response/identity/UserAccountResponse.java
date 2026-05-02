@@ -23,4 +23,6 @@ public class UserAccountResponse extends BaseResponse {
     private String password;
 
     private String status;
+
+    private String avatar;
 }

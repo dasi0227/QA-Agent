@@ -50,3 +50,11 @@ qa-agent:
         thread-name-prefix: ${THREAD_POOL_THREAD_NAME_PREFIX}
         wait-for-tasks-to-complete-on-shutdown: ${THREAD_POOL_WAIT_FOR_TASKS_TO_COMPLETE_ON_SHUTDOWN}
         await-termination-seconds: ${THREAD_POOL_AWAIT_TERMINATION_SECONDS}
+    aliyun:
+        oss:
+            endpoint: ${ALIYUN_OSS_ENDPOINT}
+            access-key-id: ${ALIYUN_OSS_ACCESS_KEY_ID}
+            access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET}
+            bucket-name: ${ALIYUN_OSS_BUCKET_NAME}
+    avatar:
+        default-url: https://${ALIYUN_OSS_BUCKET_NAME}.${ALIYUN_OSS_ENDPOINT}/avatar/default_avatar.png
