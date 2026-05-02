@@ -6,11 +6,7 @@ import { useAuthState } from "@/lib/auth";
 export function Topbar() {
   const authState = useAuthState();
   const isAuthenticated = authState.status === "authenticated";
-  const displayName =
-    authState.user?.displayName?.trim() ||
-    authState.user?.username?.trim() ||
-    authState.user?.email?.trim() ||
-    "用户";
+  const avatarUrl = authState.user?.avatar?.trim() || "";
 
   return (
     <header className="topbar">
@@ -26,9 +22,31 @@ export function Topbar() {
             同步中
           </BaseButton>
         ) : isAuthenticated ? (
-          <LinkButton to="/profile" variant="soft" className="topbar__auth-link">
-            {displayName}
-          </LinkButton>
+          <Link
+            to="/profile"
+            className="avatar"
+            aria-label="个人设置"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 20,
+              overflow: "hidden",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 14, color: "var(--ink-soft)" }}>
+                {authState.user?.username?.charAt(0)?.toUpperCase() || "U"}
+              </span>
+            )}
+          </Link>
         ) : (
           <LinkButton to="/login" variant="soft" className="topbar__auth-link">
             登录

@@ -78,6 +78,7 @@ export function normalizeAuthUser(raw: unknown): AuthUser {
         id: toStringValue(pick(raw, "id", "userId", "user_id")),
         username: toStringValue(pick(raw, "username")),
         email: toStringValue(pick(raw, "email")),
+        avatar: toStringValue(pick(raw, "avatar")),
         status: toStringValue(pick(raw, "status"), "ACTIVE"),
         profileCompleted: toBooleanValue(pick(raw, "profileCompleted", "profile_completed"), false),
     };
@@ -482,6 +483,23 @@ export function useDeleteQuestionItemMutation() {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useUploadAvatarMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            formData.append("file", file);
+            return normalizeAuthUser(await apiRequest<unknown>("/user-account/avatar", {
+                method: "POST",
+                body: formData,
+            }));
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.currentUser });
         },
     });
 }

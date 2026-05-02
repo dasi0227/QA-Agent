@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, TextArea, TextInput } from "@/components/base/field";
@@ -191,6 +191,7 @@ export function RepositoryPage() {
         }
     };
     const openCreateItemEditor = () => {
+        setQuestionTableUnlocked(true);
         setActiveMode("table");
         setActiveItemId("");
         setItemDraft({
@@ -200,6 +201,7 @@ export function RepositoryPage() {
         setItemEditorMode("create");
     };
     const openEditItemEditor = (item: NonNullable<typeof activeItem>) => {
+        setQuestionTableUnlocked(true);
         setActiveMode("table");
         setActiveItemId(item.id);
         setItemDraft({
@@ -216,6 +218,8 @@ export function RepositoryPage() {
     const closeItemEditor = () => {
         setItemEditorMode(null);
         setItemDraft(emptyItemDraft);
+        setQuestionTableUnlocked(false);
+        setActiveMode("qa");
     };
     const saveItemEditor = async () => {
         if (!selectedSetQuery.data) {
@@ -314,7 +318,6 @@ export function RepositoryPage() {
                                         key={item.id}
                                         to={`/repository/${item.id}`}
                                         className={cn("tree-item", "tree-item--entry", isActive && "tree-item--active")}
-                                        onClick={() => setQuestionTableUnlocked(true)}
                                     >
                                         <span className="tree-item__label">{item.title}</span>
                                     </Link>
@@ -395,7 +398,7 @@ export function RepositoryPage() {
             </aside>
 
             <GlassCard className="panel repository-main-panel" style={{ padding: 24 }}>
-                {activeMode === "qa" ? (
+                {activeMode !== "library" ? (
                     <div className="fade-in">
                         {selectedSetQuery.isLoading ? (
                             <div className="qa-feedback">
@@ -664,14 +667,11 @@ export function RepositoryPage() {
                                     </div>
 
                                         <div style={{ marginTop: 24, marginBottom: 28, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                        <BaseButton variant="primary" type="button" disabled>
-                                            练习链路未接入
-                                        </BaseButton>
-                                        <BaseButton variant="soft" type="button" onClick={openCreateItemEditor}>
-                                            新增题目
-                                        </BaseButton>
+                                        <LinkButton to={`/quiz?questionSetId=${selectedSetQuery.data.id}`} variant="primary">
+                                            开始练习
+                                        </LinkButton>
                                         <BaseButton variant="ghost" type="button" onClick={() => setEditingSetMeta(true)}>
-                                            编辑问答集
+                                            编辑信息
                                         </BaseButton>
                                         <BaseButton
                                             variant="outline"
@@ -691,8 +691,28 @@ export function RepositoryPage() {
                                     <div className="repository-workspace">
                                         <section className="repository-items-panel">
                                             <div className="repository-panel__header">
-                                                <div>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                                     <h3 style={{ margin: 0, fontSize: 18 }}>题目目录</h3>
+                                                    <button
+                                                        type="button"
+                                                        onClick={openCreateItemEditor}
+                                                        aria-label="新增题目"
+                                                        title="新增题目"
+                                                        style={{
+                                                            display: "inline-flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            width: 32,
+                                                            height: 32,
+                                                            border: "1px solid var(--line)",
+                                                            borderRadius: 999,
+                                                            background: "var(--bg-pill)",
+                                                            color: "var(--ink-soft)",
+                                                            cursor: "pointer",
+                                                        }}
+                                                    >
+                                                        <Plus size={16} />
+                                                    </button>
                                                 </div>
                                             </div>
                                             {selectedSetItemsQuery.isLoading ? <div className="qa-text">正在加载题目列表...</div> : null}
@@ -831,15 +851,7 @@ export function RepositoryPage() {
                                 <div className="qa-feedback">
                                     <strong>暂无资料可预览</strong>
                                     <div className="qa-text">
-                                        {hasDocuments ? "请从左侧选择一个资料文件。" : "资料上传链路尚未接入。"}
-                                    </div>
-                                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                        <BaseButton variant="primary" type="button" disabled>
-                                            资料上传未接入
-                                        </BaseButton>
-                                        <BaseButton variant="soft" type="button" disabled>
-                                            练习链路未接入
-                                        </BaseButton>
+                                        {hasDocuments ? "请从左侧选择一个资料文件。" : "资料上传功能尚未接入。"}
                                     </div>
                                 </div>
                             ) : null}

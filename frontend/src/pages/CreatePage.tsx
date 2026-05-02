@@ -1,13 +1,41 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, useState } from "react";
-import { BaseButton, ChoiceButton, LinkButton } from "@/components/base/button";
-import { GlassCard, MetricCard } from "@/components/base/card";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { ArrowUp, Mic } from "lucide-react";
+import { BaseButton, ChoiceButton } from "@/components/base/button";
+import { GlassCard } from "@/components/base/card";
+import { TextArea } from "@/components/base/field";
 import { Chip, Tag } from "@/components/base/tag";
 import { useDocumentsQuery, useProfileQuery } from "@/lib/api/hooks";
+
+const createSchema = z.object({
+    note: z.string().min(1, "请输入本轮补充说明"),
+});
+
+type CreateForm = z.infer<typeof createSchema>;
+
+const stageSteps = [
+    { key: "PARSING", label: "资料解析", copy: "确认本轮资料范围，准备进入生成流程。" },
+    { key: "PLANNING", label: "规划模块", copy: "按模块和题量分配生成计划。" },
+    { key: "GENERATING", label: "检索起草", copy: "基于 RAG 证据起草结构化问答项。" },
+    { key: "VALIDATING", label: "结构校验", copy: "检查 schema、证据引用和字段完整性。" },
+    { key: "OPTIMIZING", label: "结果收口", copy: "准备落库并生成正式问答集。" },
+    { key: "COMPLETED", label: "生成完成", copy: "问答集已经可进入仓库和练习链路。" },
+] as const;
 
 export function CreatePage() {
     const profileQuery = useProfileQuery();
     const documentsQuery = useDocumentsQuery();
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+    const [showPreview, setShowPreview] = useState(false);
+
+    const form = useForm<CreateForm>({
+        resolver: zodResolver(createSchema),
+        defaultValues: {
+            note: "优先覆盖项目经历和 Redis 高频追问，答案风格偏口语化但逻辑清晰。",
+        },
+    });
 
     const uploadedDocuments = documentsQuery.data ?? [];
     const selectedDocuments = useMemo(
@@ -21,8 +49,36 @@ export function CreatePage() {
 
     return (
         <div className="page-frame">
+            {showPreview ? (
+                <GlassCard className="hero-card" style={{ width: "min(1180px, 86vw)" }}>
+                    <section className="timeline">
+                        {stageSteps.map((activity) => (
+                            <div key={activity.key} className="timeline__item">
+                                <div className="timeline__meta">待接入</div>
+                                <div className="timeline__title">{activity.label}</div>
+                                <div className="timeline__copy">{activity.copy}</div>
+                                <Chip className="fade-in">{activity.key}</Chip>
+                            </div>
+                        ))}
+                    </section>
+                    <div className="qa-feedback" style={{ marginTop: 16 }}>
+                        <strong>生成链路尚未接入</strong>
+                        <div className="qa-text">后续版本将接入 Agent DAG 生成链路，按阶段推进并实时更新进度。</div>
+                    </div>
+                </GlassCard>
+            ) : null}
+
             <GlassCard className="panel" style={{ width: "min(1180px, 86vw)", margin: "0 auto", padding: 22 }}>
-                <div className="page-grid">
+                <form
+                    className="page-grid"
+                    onSubmit={form.handleSubmit(() => {
+                        if (selectedDocumentIds.length === 0) {
+                            alert("请先在资料库中勾选本次要使用的资料。");
+                            return;
+                        }
+                        alert("接口尚未实现");
+                    })}
+                >
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                         {selectedDocumentChips.map((fileName) => <Chip key={fileName}>{fileName}</Chip>)}
                     </div>
@@ -61,28 +117,30 @@ export function CreatePage() {
                     </div>
 
                     <div className="page-copy" style={{ marginTop: -4 }}>
-                        当前状态
+                        本次生成补充说明
                     </div>
 
-                    <div className="qa-feedback">
-                        <strong>第一版当前仅打通资产查询与维护</strong>
-                        <div className="qa-text">问答集生成任务、资料上传链路暂未接入，本页仅保留资料范围预览与能力说明。</div>
-                    </div>
+                    <TextArea {...form.register("note")} placeholder="补充说明" />
+                    {form.formState.errors.note?.message ? (
+                        <div className="field__error">{form.formState.errors.note.message}</div>
+                    ) : null}
 
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 4 }}>
                         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                             <Tag>问答规模 · 中等</Tag>
-                            <Tag>补充通用知识 · {profileQuery.data?.allowGeneralKnowledge ? "允许" : "关闭"}</Tag>
+                            <Tag>
+                                补充通用知识 · {profileQuery.data?.allowGeneralKnowledge ? "允许" : "关闭"}
+                            </Tag>
                             <Tag>答案风格 · {profileQuery.data?.answerStyle || "口语化"}</Tag>
                             <Tag>已选资料 · {selectedDocumentChips.length}</Tag>
                         </div>
                         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                            <BaseButton variant="ghost" type="button" disabled>
-                                资料上传未接入
-                            </BaseButton>
-                            <BaseButton variant="primary" type="button" disabled>
-                                生成任务未接入
-                            </BaseButton>
+                            <button className="btn btn--ghost" type="button" aria-label="语音输入" onClick={() => alert("接口尚未实现")}>
+                                <Mic size={16} strokeWidth={2} />
+                            </button>
+                            <button className="btn btn--primary" type="submit" aria-label="发送">
+                                <ArrowUp size={16} strokeWidth={2} />
+                            </button>
                         </div>
                     </div>
 
@@ -92,21 +150,12 @@ export function CreatePage() {
                         </div>
                     ) : null}
 
-                    <div className="result-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
-                        <MetricCard label="状态" value="已降级" />
-                        <MetricCard label="资料" value={`${selectedDocumentChips.length}`} />
-                        <MetricCard label="链路" value="未接入" />
-                    </div>
-
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <LinkButton to="/repository" variant="primary">
-                            去仓库维护资产
-                        </LinkButton>
-                        <BaseButton variant="soft" type="button" disabled>
-                            生成问答集未接入
+                        <BaseButton variant="ghost" type="button" onClick={() => setShowPreview((v) => !v)}>
+                            {showPreview ? "收起流程预览" : "查看生成流程预览"}
                         </BaseButton>
                     </div>
-                </div>
+                </form>
             </GlassCard>
         </div>
     );

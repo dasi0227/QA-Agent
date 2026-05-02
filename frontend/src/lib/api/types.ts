@@ -8,6 +8,7 @@ export type AuthUser = {
     id: string;
     username: string;
     email: string;
+    avatar?: string;
     status?: "ACTIVE" | "LOCKED" | "DISABLED" | string;
     profileCompleted?: boolean;
 };
