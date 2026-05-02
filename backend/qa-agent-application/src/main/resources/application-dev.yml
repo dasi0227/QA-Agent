@@ -50,6 +50,11 @@ qa-agent:
         thread-name-prefix: ${THREAD_POOL_THREAD_NAME_PREFIX}
         wait-for-tasks-to-complete-on-shutdown: ${THREAD_POOL_WAIT_FOR_TASKS_TO_COMPLETE_ON_SHUTDOWN}
         await-termination-seconds: ${THREAD_POOL_AWAIT_TERMINATION_SECONDS}
+    mail:
+        host: ${QA_AGENT_MAIL_HOST}
+        port: ${QA_AGENT_MAIL_PORT}
+        username: ${QA_AGENT_MAIL_USERNAME}
+        password: ${QA_AGENT_MAIL_PASSWORD}
     aliyun:
         oss:
             endpoint: ${ALIYUN_OSS_ENDPOINT}

@@ -9,13 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegisterRequest {
-
-    private String username;
+public class SendVerifyCodeRequest {
 
     private String email;
-
-    private String password;
-
-    private String verifyCode;
 }

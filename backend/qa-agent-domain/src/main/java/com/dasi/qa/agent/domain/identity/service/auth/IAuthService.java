@@ -14,4 +14,6 @@ public interface IAuthService {
     AuthResponse refresh(RefreshRequest request);
 
     AuthResponse me();
+
+    void sendVerifyCode(String email);
 }

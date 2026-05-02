@@ -33,4 +33,7 @@ public class RedisConstant {
     public static final String PRACTICE_SESSION_ITEM_CACHE = "practice:practice-session-item";
     public static final String PRACTICE_SESSION_ITEM_DETAIL_KEY = "practice:practice-session-item:";
     public static final String PRACTICE_SESSION_ITEM_QUERY_KEY = "practice:practice-session-item:";
+
+    public static final String AUTH_VERIFY_CODE_KEY = "auth:verify-code:";
+    public static final String AUTH_VERIFY_RATE_LIMIT_KEY = "auth:verify-rate-limit:";
 }

@@ -4,6 +4,7 @@ import com.dasi.qa.agent.domain.identity.service.auth.IAuthService;
 import com.dasi.qa.agent.types.model.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;
 import com.dasi.qa.agent.types.model.request.auth.RegisterRequest;
+import com.dasi.qa.agent.types.model.request.auth.SendVerifyCodeRequest;
 import com.dasi.qa.agent.types.model.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.result.Result;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,12 @@ public class AuthController {
     @PostMapping("/refresh")
     public Result<AuthResponse> refresh(@RequestBody RefreshRequest request) {
         return Result.success(authService.refresh(request));
+    }
+
+    @PostMapping("/send-verify-code")
+    public Result<Void> sendVerifyCode(@RequestBody SendVerifyCodeRequest request) {
+        authService.sendVerifyCode(request.getEmail());
+        return Result.success();
     }
 
     @GetMapping("/me")

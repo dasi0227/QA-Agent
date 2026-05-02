@@ -3,8 +3,10 @@ package com.dasi.qa.agent.domain.identity.service.auth;
 import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.util.IAliOssUtil;
+import com.dasi.qa.agent.domain.util.IEmailUtil;
 import com.dasi.qa.agent.domain.util.JwtUtil;
 import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;
@@ -15,9 +17,12 @@ import com.dasi.qa.agent.types.model.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.model.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -28,30 +33,45 @@ public class AuthService implements IAuthService {
     private final JwtUtil jwtUtil;
     private final UserContextUtil userContext;
     private final IAliOssUtil aliOssUtil;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final IEmailUtil emailUtil;
 
     @Value("${qa-agent.avatar.default-url:}")
     private String defaultAvatarUrl;
 
     public AuthService(IIdentityRepository identityRepository, PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil, UserContextUtil userContext, IAliOssUtil aliOssUtil) {
+                       JwtUtil jwtUtil, UserContextUtil userContext, IAliOssUtil aliOssUtil,
+                       StringRedisTemplate stringRedisTemplate, IEmailUtil emailUtil) {
         this.identityRepository = identityRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.userContext = userContext;
         this.aliOssUtil = aliOssUtil;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.emailUtil = emailUtil;
     }
 
     @Override
     public AuthResponse register(RegisterRequest request) {
-        if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())) {
+        if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())
+                || StrUtil.isBlank(request.getEmail()) || StrUtil.isBlank(request.getVerifyCode())) {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
         if (identityRepository.findUserAccountByUsername(request.getUsername()) != null) {
             throw new ApiException(ResultCode.CONFLICT);
         }
-        if (StrUtil.isNotBlank(request.getEmail()) && identityRepository.findUserAccountByEmail(request.getEmail()) != null) {
-            throw new ApiException(ResultCode.CONFLICT);
+        if (identityRepository.findUserAccountByEmail(request.getEmail()) != null) {
+            throw new ApiException(ResultCode.EMAIL_ALREADY_REGISTERED);
         }
+        String codeKey = RedisConstant.AUTH_VERIFY_CODE_KEY + request.getEmail();
+        String storedCode = stringRedisTemplate.opsForValue().get(codeKey);
+        if (storedCode == null) {
+            throw new ApiException(ResultCode.VERIFY_CODE_EXPIRED);
+        }
+        if (!storedCode.equals(request.getVerifyCode())) {
+            throw new ApiException(ResultCode.VERIFY_CODE_INVALID);
+        }
+        stringRedisTemplate.delete(codeKey);
         UserAccountRequest accountRequest = new UserAccountRequest();
         accountRequest.setId(UUID.randomUUID().toString());
         accountRequest.setUsername(request.getUsername());
@@ -63,6 +83,25 @@ public class AuthService implements IAuthService {
         }
         UserAccountResponse created = identityRepository.createUserAccount(accountRequest, accountRequest.getId());
         return buildAuthResponse(created);
+    }
+
+    @Override
+    public void sendVerifyCode(String email) {
+        if (StrUtil.isBlank(email)) {
+            throw new ApiException(ResultCode.BAD_REQUEST);
+        }
+        if (identityRepository.findUserAccountByEmail(email) != null) {
+            throw new ApiException(ResultCode.EMAIL_ALREADY_REGISTERED);
+        }
+        String rateLimitKey = RedisConstant.AUTH_VERIFY_RATE_LIMIT_KEY + email;
+        if (stringRedisTemplate.opsForValue().get(rateLimitKey) != null) {
+            throw new ApiException(ResultCode.VERIFY_CODE_RATE_LIMITED);
+        }
+        String code = String.format("%06d", new Random().nextInt(1000000));
+        String codeKey = RedisConstant.AUTH_VERIFY_CODE_KEY + email;
+        stringRedisTemplate.opsForValue().set(codeKey, code, Duration.ofMinutes(5));
+        stringRedisTemplate.opsForValue().set(rateLimitKey, "1", Duration.ofSeconds(60));
+        emailUtil.sendVerifyCode(email, code);
     }
 
     @Override
