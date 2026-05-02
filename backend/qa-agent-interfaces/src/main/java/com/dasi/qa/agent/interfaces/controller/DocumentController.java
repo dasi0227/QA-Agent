@@ -6,6 +6,7 @@ import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.model.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.model.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.result.Result;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
+@RequestMapping("/qa-agent/api/v1")
 public class DocumentController {
 
     private final IDocumentCrudService documentService;
@@ -31,11 +33,6 @@ public class DocumentController {
     @PostMapping("/source-document/query")
     public Result<List<SourceDocumentResponse>> sourceDocumentQuery(@RequestBody SourceDocumentRequest request) {
         return Result.success(documentService.querySourceDocument(request));
-    }
-
-    @PostMapping("/source-document/create")
-    public Result<SourceDocumentResponse> sourceDocumentCreate(@RequestBody SourceDocumentRequest request) {
-        return Result.success(documentService.createSourceDocument(request));
     }
 
     @PostMapping("/source-document/update")

@@ -43,7 +43,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     )
     public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.querySourceDocument(request, userId);
     }
 
@@ -54,7 +53,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setUserId(userId);
         return repository.createSourceDocument(request, userId);
     }
 
@@ -62,7 +60,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.updateSourceDocument(request, userId);
     }
 
@@ -88,7 +85,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     )
     public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.queryDocumentChunk(request, userId);
     }
 
@@ -99,7 +95,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setUserId(userId);
         return repository.createDocumentChunk(request, userId);
     }
 
@@ -107,7 +102,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.updateDocumentChunk(request, userId);
     }
 

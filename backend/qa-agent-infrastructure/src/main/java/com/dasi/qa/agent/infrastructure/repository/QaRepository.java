@@ -3,6 +3,7 @@ package com.dasi.qa.agent.infrastructure.repository;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class QaRepository implements IQaRepository {
@@ -45,12 +47,12 @@ public class QaRepository implements IQaRepository {
 
     @Override
     public QaSetResponse createQaSet(QaSetRequest request, String userId) {
-        return create(qaSetMapper, QaSetEntity.class, QaSetResponse.class, request);
+        return create(qaSetMapper, QaSetEntity.class, QaSetResponse.class, request, userId);
     }
 
     @Override
     public QaSetResponse updateQaSet(QaSetRequest request, String userId) {
-        return update(qaSetMapper, QaSetEntity.class, QaSetResponse.class, request);
+        return update(qaSetMapper, QaSetEntity.class, QaSetResponse.class, request, userId);
     }
 
     @Override
@@ -70,12 +72,12 @@ public class QaRepository implements IQaRepository {
 
     @Override
     public QaItemResponse createQaItem(QaItemRequest request, String userId) {
-        return create(qaItemMapper, QaItemEntity.class, QaItemResponse.class, request);
+        return create(qaItemMapper, QaItemEntity.class, QaItemResponse.class, request, userId);
     }
 
     @Override
     public QaItemResponse updateQaItem(QaItemRequest request, String userId) {
-        return update(qaItemMapper, QaItemEntity.class, QaItemResponse.class, request);
+        return update(qaItemMapper, QaItemEntity.class, QaItemResponse.class, request, userId);
     }
 
     @Override
@@ -99,21 +101,26 @@ public class QaRepository implements IQaRepository {
 
     private <E, Q, R extends BaseResponse> List<R> query(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request, String userId) {
         QueryWrapper<E> queryWrapper = new QueryWrapper<>();
-        queryWrapper.allEq(BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue()), false);
+        Map<String, Object> map = BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue());
+        Map<String, Object> snakeMap = new LinkedHashMap<>();
+        map.forEach((k, v) -> snakeMap.put(StrUtil.toUnderlineCase(k), v));
+        queryWrapper.allEq(snakeMap, false);
         if (ReflectUtil.getField(entityType, "userId") != null) {
             queryWrapper.eq("user_id", userId);
         }
         return mapper.selectList(queryWrapper).stream().map(entity -> toResponse(entity, responseType)).toList();
     }
 
-    private <E, Q, R extends BaseResponse> R create(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request) {
+    private <E, Q, R extends BaseResponse> R create(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request, String userId) {
         E entity = toEntity(request, entityType);
+        BeanUtil.setProperty(entity, "userId", userId);
         mapper.insert(entity);
         return toResponse(entity, responseType);
     }
 
-    private <E, Q, R extends BaseResponse> R update(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request) {
+    private <E, Q, R extends BaseResponse> R update(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request, String userId) {
         E entity = toEntity(request, entityType);
+        BeanUtil.setProperty(entity, "userId", userId);
         mapper.updateById(entity);
         return toResponse(entity, responseType);
     }

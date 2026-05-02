@@ -12,4 +12,6 @@ public interface IAuthService {
     AuthResponse login(LoginRequest request);
 
     AuthResponse refresh(RefreshRequest request);
+
+    AuthResponse me();
 }

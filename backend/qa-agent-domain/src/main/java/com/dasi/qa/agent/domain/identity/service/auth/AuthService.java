@@ -3,11 +3,13 @@ package com.dasi.qa.agent.domain.identity.service.auth;
 import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.util.JwtUtil;
+import com.dasi.qa.agent.domain.util.UserContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;
 import com.dasi.qa.agent.types.model.request.auth.RegisterRequest;
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
+import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.model.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.model.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
@@ -22,11 +24,13 @@ public class AuthService implements IAuthService {
     private final IIdentityRepository identityRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final UserContextUtil userContext;
 
-    public AuthService(IIdentityRepository identityRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthService(IIdentityRepository identityRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, UserContextUtil userContext) {
         this.identityRepository = identityRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.userContext = userContext;
     }
 
     @Override
@@ -81,13 +85,33 @@ public class AuthService implements IAuthService {
         return buildAuthResponse(account);
     }
 
+    @Override
+    public AuthResponse me() {
+        String userId = userContext.getUserId();
+        if (StrUtil.isBlank(userId)) {
+            throw new ApiException(ResultCode.UNAUTHORIZED);
+        }
+        UserAccountResponse account = identityRepository.detailUserAccount(userId, userId);
+        if (!"ACTIVE".equals(account.getStatus())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        return buildAuthResponse(account, false);
+    }
+
     private AuthResponse buildAuthResponse(UserAccountResponse account) {
+        return buildAuthResponse(account, true);
+    }
+
+    private AuthResponse buildAuthResponse(UserAccountResponse account, boolean includeTokens) {
+        boolean profileCompleted = !identityRepository.queryUserProfile(new UserProfileRequest(), account.getId()).isEmpty();
         return AuthResponse.builder()
                 .userId(account.getId())
                 .username(account.getUsername())
                 .email(account.getEmail())
-                .accessToken(jwtUtil.generateAccessToken(account.getId()))
-                .refreshToken(jwtUtil.generateRefreshToken(account.getId()))
+                .status(account.getStatus())
+                .profileCompleted(profileCompleted)
+                .accessToken(includeTokens ? jwtUtil.generateAccessToken(account.getId()) : null)
+                .refreshToken(includeTokens ? jwtUtil.generateRefreshToken(account.getId()) : null)
                 .build();
     }
 }

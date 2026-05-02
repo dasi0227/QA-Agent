@@ -6,6 +6,7 @@ import com.dasi.qa.agent.types.model.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.model.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.model.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.Result;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
+@RequestMapping("/qa-agent/api/v1")
 public class PracticeController {
 
     private final IPracticeCrudService practiceService;

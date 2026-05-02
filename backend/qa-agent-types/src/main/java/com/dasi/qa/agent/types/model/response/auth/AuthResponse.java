@@ -17,6 +17,10 @@ public class AuthResponse {
 
     private String email;
 
+    private String status;
+
+    private Boolean profileCompleted;
+
     private String accessToken;
 
     private String refreshToken;

@@ -6,6 +6,7 @@ import com.dasi.qa.agent.types.model.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.model.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.model.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.result.Result;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
+@RequestMapping("/qa-agent/api/v1")
 public class QaController {
 
     private final IQaCrudService qaService;
@@ -31,11 +33,6 @@ public class QaController {
     @PostMapping("/qa-set/query")
     public Result<List<QaSetResponse>> qaSetQuery(@RequestBody QaSetRequest request) {
         return Result.success(qaService.queryQaSet(request));
-    }
-
-    @PostMapping("/qa-set/create")
-    public Result<QaSetResponse> qaSetCreate(@RequestBody QaSetRequest request) {
-        return Result.success(qaService.createQaSet(request));
     }
 
     @PostMapping("/qa-set/update")

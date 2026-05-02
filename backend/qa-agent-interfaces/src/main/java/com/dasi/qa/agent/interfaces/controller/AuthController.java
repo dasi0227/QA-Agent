@@ -6,13 +6,14 @@ import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;
 import com.dasi.qa.agent.types.model.request.auth.RegisterRequest;
 import com.dasi.qa.agent.types.model.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.result.Result;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/qa-agent/api/v1/auth")
 public class AuthController {
 
     private final IAuthService authService;
@@ -34,5 +35,10 @@ public class AuthController {
     @PostMapping("/refresh")
     public Result<AuthResponse> refresh(@RequestBody RefreshRequest request) {
         return Result.success(authService.refresh(request));
+    }
+
+    @GetMapping("/me")
+    public Result<AuthResponse> me() {
+        return Result.success(authService.me());
     }
 }

@@ -4,37 +4,39 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { z } from "zod";
 import { BaseButton } from "@/components/base/button";
-import { Field, TextArea, TextInput } from "@/components/base/field";
+import { Field, TextInput } from "@/components/base/field";
 import { cn } from "@/lib/cn";
 import { clearAccessToken, useAuthState } from "@/lib/auth";
 import { useProfileQuery, useSaveProfileMutation } from "@/lib/api/hooks";
 
 const profileSchema = z.object({
     targetRole: z.string().min(1, "请输入目标岗位"),
-    targetDirection: z.string().min(1, "请选择目标方向"),
+    targetDomain: z.string().min(1, "请选择目标方向"),
+    targetCompany: z.string().min(1, "请输入目标公司"),
     allowGeneralKnowledge: z.boolean(),
+    allowWebSearch: z.boolean(),
     answerStyle: z.string().min(1, "请输入答案风格"),
     feedbackStyle: z.string().min(1, "请输入反馈风格"),
+    age: z.string().min(1, "请输入年龄"),
     grade: z.string().min(1, "请输入年级"),
-    education: z.string().min(1, "请输入学历"),
+    major: z.string().min(1, "请输入专业"),
     stage: z.string().min(1, "请输入准备阶段"),
-    companyType: z.string().min(1, "请输入目标公司类型"),
-    note: z.string().min(1, "请输入补充说明"),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
 
 const defaultProfile: ProfileForm = {
     targetRole: "Java 后端开发",
-    targetDirection: "Java 后端",
+    targetDomain: "Java 后端",
+    targetCompany: "互联网公司",
     allowGeneralKnowledge: true,
+    allowWebSearch: false,
     answerStyle: "口语化但逻辑清晰",
     feedbackStyle: "直接指出问题并给建议",
+    age: "22",
     grade: "大四",
-    education: "本科",
+    major: "计算机科学与技术",
     stage: "秋招准备",
-    companyType: "互联网 / 中厂",
-    note: "优先围绕项目和高频八股做专项训练。",
 };
 
 export function ProfilePage() {
@@ -104,14 +106,20 @@ export function ProfilePage() {
                             <Field label="目标岗位" error={form.formState.errors.targetRole?.message}>
                                 <TextInput {...form.register("targetRole")} />
                             </Field>
-                            <Field label="目标领域" error={form.formState.errors.targetDirection?.message}>
-                                <TextInput placeholder="Java 后端 / 中间件 / 数据库" {...form.register("targetDirection")} />
+                            <Field label="目标领域" error={form.formState.errors.targetDomain?.message}>
+                                <TextInput placeholder="Java 后端 / 中间件 / 数据库" {...form.register("targetDomain")} />
+                            </Field>
+                            <Field label="目标公司" error={form.formState.errors.targetCompany?.message}>
+                                <TextInput {...form.register("targetCompany")} />
+                            </Field>
+                            <Field label="年龄" error={form.formState.errors.age?.message}>
+                                <TextInput {...form.register("age")} />
                             </Field>
                             <Field label="年级" error={form.formState.errors.grade?.message}>
                                 <TextInput {...form.register("grade")} />
                             </Field>
-                            <Field label="学历" error={form.formState.errors.education?.message}>
-                                <TextInput {...form.register("education")} />
+                            <Field label="专业" error={form.formState.errors.major?.message}>
+                                <TextInput {...form.register("major")} />
                             </Field>
                             <Field label="准备阶段" error={form.formState.errors.stage?.message}>
                                 <TextInput {...form.register("stage")} />
@@ -147,14 +155,21 @@ export function ProfilePage() {
                                 <span className="profile-switch__thumb" />
                             </span>
                         </button>
-                    </section>
-
-                    <section className="profile-section profile-section--supplement">
-                        <div className="profile-section__title">补充说明</div>
-                        <TextArea {...form.register("note")} aria-label="补充说明" />
-                        {form.formState.errors.note?.message ? (
-                            <span className="field__error">{form.formState.errors.note.message}</span>
-                        ) : null}
+                        <button
+                            type="button"
+                            className={cn("profile-switch", form.watch("allowWebSearch") && "profile-switch--active")}
+                            onClick={() =>
+                                form.setValue("allowWebSearch", !form.getValues("allowWebSearch"), { shouldDirty: true })
+                            }
+                        >
+                            <span className="profile-switch__copy">
+                                <strong>Web 搜索</strong>
+                                <small>后续生成链路可按配置决定是否允许补充外部搜索结果。</small>
+                            </span>
+                            <span className="profile-switch__track" aria-hidden="true">
+                                <span className="profile-switch__thumb" />
+                            </span>
+                        </button>
                     </section>
                 </div>
 

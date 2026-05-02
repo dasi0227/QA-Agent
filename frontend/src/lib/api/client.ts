@@ -1,7 +1,7 @@
-import type { ApiResponseEnvelope } from "./types";
+import type { ApiResult } from "./types";
 import { clearAccessToken, getAccessToken, getRefreshToken, getRememberPreference, setAuthSession } from "../auth";
 
-const DEFAULT_API_BASE_URL = "http://localhost:8080";
+const DEFAULT_API_BASE_URL = "http://localhost:8080/qa-agent/api/v1";
 
 export class ApiError extends Error {
     status?: number;
@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 export function getApiBaseUrl() {
-    return import.meta.env.VITE_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL;
+    return (import.meta.env.VITE_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL).replace(/\/+$/, "");
 }
 
 type ApiRequestOptions = {
@@ -32,7 +32,8 @@ type ApiRequestOptions = {
 };
 
 function buildUrl(path: string, query?: ApiRequestOptions["query"]) {
-    const url = new URL(path, getApiBaseUrl());
+    const normalizedPath = path.replace(/^\/+/, "");
+    const url = new URL(`${getApiBaseUrl()}/${normalizedPath}`);
     if (query) {
         Object.entries(query).forEach(([key, value]) => {
             if (value === null || value === undefined || value === "") {
@@ -44,8 +45,8 @@ function buildUrl(path: string, query?: ApiRequestOptions["query"]) {
     return url;
 }
 
-function isApiEnvelope(value: unknown): value is ApiResponseEnvelope<unknown> {
-    return typeof value === "object" && value !== null && "success" in value;
+function isApiResult(value: unknown): value is ApiResult<unknown> {
+    return typeof value === "object" && value !== null && "code" in value && "msg" in value;
 }
 
 function parseResponseBody(text: string) {
@@ -92,24 +93,16 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
             clearAccessToken();
         }
 
-        if (isApiEnvelope(parsed) && parsed.error) {
-            throw new ApiError(parsed.error.message ?? "请求失败", {
-                status: response.status,
-                code: parsed.error.code,
-                details: parsed.error,
-            });
-        }
-
         const message = typeof parsed === "string" && parsed ? parsed : `请求失败（${response.status}）`;
         throw new ApiError(message, { status: response.status, details: parsed });
     }
 
-    if (isApiEnvelope(parsed)) {
-        if (parsed.success === false) {
-            throw new ApiError(parsed.error?.message ?? "请求失败", {
+    if (isApiResult(parsed)) {
+        if (parsed.code !== 0) {
+            throw new ApiError(parsed.msg || "请求失败", {
                 status: response.status,
-                code: parsed.error?.code,
-                details: parsed.error,
+                code: String(parsed.code),
+                details: parsed,
             });
         }
         return parsed.data as T;
@@ -128,8 +121,8 @@ async function tryRefreshAuthSession() {
     if (!refreshingPromise) {
         refreshingPromise = (async () => {
             try {
-                const refreshed = await apiRequest<{ token?: string; accessToken?: string; refreshToken?: string; id?: string; username?: string; email?: string; profileCompleted?: boolean }>(
-                    "/api/auth/refresh",
+                const refreshed = await apiRequest<{ accessToken?: string; refreshToken?: string }>(
+                    "/auth/refresh",
                     {
                         method: "POST",
                         body: { refreshToken },

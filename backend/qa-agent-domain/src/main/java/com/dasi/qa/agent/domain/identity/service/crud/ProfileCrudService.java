@@ -101,7 +101,6 @@ public class ProfileCrudService implements IProfileCrudService {
     )
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.queryUserProfile(request, userId);
     }
 
@@ -110,7 +109,6 @@ public class ProfileCrudService implements IProfileCrudService {
     public UserProfileResponse createUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
         request.setId(userId);
-        request.setUserId(userId);
         return repository.createUserProfile(request, userId);
     }
 
@@ -119,7 +117,6 @@ public class ProfileCrudService implements IProfileCrudService {
     public UserProfileResponse updateUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
         request.setId(userId);
-        request.setUserId(userId);
         return repository.updateUserProfile(request, userId);
     }
 

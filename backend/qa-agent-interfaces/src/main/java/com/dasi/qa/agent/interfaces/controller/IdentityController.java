@@ -6,6 +6,7 @@ import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.model.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.model.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.Result;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
+@RequestMapping("/qa-agent/api/v1")
 public class IdentityController {
 
     private final IProfileCrudService identityService;
@@ -49,9 +51,9 @@ public class IdentityController {
         return Result.success();
     }
 
-    @GetMapping("/user-profile/detail")
-    public Result<UserProfileResponse> userProfileDetail(@RequestParam("id") String id) {
-        return Result.success(identityService.detailUserProfile(id));
+    @GetMapping("/user-profile/me")
+    public Result<UserProfileResponse> userProfileMe() {
+        return Result.success(identityService.detailUserProfile("self"));
     }
 
     @PostMapping("/user-profile/query")

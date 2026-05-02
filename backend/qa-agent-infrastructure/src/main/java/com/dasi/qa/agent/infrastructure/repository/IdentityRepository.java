@@ -3,6 +3,7 @@ package com.dasi.qa.agent.infrastructure.repository;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class IdentityRepository implements IIdentityRepository {
@@ -112,7 +114,10 @@ public class IdentityRepository implements IIdentityRepository {
     @Override
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request, String userId) {
         QueryWrapper<UserProfileEntity> queryWrapper = new QueryWrapper<>();
-        queryWrapper.allEq(BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue()), false);
+        Map<String, Object> map = BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue());
+        Map<String, Object> snakeMap = new LinkedHashMap<>();
+        map.forEach((k, v) -> snakeMap.put(StrUtil.toUnderlineCase(k), v));
+        queryWrapper.allEq(snakeMap, false);
         queryWrapper.eq("user_id", userId);
         return userProfileMapper.selectList(queryWrapper).stream().map(this::toUserProfileResponse).toList();
     }
@@ -120,6 +125,7 @@ public class IdentityRepository implements IIdentityRepository {
     @Override
     public UserProfileResponse createUserProfile(UserProfileRequest request, String userId) {
         UserProfileEntity entity = toEntity(request, UserProfileEntity.class);
+        entity.setUserId(userId);
         userProfileMapper.insert(entity);
         return toUserProfileResponse(entity);
     }
@@ -127,6 +133,7 @@ public class IdentityRepository implements IIdentityRepository {
     @Override
     public UserProfileResponse updateUserProfile(UserProfileRequest request, String userId) {
         UserProfileEntity entity = toEntity(request, UserProfileEntity.class);
+        entity.setUserId(userId);
         userProfileMapper.updateById(entity);
         return toUserProfileResponse(entity);
     }

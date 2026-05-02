@@ -3,6 +3,7 @@ package com.dasi.qa.agent.infrastructure.repository;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class DocumentRepository implements IDocumentRepository {
@@ -45,12 +47,12 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request, String userId) {
-        return create(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request);
+        return create(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request, String userId) {
-        return update(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request);
+        return update(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
@@ -70,12 +72,12 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     public DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request, String userId) {
-        return create(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request);
+        return create(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
     public DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request, String userId) {
-        return update(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request);
+        return update(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
@@ -99,21 +101,26 @@ public class DocumentRepository implements IDocumentRepository {
 
     private <E, Q, R extends BaseResponse> List<R> query(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request, String userId) {
         QueryWrapper<E> queryWrapper = new QueryWrapper<>();
-        queryWrapper.allEq(BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue()), false);
+        Map<String, Object> map = BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue());
+        Map<String, Object> snakeMap = new LinkedHashMap<>();
+        map.forEach((k, v) -> snakeMap.put(StrUtil.toUnderlineCase(k), v));
+        queryWrapper.allEq(snakeMap, false);
         if (ReflectUtil.getField(entityType, "userId") != null) {
             queryWrapper.eq("user_id", userId);
         }
         return mapper.selectList(queryWrapper).stream().map(entity -> toResponse(entity, responseType)).toList();
     }
 
-    private <E, Q, R extends BaseResponse> R create(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request) {
+    private <E, Q, R extends BaseResponse> R create(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request, String userId) {
         E entity = toEntity(request, entityType);
+        BeanUtil.setProperty(entity, "userId", userId);
         mapper.insert(entity);
         return toResponse(entity, responseType);
     }
 
-    private <E, Q, R extends BaseResponse> R update(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request) {
+    private <E, Q, R extends BaseResponse> R update(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, Q request, String userId) {
         E entity = toEntity(request, entityType);
+        BeanUtil.setProperty(entity, "userId", userId);
         mapper.updateById(entity);
         return toResponse(entity, responseType);
     }

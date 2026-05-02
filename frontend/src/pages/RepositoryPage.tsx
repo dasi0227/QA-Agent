@@ -17,19 +17,20 @@ import {
     useQuestionSetItemsQuery,
     useQuestionSetQuery,
     useQuestionSetsQuery,
+    useUpdateDocumentMutation,
+    parseModuleTags,
 } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
-import { clearDocumentDraft, getDocumentSourceText, readDocumentDraft, writeDocumentDraft } from "@/lib/document-draft";
 import { MarkdownRenderer } from "@/lib/markdown";
 
 const emptyItemDraft = {
     question: "",
     knowledgeNote: "",
-    interviewAnswer: "",
+    answer: "",
     moduleTag: "",
-    tags: "",
     difficulty: "",
     conflictTip: "",
+    sourceChunkIdsJson: "",
 };
 
 const compactDateFormatter = new Intl.DateTimeFormat("zh-CN", {
@@ -60,8 +61,9 @@ export function RepositoryPage() {
     const [documentEditorMode, setDocumentEditorMode] = useState<"view" | "edit">("view");
     const [documentDraft, setDocumentDraft] = useState("");
     const [activeItemId, setActiveItemId] = useState("");
-    const [editingSetTitle, setEditingSetTitle] = useState(false);
+    const [editingSetMeta, setEditingSetMeta] = useState(false);
     const [setTitleDraft, setSetTitleDraft] = useState("");
+    const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
     const [itemDraft, setItemDraft] = useState(emptyItemDraft);
     const [itemEditorMode, setItemEditorMode] = useState<"create" | "edit" | null>(null);
 
@@ -73,6 +75,7 @@ export function RepositoryPage() {
     const selectedSetItemsQuery = useQuestionSetItemsQuery(selectedSetId);
     const deleteQuestionSetMutation = useDeleteQuestionSetMutation();
     const updateQuestionSetMutation = useUpdateQuestionSetMutation();
+    const updateDocumentMutation = useUpdateDocumentMutation();
     const createQuestionItemMutation = useCreateQuestionItemMutation();
     const updateQuestionItemMutation = useUpdateQuestionItemMutation();
     const deleteQuestionItemMutation = useDeleteQuestionItemMutation();
@@ -94,17 +97,18 @@ export function RepositoryPage() {
             setDocumentEditorMode("view");
             return;
         }
-        const draftSnapshot = readDocumentDraft(selectedDocumentQuery.data.id);
-        setDocumentDraft(draftSnapshot?.rawContent || getDocumentSourceText(selectedDocumentQuery.data));
+        setDocumentDraft(selectedDocumentQuery.data.rawContent || selectedDocumentQuery.data.normalizedContent || "");
         setDocumentEditorMode("view");
     }, [selectedDocumentId]);
 
     useEffect(() => {
         if (!selectedSetQuery.data) {
             setSetTitleDraft("");
+            setSetDescriptionDraft("");
             return;
         }
         setSetTitleDraft(selectedSetQuery.data.title);
+        setSetDescriptionDraft(selectedSetQuery.data.description);
     }, [selectedSetQuery.data]);
 
     useEffect(() => {
@@ -124,11 +128,11 @@ export function RepositoryPage() {
             setItemDraft({
                 question: activeItem.question,
                 knowledgeNote: activeItem.knowledgeNote,
-                interviewAnswer: activeItem.interviewAnswer,
+                answer: activeItem.answer,
                 moduleTag: activeItem.moduleTag,
-                tags: activeItem.tags.join(", "),
                 difficulty: activeItem.difficulty || "",
                 conflictTip: activeItem.conflictTip || "",
+                sourceChunkIdsJson: activeItem.sourceChunkIdsJson || "",
             });
         }
     }, [activeItemId, itemEditorMode, selectedSetItemsQuery.data]);
@@ -143,31 +147,34 @@ export function RepositoryPage() {
     const showQuestionTableView = activeMode === "table";
     const showItemDetailView = showItemEditor;
     const sidebarTitle = showQuestionTableView ? "题目表" : activeMode === "qa" ? "问答集" : "资料文件";
-    const selectedDocumentDraftUpdatedAt = selectedDocumentQuery.data ? readDocumentDraft(selectedDocumentQuery.data.id)?.updatedAt : "";
-    const selectedDocumentUpdatedAt = selectedDocumentDraftUpdatedAt || selectedDocumentQuery.data?.updatedAt || selectedDocumentQuery.data?.createdAt || "";
-    const selectedDocumentUseCount = selectedDocumentQuery.data?.usedInGeneration ? 1 : 0;
+    const selectedDocumentUpdatedAt = selectedDocumentQuery.data?.updatedAt || selectedDocumentQuery.data?.createdAt || "";
+    const selectedDocumentUseCount = selectedDocumentQuery.data?.referenceCount ?? 0;
     const documentBody = documentEditorMode === "edit"
         ? documentDraft
-        : getDocumentSourceText(selectedDocumentQuery.data);
+        : (selectedDocumentQuery.data?.rawContent || selectedDocumentQuery.data?.normalizedContent || "");
     const handleStartDocumentEdit = () => {
         if (!selectedDocumentQuery.data) {
             return;
         }
-        setDocumentDraft(getDocumentSourceText(selectedDocumentQuery.data));
+        setDocumentDraft(selectedDocumentQuery.data.rawContent || selectedDocumentQuery.data.normalizedContent || "");
         setDocumentEditorMode("edit");
     };
     const handleCancelDocumentEdit = () => {
         if (!selectedDocumentQuery.data) {
             return;
         }
-        setDocumentDraft(getDocumentSourceText(selectedDocumentQuery.data));
+        setDocumentDraft(selectedDocumentQuery.data.rawContent || selectedDocumentQuery.data.normalizedContent || "");
         setDocumentEditorMode("view");
     };
-    const handleSaveDocumentEdit = () => {
+    const handleSaveDocumentEdit = async () => {
         if (!selectedDocumentQuery.data) {
             return;
         }
-        writeDocumentDraft(selectedDocumentQuery.data.id, documentDraft);
+        await updateDocumentMutation.mutateAsync({
+            ...selectedDocumentQuery.data,
+            rawContent: documentDraft,
+            normalizedContent: documentDraft,
+        });
         setDocumentEditorMode("view");
     };
     const openQuestionTable = () => {
@@ -188,7 +195,7 @@ export function RepositoryPage() {
         setActiveItemId("");
         setItemDraft({
             ...emptyItemDraft,
-            moduleTag: selectedSetQuery.data?.moduleTags[0] || "",
+            moduleTag: parseModuleTags(selectedSetQuery.data?.moduleTagsJson)[0] || "",
         });
         setItemEditorMode("create");
     };
@@ -198,11 +205,11 @@ export function RepositoryPage() {
         setItemDraft({
             question: item.question,
             knowledgeNote: item.knowledgeNote,
-            interviewAnswer: item.interviewAnswer,
+            answer: item.answer,
             moduleTag: item.moduleTag,
-            tags: item.tags.join(", "),
             difficulty: item.difficulty || "",
             conflictTip: item.conflictTip || "",
+            sourceChunkIdsJson: item.sourceChunkIdsJson || "",
         });
         setItemEditorMode("edit");
     };
@@ -217,7 +224,7 @@ export function RepositoryPage() {
 
         if (itemEditorMode === "create") {
             const created = await createQuestionItemMutation.mutateAsync({
-                questionSetId: selectedSetQuery.data.id,
+                qaSetId: selectedSetQuery.data.id,
                 ...itemDraft,
             });
             setActiveItemId(created.id);
@@ -230,7 +237,7 @@ export function RepositoryPage() {
         }
 
         await updateQuestionItemMutation.mutateAsync({
-            questionSetId: selectedSetQuery.data.id,
+            qaSetId: selectedSetQuery.data.id,
             questionItemId: activeItem.id,
             ...itemDraft,
         });
@@ -242,14 +249,14 @@ export function RepositoryPage() {
         }
         if (window.confirm(`确认删除题目“${activeItem.question}”吗？`)) {
             await deleteQuestionItemMutation.mutateAsync({
-                questionSetId: selectedSetQuery.data.id,
+                qaSetId: selectedSetQuery.data.id,
                 questionItemId: activeItem.id,
             });
             setActiveItemId("");
             closeItemEditor();
         }
     };
-    const selectedSetNote = selectedSetQuery.data?.note?.trim();
+    const selectedSetDescription = selectedSetQuery.data?.description?.trim();
     const selectedSetPracticeTotal = selectedSetQuery.data
         ? selectedSetQuery.data.questionCount * selectedSetQuery.data.practiceCount
         : 0;
@@ -450,24 +457,12 @@ export function RepositoryPage() {
                                         {itemEditorMode === "edit" && activeItem ? (
                                             <div className="qa-feedback">
                                                 <div className="sidebar__split">
-                                                    <strong>生成结构</strong>
+                                                    <strong>题目结构</strong>
                                                     <span>{activeItem.difficulty || "未标注难度"}</span>
                                                 </div>
-                                                {activeItem.scoringRubric?.keyPoints?.length ? (
-                                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-                                                        {activeItem.scoringRubric.keyPoints.map((point) => (
-                                                            <Tag key={point}>{point}</Tag>
-                                                        ))}
-                                                    </div>
-                                                ) : null}
-                                                {activeItem.scoringRubric?.answerStructure ? (
+                                                {activeItem.sourceChunkIdsJson ? (
                                                     <div className="qa-text" style={{ marginTop: 12 }}>
-                                                        建议答题结构：{activeItem.scoringRubric.answerStructure}
-                                                    </div>
-                                                ) : null}
-                                                {activeItem.sourceChunkIds?.length ? (
-                                                    <div className="qa-text" style={{ marginTop: 12 }}>
-                                                        已绑定证据片段：{activeItem.sourceChunkIds.length} 条
+                                                        已绑定证据片段：{activeItem.sourceChunkIdsJson}
                                                     </div>
                                                 ) : null}
                                             </div>
@@ -489,19 +484,13 @@ export function RepositoryPage() {
                                                     onChange={(event) => setItemDraft((current) => ({ ...current, moduleTag: event.target.value }))}
                                                 />
                                             </Field>
-                                            <Field label="标签" hint="用逗号分隔">
+                                            <Field label="难度" hint="EASY / MEDIUM / HARD">
                                                 <TextInput
-                                                    value={itemDraft.tags}
-                                                    onChange={(event) => setItemDraft((current) => ({ ...current, tags: event.target.value }))}
+                                                    value={itemDraft.difficulty}
+                                                    onChange={(event) => setItemDraft((current) => ({ ...current, difficulty: event.target.value }))}
                                                 />
                                             </Field>
                                         </div>
-                                        <Field label="难度" hint="EASY / MEDIUM / HARD">
-                                            <TextInput
-                                                value={itemDraft.difficulty}
-                                                onChange={(event) => setItemDraft((current) => ({ ...current, difficulty: event.target.value }))}
-                                            />
-                                        </Field>
                                         <Field label="知识笔记">
                                             <TextArea
                                                 value={itemDraft.knowledgeNote}
@@ -509,10 +498,10 @@ export function RepositoryPage() {
                                                 rows={5}
                                             />
                                         </Field>
-                                        <Field label="面试回答">
+                                        <Field label="标准回答">
                                             <TextArea
-                                                value={itemDraft.interviewAnswer}
-                                                onChange={(event) => setItemDraft((current) => ({ ...current, interviewAnswer: event.target.value }))}
+                                                value={itemDraft.answer}
+                                                onChange={(event) => setItemDraft((current) => ({ ...current, answer: event.target.value }))}
                                                 rows={6}
                                             />
                                         </Field>
@@ -520,6 +509,13 @@ export function RepositoryPage() {
                                             <TextArea
                                                 value={itemDraft.conflictTip}
                                                 onChange={(event) => setItemDraft((current) => ({ ...current, conflictTip: event.target.value }))}
+                                                rows={3}
+                                            />
+                                        </Field>
+                                        <Field label="证据片段 ID" hint="JSON 数组或逗号分隔，选填">
+                                            <TextArea
+                                                value={itemDraft.sourceChunkIdsJson}
+                                                onChange={(event) => setItemDraft((current) => ({ ...current, sourceChunkIdsJson: event.target.value }))}
                                                 rows={3}
                                             />
                                         </Field>
@@ -553,7 +549,7 @@ export function RepositoryPage() {
                                                     || updateQuestionItemMutation.isPending
                                                     || !itemDraft.question.trim()
                                                     || !itemDraft.knowledgeNote.trim()
-                                                    || !itemDraft.interviewAnswer.trim()
+                                                    || !itemDraft.answer.trim()
                                                     || !itemDraft.moduleTag.trim()
                                                 }
                                                 onClick={saveItemEditor}
@@ -587,7 +583,7 @@ export function RepositoryPage() {
                                 <>
                                     <div className="repository-header">
                                         <div>
-                                            {editingSetTitle ? (
+                                            {editingSetMeta ? (
                                                 <div className="repository-title-editor">
                                                     <TextInput
                                                         value={setTitleDraft}
@@ -602,8 +598,9 @@ export function RepositoryPage() {
                                                             await updateQuestionSetMutation.mutateAsync({
                                                                 questionSetId: selectedSetQuery.data.id,
                                                                 title: setTitleDraft.trim(),
+                                                                description: setDescriptionDraft.trim(),
                                                             });
-                                                            setEditingSetTitle(false);
+                                                            setEditingSetMeta(false);
                                                         }}
                                                     >
                                                         {updateQuestionSetMutation.isPending ? "保存中" : "保存标题"}
@@ -612,12 +609,19 @@ export function RepositoryPage() {
                                                         variant="ghost"
                                                         type="button"
                                                         onClick={() => {
-                                                            setEditingSetTitle(false);
+                                                            setEditingSetMeta(false);
                                                             setSetTitleDraft(selectedSetQuery.data.title);
+                                                            setSetDescriptionDraft(selectedSetQuery.data.description);
                                                         }}
                                                     >
                                                         取消
                                                     </BaseButton>
+                                                    <TextArea
+                                                        value={setDescriptionDraft}
+                                                        onChange={(event) => setSetDescriptionDraft(event.target.value)}
+                                                        rows={4}
+                                                        aria-label="问答集描述"
+                                                    />
                                                 </div>
                                             ) : (
                                                 <>
@@ -625,11 +629,11 @@ export function RepositoryPage() {
                                                         {selectedSetQuery.data.title}
                                                     </h1>
                                                     <p className="page-copy" style={{ maxWidth: 680, marginTop: 12 }}>
-                                                        {selectedSetNote || "本问答集用于维护训练资产，支持逐题打磨问题、知识笔记和口述答案。"}
+                                                        {selectedSetDescription || "本问答集用于维护训练资产，支持逐题打磨问题、知识笔记和标准答案。"}
                                                     </p>
-                                                    {selectedSetQuery.data.moduleTags.length ? (
+                                                    {parseModuleTags(selectedSetQuery.data.moduleTagsJson).length ? (
                                                         <div className="repository-header__tags">
-                                                            {selectedSetQuery.data.moduleTags.map((tag) => (
+                                                            {parseModuleTags(selectedSetQuery.data.moduleTagsJson).map((tag) => (
                                                                 <Tag key={tag}>{tag}</Tag>
                                                             ))}
                                                         </div>
@@ -659,15 +663,15 @@ export function RepositoryPage() {
                                         </section>
                                     </div>
 
-                                    <div style={{ marginTop: 24, marginBottom: 28, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                        <LinkButton
-                                            to={`/quiz?questionSetId=${selectedSetQuery.data.id}`}
-                                            variant="primary"
-                                        >
-                                            开始练习
-                                        </LinkButton>
+                                        <div style={{ marginTop: 24, marginBottom: 28, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                        <BaseButton variant="primary" type="button" disabled>
+                                            练习链路未接入
+                                        </BaseButton>
                                         <BaseButton variant="soft" type="button" onClick={openCreateItemEditor}>
                                             新增题目
+                                        </BaseButton>
+                                        <BaseButton variant="ghost" type="button" onClick={() => setEditingSetMeta(true)}>
+                                            编辑问答集
                                         </BaseButton>
                                         <BaseButton
                                             variant="outline"
@@ -717,7 +721,7 @@ export function RepositoryPage() {
                                                             >
                                                                 <strong>{item.question}</strong>
                                                                 <span>{item.moduleTag}</span>
-                                                                <small>{item.tags.join(" · ") || item.status}</small>
+                                                                <small>{item.difficulty || "未标注难度"}</small>
                                                             </button>
                                                         ))}
                                                     </div>
@@ -774,7 +778,7 @@ export function RepositoryPage() {
                                         {documentEditorMode === "edit" ? (
                                             <>
                                                 <BaseButton variant="primary" type="button" onClick={handleSaveDocumentEdit}>
-                                                    保存更改
+                                                    {updateDocumentMutation.isPending ? "保存中" : "保存更改"}
                                                 </BaseButton>
                                                 <BaseButton variant="soft" type="button" onClick={handleCancelDocumentEdit}>
                                                     取消
@@ -790,12 +794,9 @@ export function RepositoryPage() {
                                             type="button"
                                             disabled={deleteDocumentMutation.isPending}
                                             onClick={async () => {
-                                                const confirmMessage = selectedDocumentQuery.data?.usedInGeneration
-                                                    ? `资料 ${selectedDocumentQuery.data?.fileName} 已用于生成过问答集。确认删除吗？`
-                                                    : `确认删除 ${selectedDocumentQuery.data?.fileName} 吗？`;
+                                                const confirmMessage = `确认删除 ${selectedDocumentQuery.data?.fileName} 吗？`;
                                                 if (window.confirm(confirmMessage)) {
                                                     await deleteDocumentMutation.mutateAsync(selectedDocumentQuery.data.id);
-                                                    clearDocumentDraft(selectedDocumentQuery.data.id);
                                                     setActiveDocumentId("");
                                                     setDocumentDraft("");
                                                     setDocumentEditorMode("view");
@@ -830,15 +831,15 @@ export function RepositoryPage() {
                                 <div className="qa-feedback">
                                     <strong>暂无资料可预览</strong>
                                     <div className="qa-text">
-                                        {hasDocuments ? "请从左侧选择一个资料文件。" : "先上传 Markdown 或纯文本资料。"}
+                                        {hasDocuments ? "请从左侧选择一个资料文件。" : "资料上传链路尚未接入。"}
                                     </div>
                                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                        <LinkButton to="/create" variant="primary">
-                                            去上传资料
-                                        </LinkButton>
-                                        <LinkButton to="/quiz" variant="soft">
-                                            去测试页
-                                        </LinkButton>
+                                        <BaseButton variant="primary" type="button" disabled>
+                                            资料上传未接入
+                                        </BaseButton>
+                                        <BaseButton variant="soft" type="button" disabled>
+                                            练习链路未接入
+                                        </BaseButton>
                                     </div>
                                 </div>
                             ) : null}

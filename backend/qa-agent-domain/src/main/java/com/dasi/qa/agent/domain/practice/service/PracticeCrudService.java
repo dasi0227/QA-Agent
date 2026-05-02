@@ -44,7 +44,6 @@ public class PracticeCrudService implements IPracticeCrudService {
     )
     public List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.queryPracticeSession(request, userId);
     }
 
@@ -55,7 +54,6 @@ public class PracticeCrudService implements IPracticeCrudService {
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setUserId(userId);
         return repository.createPracticeSession(request, userId);
     }
 
@@ -63,7 +61,6 @@ public class PracticeCrudService implements IPracticeCrudService {
     @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
     public PracticeSessionResponse updatePracticeSession(PracticeSessionRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.updatePracticeSession(request, userId);
     }
 
@@ -89,7 +86,6 @@ public class PracticeCrudService implements IPracticeCrudService {
     )
     public List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.queryPracticeSessionItem(request, userId);
     }
 
@@ -100,7 +96,6 @@ public class PracticeCrudService implements IPracticeCrudService {
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setUserId(userId);
         return repository.createPracticeSessionItem(request, userId);
     }
 
@@ -108,7 +103,6 @@ public class PracticeCrudService implements IPracticeCrudService {
     @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE, allEntries = true)
     public PracticeSessionItemResponse updatePracticeSessionItem(PracticeSessionItemRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.updatePracticeSessionItem(request, userId);
     }
 

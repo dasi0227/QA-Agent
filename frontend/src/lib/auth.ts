@@ -33,7 +33,6 @@ function sameUser(left: AuthUser | null, right: AuthUser | null) {
         left.id === right.id
         && left.username === right.username
         && left.email === right.email
-        && left.displayName === right.displayName
         && left.status === right.status
         && left.profileCompleted === right.profileCompleted
     );

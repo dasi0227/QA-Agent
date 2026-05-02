@@ -43,7 +43,6 @@ public class QaCrudService implements IQaCrudService {
     )
     public List<QaSetResponse> queryQaSet(QaSetRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.queryQaSet(request, userId);
     }
 
@@ -54,7 +53,6 @@ public class QaCrudService implements IQaCrudService {
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setUserId(userId);
         return repository.createQaSet(request, userId);
     }
 
@@ -62,7 +60,6 @@ public class QaCrudService implements IQaCrudService {
     @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
     public QaSetResponse updateQaSet(QaSetRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.updateQaSet(request, userId);
     }
 
@@ -88,7 +85,6 @@ public class QaCrudService implements IQaCrudService {
     )
     public List<QaItemResponse> queryQaItem(QaItemRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.queryQaItem(request, userId);
     }
 
@@ -99,7 +95,6 @@ public class QaCrudService implements IQaCrudService {
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setUserId(userId);
         return repository.createQaItem(request, userId);
     }
 
@@ -107,7 +102,6 @@ public class QaCrudService implements IQaCrudService {
     @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
     public QaItemResponse updateQaItem(QaItemRequest request) {
         String userId = currentUserId();
-        request.setUserId(userId);
         return repository.updateQaItem(request, userId);
     }
 
