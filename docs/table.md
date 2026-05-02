@@ -90,13 +90,15 @@
 3. `email`
 4. `password`
 5. `status`
-6. `created_at`
-7. `updated_at`
+6. `avatar`
+7. `created_at`
+8. `updated_at`
 
 说明：
 
 1. `password` 字段名按当前设计要求保留，实际存密码哈希值。
 2. `status` 用于表达账号状态。
+3. `avatar` 存储 OSS object key（非完整 URL），上传新头像后替换。NULL 时使用系统默认。
 
 ### 4.2 `user_profile`
 

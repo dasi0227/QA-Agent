@@ -56,7 +56,6 @@ export function RepositoryPage() {
     const params = useParams();
     const navigate = useNavigate();
     const [activeMode, setActiveMode] = useState<"qa" | "table" | "library">("qa");
-    const [questionTableUnlocked, setQuestionTableUnlocked] = useState(false);
     const [activeDocumentId, setActiveDocumentId] = useState("");
     const [documentEditorMode, setDocumentEditorMode] = useState<"view" | "edit">("view");
     const [documentDraft, setDocumentDraft] = useState("");
@@ -177,21 +176,7 @@ export function RepositoryPage() {
         });
         setDocumentEditorMode("view");
     };
-    const openQuestionTable = () => {
-        if (!questionTableUnlocked) {
-            return;
-        }
-        setActiveMode("table");
-        const nextItem = itemList.find((item) => item.id === activeItemId) ?? itemList[0];
-        if (nextItem) {
-            openEditItemEditor(nextItem);
-        } else {
-            setActiveItemId("");
-            setItemEditorMode(null);
-        }
-    };
     const openCreateItemEditor = () => {
-        setQuestionTableUnlocked(true);
         setActiveMode("table");
         setActiveItemId("");
         setItemDraft({
@@ -201,7 +186,6 @@ export function RepositoryPage() {
         setItemEditorMode("create");
     };
     const openEditItemEditor = (item: NonNullable<typeof activeItem>) => {
-        setQuestionTableUnlocked(true);
         setActiveMode("table");
         setActiveItemId(item.id);
         setItemDraft({
@@ -218,7 +202,6 @@ export function RepositoryPage() {
     const closeItemEditor = () => {
         setItemEditorMode(null);
         setItemDraft(emptyItemDraft);
-        setQuestionTableUnlocked(false);
         setActiveMode("qa");
     };
     const saveItemEditor = async () => {
@@ -272,25 +255,23 @@ export function RepositoryPage() {
                 <div className="repository-mode-switch" style={{ marginBottom: 18 }}>
                     <button
                         className={activeMode === "qa" ? "choice-btn choice-btn--active" : "choice-btn"}
-                        onClick={() => setActiveMode("qa")}
+                        onClick={() => { closeItemEditor(); setActiveMode("qa"); }}
                         type="button"
                     >
                         问答集
                     </button>
                     <button
                         className={activeMode === "library" ? "choice-btn choice-btn--active" : "choice-btn"}
-                        onClick={() => setActiveMode("library")}
+                        onClick={() => { closeItemEditor(); setActiveMode("library"); }}
                         type="button"
                     >
                         资料库
                     </button>
                     <button
                         className={activeMode === "table" ? "choice-btn choice-btn--active" : "choice-btn"}
-                        onClick={openQuestionTable}
                         type="button"
-                        disabled={!questionTableUnlocked}
-                        aria-disabled={!questionTableUnlocked}
-                        title={!questionTableUnlocked ? "请先在问答集中选择题集" : undefined}
+                        disabled={activeMode !== "table"}
+                        title="题目详情页自动切换"
                     >
                         题目表
                     </button>

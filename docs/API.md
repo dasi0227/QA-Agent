@@ -12,7 +12,7 @@
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 响应 |
 | --- | --- | --- | --- | --- |
-| POST | `/auth/register` | 否 | `username`, `email`, `password` | `userId`, `username`, `email`, `accessToken`, `refreshToken` |
+| POST | `/auth/register` | 否 | `username`, `email`, `password` | `userId`, `username`, `email`, `avatar`, `accessToken`, `refreshToken` |
 | POST | `/auth/login` | 否 | `username`, `password` | 同上 |
 | POST | `/auth/refresh` | 否 | `refreshToken` | 同上 |
 
@@ -26,6 +26,7 @@
     "userId": "11111111-1111-1111-1111-111111111111",
     "username": "root",
     "email": "root@example.com",
+    "avatar": "https://qa-agent-avatars.oss-cn-hangzhou.aliyuncs.com/avatar/default_avatar.png",
     "accessToken": "eyJhbGciOi...",
     "refreshToken": "eyJhbGciOi..."
   }
@@ -39,10 +40,11 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/user-account/detail?id=...` | 是 | `id` | 按主键查询 |
-| POST | `/user-account/query` | 是 | `id?`, `username?`, `email?`, `password?`, `status?` | 条件查询 |
+| POST | `/user-account/query` | 是 | `id?`, `username?`, `email?`, `password?`, `status?`, `avatar?` | 条件查询 |
 | POST | `/user-account/create` | 是 | 同上 | 创建账号，密码会做 BCrypt |
 | POST | `/user-account/update` | 是 | 同上，`id` 必填 | 更新账号 |
 | POST | `/user-account/delete` | 是 | `id` | 账号改为 `DISABLED` |
+| POST | `/user-account/avatar` | 是 | `file` (multipart/form-data, image/*) | 上传/替换头像，旧 OSS 对象自动删除 |
 
 ### `user_profile`
 

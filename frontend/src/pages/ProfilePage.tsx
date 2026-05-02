@@ -318,12 +318,12 @@ export function ProfilePage() {
                         className="modal-card"
                         role="dialog"
                         aria-modal="true"
-                        aria-label="裁剪头像"
+                        aria-label="裁剪"
                         style={{ width: "min(520px, 100%)" }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="modal-card__header">
-                            <h3 className="modal-card__title">裁剪头像</h3>
+                            <h3 className="modal-card__title">裁剪</h3>
                         </div>
                         <div className="modal-card__body" style={{ position: "relative", minHeight: 320 }}>
                             <Cropper
@@ -339,16 +339,16 @@ export function ProfilePage() {
                         </div>
                         <div className="modal-card__footer">
                             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                <BaseButton variant="ghost" type="button" onClick={handleCropCancel}>
-                                    取消
-                                </BaseButton>
                                 <BaseButton
                                     variant="primary"
                                     type="button"
                                     disabled={uploadAvatarMutation.isPending}
                                     onClick={handleCropConfirm}
                                 >
-                                    {uploadAvatarMutation.isPending ? "上传中" : "确认裁剪"}
+                                    {uploadAvatarMutation.isPending ? "上传中" : "确认"}
+                                </BaseButton>
+                                <BaseButton variant="ghost" type="button" onClick={handleCropCancel}>
+                                    取消
                                 </BaseButton>
                             </div>
                         </div>

@@ -57,4 +57,4 @@ qa-agent:
             access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET}
             bucket-name: ${ALIYUN_OSS_BUCKET_NAME}
     avatar:
-        default-url: https://${ALIYUN_OSS_BUCKET_NAME}.${ALIYUN_OSS_ENDPOINT}/avatar/default_avatar.png
+        default-url: https://${ALIYUN_OSS_BUCKET_NAME}.${ALIYUN_OSS_ENDPOINT}/avatar/default.png
