@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, Plus } from "lucide-react";
+import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, TextArea, TextInput } from "@/components/base/field";
@@ -65,6 +66,8 @@ export function RepositoryPage() {
     const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
     const [itemDraft, setItemDraft] = useState(emptyItemDraft);
     const [itemEditorMode, setItemEditorMode] = useState<"create" | "edit" | null>(null);
+    const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false);
+    const [deleteDocDialogOpen, setDeleteDocDialogOpen] = useState(false);
 
     const questionSetsQuery = useQuestionSetsQuery();
     const documentsQuery = useDocumentsQuery();
@@ -566,64 +569,102 @@ export function RepositoryPage() {
                             ) : (
                                 <>
                                     <div className="repository-header">
-                                        <div>
-                                            {editingSetMeta ? (
-                                                <div className="repository-title-editor">
-                                                    <TextInput
-                                                        value={setTitleDraft}
-                                                        onChange={(event) => setSetTitleDraft(event.target.value)}
-                                                        placeholder="输入问答集标题"
-                                                    />
-                                                    <BaseButton
-                                                        variant="primary"
-                                                        type="button"
-                                                        disabled={updateQuestionSetMutation.isPending || !setTitleDraft.trim()}
-                                                        onClick={async () => {
-                                                            await updateQuestionSetMutation.mutateAsync({
-                                                                questionSetId: selectedSetQuery.data.id,
-                                                                title: setTitleDraft.trim(),
-                                                                description: setDescriptionDraft.trim(),
-                                                            });
-                                                            setEditingSetMeta(false);
-                                                        }}
-                                                    >
-                                                        {updateQuestionSetMutation.isPending ? "保存中" : "保存标题"}
-                                                    </BaseButton>
-                                                    <BaseButton
-                                                        variant="ghost"
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setEditingSetMeta(false);
-                                                            setSetTitleDraft(selectedSetQuery.data.title);
-                                                            setSetDescriptionDraft(selectedSetQuery.data.description);
-                                                        }}
-                                                    >
-                                                        取消
-                                                    </BaseButton>
-                                                    <TextArea
-                                                        value={setDescriptionDraft}
-                                                        onChange={(event) => setSetDescriptionDraft(event.target.value)}
-                                                        rows={4}
-                                                        aria-label="问答集描述"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <h1 className="hero-title" style={{ fontSize: 34 }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div
+                                                style={{
+                                                    minHeight: 72,
+                                                    padding: editingSetMeta ? "14px 12px" : 0,
+                                                    borderRadius: 22,
+                                                    border: editingSetMeta ? "1px solid var(--line-strong)" : "1px solid transparent",
+                                                    background: editingSetMeta ? "rgba(255,255,255,0.4)" : "transparent",
+                                                }}
+                                            >
+                                                {editingSetMeta ? (
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 10, height: 44 }}>
+                                                        <input
+                                                            value={setTitleDraft}
+                                                            onChange={(event) => {
+                                                                if (event.target.value.length <= 50) setSetTitleDraft(event.target.value);
+                                                            }}
+                                                            placeholder="输入问答集标题"
+                                                            maxLength={50}
+                                                            style={{
+                                                                flex: 1,
+                                                                minWidth: 0,
+                                                                height: 44,
+                                                                border: 0,
+                                                                outline: "none",
+                                                                fontSize: 34,
+                                                                fontWeight: 600,
+                                                                letterSpacing: "-0.05em",
+                                                                lineHeight: "44px",
+                                                                fontFamily: "var(--font-serif)",
+                                                                color: "var(--ink)",
+                                                                background: "transparent",
+                                                                padding: 0,
+                                                            }}
+                                                        />
+                                                        <span style={{ flexShrink: 0, fontSize: 11, color: "var(--ink-faint)", fontFamily: "var(--font-sans)" }}>
+                                                            {setTitleDraft.length}/50
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <h1 className="hero-title" style={{ fontSize: 34, margin: 0 }}>
                                                         {selectedSetQuery.data.title}
                                                     </h1>
-                                                    <p className="page-copy" style={{ maxWidth: 680, marginTop: 12 }}>
+                                                )}
+                                            </div>
+                                            <div
+                                                style={{
+                                                    height: editingSetMeta ? 200 : undefined,
+                                                    minHeight: 64,
+                                                    marginTop: 12,
+                                                    padding: editingSetMeta ? "8px 12px 28px" : 0,
+                                                    borderRadius: 22,
+                                                    border: editingSetMeta ? "1px solid var(--line-strong)" : "1px solid transparent",
+                                                    background: editingSetMeta ? "rgba(255,255,255,0.4)" : "transparent",
+                                                }}
+                                            >
+                                                {editingSetMeta ? (
+                                                    <div style={{ position: "relative", height: "100%" }}>
+                                                        <textarea
+                                                            value={setDescriptionDraft}
+                                                            onChange={(event) => {
+                                                                if (event.target.value.length <= 300) setSetDescriptionDraft(event.target.value);
+                                                            }}
+                                                            placeholder="输入问答集描述"
+                                                            maxLength={300}
+                                                            style={{
+                                                                width: "100%",
+                                                                height: "100%",
+                                                                border: 0,
+                                                                outline: "none",
+                                                                fontSize: 15,
+                                                                lineHeight: 1.75,
+                                                                fontFamily: "var(--font-serif)",
+                                                                color: "var(--ink-soft)",
+                                                                background: "transparent",
+                                                                padding: 0,
+                                                                resize: "none",
+                                                            }}
+                                                        />
+                                                        <span style={{ position: "absolute", right: 0, bottom: -22, fontSize: 11, color: "var(--ink-faint)", fontFamily: "var(--font-sans)" }}>
+                                                            {setDescriptionDraft.length}/300
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <p className="page-copy" style={{ margin: 0 }}>
                                                         {selectedSetDescription || "本问答集用于维护训练资产，支持逐题打磨问题、知识笔记和标准答案。"}
                                                     </p>
-                                                    {parseModuleTags(selectedSetQuery.data.moduleTagsJson).length ? (
-                                                        <div className="repository-header__tags">
-                                                            {parseModuleTags(selectedSetQuery.data.moduleTagsJson).map((tag) => (
-                                                                <Tag key={tag}>{tag}</Tag>
-                                                            ))}
-                                                        </div>
-                                                    ) : null}
-                                                </>
-                                            )}
+                                                )}
+                                            </div>
+                                            {parseModuleTags(selectedSetQuery.data.moduleTagsJson).length ? (
+                                                <div className="repository-header__tags" style={{ marginTop: 12 }}>
+                                                    {parseModuleTags(selectedSetQuery.data.moduleTagsJson).map((tag) => (
+                                                        <Tag key={tag}>{tag}</Tag>
+                                                    ))}
+                                                </div>
+                                            ) : null}
                                         </div>
                                         <section className="repository-overview-card">
                                             <div className="repository-overview-card__grid">
@@ -651,19 +692,53 @@ export function RepositoryPage() {
                                         <LinkButton to={`/quiz?questionSetId=${selectedSetQuery.data.id}`} variant="primary">
                                             开始练习
                                         </LinkButton>
-                                        <BaseButton variant="ghost" type="button" onClick={() => setEditingSetMeta(true)}>
-                                            编辑信息
-                                        </BaseButton>
+                                        {editingSetMeta ? (
+                                            <>
+                                                <BaseButton
+                                                    variant="ghost"
+                                                    type="button"
+                                                    disabled={updateQuestionSetMutation.isPending || !setTitleDraft.trim()}
+                                                    onClick={async () => {
+                                                        await updateQuestionSetMutation.mutateAsync({
+                                                            questionSetId: selectedSetQuery.data.id,
+                                                            title: setTitleDraft.trim(),
+                                                            description: setDescriptionDraft.trim(),
+                                                        });
+                                                        setEditingSetMeta(false);
+                                                    }}
+                                                >
+                                                    {updateQuestionSetMutation.isPending ? "保存中" : "保存"}
+                                                </BaseButton>
+                                                <BaseButton
+                                                    variant="ghost"
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingSetMeta(false);
+                                                        setSetTitleDraft(selectedSetQuery.data.title);
+                                                        setSetDescriptionDraft(selectedSetQuery.data.description);
+                                                    }}
+                                                >
+                                                    取消
+                                                </BaseButton>
+                                            </>
+                                        ) : (
+                                            <BaseButton
+                                                variant="ghost"
+                                                type="button"
+                                                onClick={() => {
+                                                    setSetTitleDraft(selectedSetQuery.data.title);
+                                                    setSetDescriptionDraft(selectedSetQuery.data.description);
+                                                    setEditingSetMeta(true);
+                                                }}
+                                            >
+                                                编辑信息
+                                            </BaseButton>
+                                        )}
                                         <BaseButton
                                             variant="outline"
                                             type="button"
                                             disabled={deleteQuestionSetMutation.isPending}
-                                            onClick={async () => {
-                                                if (window.confirm(`确认删除问答集 ${selectedSetQuery.data?.title} 吗？`)) {
-                                                    await deleteQuestionSetMutation.mutateAsync(selectedSetQuery.data.id);
-                                                    navigate("/repository", { replace: true });
-                                                }
-                                            }}
+                                            onClick={() => setDeleteSetDialogOpen(true)}
                                         >
                                             {deleteQuestionSetMutation.isPending ? "删除中" : "删除问答集"}
                                         </BaseButton>
@@ -794,15 +869,7 @@ export function RepositoryPage() {
                                             variant="outline"
                                             type="button"
                                             disabled={deleteDocumentMutation.isPending}
-                                            onClick={async () => {
-                                                const confirmMessage = `确认删除 ${selectedDocumentQuery.data?.fileName} 吗？`;
-                                                if (window.confirm(confirmMessage)) {
-                                                    await deleteDocumentMutation.mutateAsync(selectedDocumentQuery.data.id);
-                                                    setActiveDocumentId("");
-                                                    setDocumentDraft("");
-                                                    setDocumentEditorMode("view");
-                                                }
-                                            }}
+                                            onClick={() => setDeleteDocDialogOpen(true)}
                                         >
                                             {deleteDocumentMutation.isPending ? "删除中" : "删除资料"}
                                         </BaseButton>
@@ -840,6 +907,54 @@ export function RepositoryPage() {
                 )}
             </GlassCard>
             </div>
+
+            <ConfirmDialog
+                open={deleteSetDialogOpen}
+                title="删除问答集"
+                variant="danger"
+                message={
+                    <>
+                        <p style={{ margin: 0 }}>确定要删除问答集「{selectedSetQuery.data?.title}」吗？</p>
+                        <p style={{ margin: "10px 0 0", color: "#8f4c39", fontSize: 13, fontWeight: 600 }}>
+                            会同步删除所有题目和做题记录，请考虑后谨慎删除。
+                        </p>
+                    </>
+                }
+                confirmLabel="删除"
+                loading={deleteQuestionSetMutation.isPending}
+                onConfirm={async () => {
+                    if (!selectedSetQuery.data) return;
+                    await deleteQuestionSetMutation.mutateAsync(selectedSetQuery.data.id);
+                    setDeleteSetDialogOpen(false);
+                    navigate("/repository", { replace: true });
+                }}
+                onCancel={() => setDeleteSetDialogOpen(false)}
+            />
+
+            <ConfirmDialog
+                open={deleteDocDialogOpen}
+                title="删除资料"
+                variant="danger"
+                message={
+                    <>
+                        <p style={{ margin: 0 }}>确定要删除资料「{selectedDocumentQuery.data?.fileName}」吗？</p>
+                        <p style={{ margin: "10px 0 0", color: "#8f4c39", fontSize: 13, fontWeight: 600 }}>
+                            删除后资料将从系统中移除，关联的问答集可能受到影响。
+                        </p>
+                    </>
+                }
+                confirmLabel="删除"
+                loading={deleteDocumentMutation.isPending}
+                onConfirm={async () => {
+                    if (!selectedDocumentQuery.data) return;
+                    await deleteDocumentMutation.mutateAsync(selectedDocumentQuery.data.id);
+                    setDeleteDocDialogOpen(false);
+                    setActiveDocumentId("");
+                    setDocumentDraft("");
+                    setDocumentEditorMode("view");
+                }}
+                onCancel={() => setDeleteDocDialogOpen(false)}
+            />
         </div>
     );
 }

@@ -71,7 +71,7 @@ button {
 .app-shell {
   min-height: 100dvh;
   height: 100dvh;
-  padding: 36px 24px 24px;
+  padding: 24px 24px 24px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -115,7 +115,7 @@ button {
   align-items: center;
   gap: 20px;
   min-height: 64px;
-  margin-bottom: 26px;
+  margin-bottom: 14px;
 }
 
 .avatar {
@@ -1924,8 +1924,7 @@ button {
 }
 
 .page-footer-note {
-  margin-top: auto;
-  padding-top: 10px;
+  margin-top: 22px;
   color: var(--ink-faint);
   font-family: var(--font-sans);
   font-size: 12px;

@@ -1,34 +1,10 @@
 import { useMemo } from "react";
 import { GlassCard } from "@/components/base/card";
-import { useAuthState } from "@/lib/auth";
 
 export function IndexPage() {
-  const authState = useAuthState();
-  const isAuthenticated = authState.status === "authenticated";
-
-  const hero = useMemo(() => {
-    const copy =
-      "基于你的真实资料，QA Agent 会构建高可信面试题库，进一步总结知识笔记和标准回答，同时支持自动识别薄弱知识和自定义表达模式，把每轮练习沉淀为可回看、可修正、可持续迭代的成长闭环。";
-
-    if (authState.status === "loading") {
-      return {
-        title: "QA Agent--从个人笔记到面试题库",
-        copy,
-      };
-    }
-
-    if (!isAuthenticated) {
-      return {
-        title: "QA Agent--从个人笔记到面试题库",
-        copy,
-      };
-    }
-
-    return {
-      title: "QA Agent--从个人笔记到面试题库",
-      copy,
-    };
-  }, [authState.status, isAuthenticated]);
+  const description = useMemo(() => {
+    return "基于你的真实资料，QA Agent 会构建高可信面试题库，进一步总结知识笔记和标准回答，同时支持自动识别薄弱知识和自定义表达模式，把每轮练习沉淀为可回看、可修正、可持续迭代的成长闭环。";
+  }, []);
 
   const featureCards = [
     {
@@ -49,12 +25,41 @@ export function IndexPage() {
   ];
 
   return (
-    <div className="page-frame">
-      <GlassCard className="hero-card hero-card--plain">
-        <div style={{ display: "grid", justifyItems: "center" }}>
-          <h1 className="hero-title">{hero.title}</h1>
-          <p className="hero-copy hero-copy--left" style={{ marginTop: 34, maxWidth: 760, marginInline: "auto" }}>
-            {hero.copy}
+    <div className="page-frame" style={{ gap: 32 }}>
+      <GlassCard className="hero-card hero-card--plain" style={{ padding: "0 62px" }}>
+        <div style={{ display: "grid", justifyItems: "center", gap: 32 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, justifyContent: "center" }}>
+            <img
+              src="/logo.svg"
+              alt=""
+              style={{ width: "clamp(72px, 11vw, 150px)", height: "clamp(72px, 11vw, 150px)" }}
+            />
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "clamp(50px, 6.7vw, 80px)",
+                lineHeight: 1.04,
+                letterSpacing: "-0.05em",
+                fontWeight: 500,
+                color: "var(--ink)",
+              }}
+            >
+              QA Agent
+            </h1>
+          </div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: "clamp(52px, 8vw, 96px)",
+              color: "var(--ink-soft)",
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+            }}
+          >
+            从个人笔记到面试题库
+          </p>
+          <p className="hero-copy hero-copy--left" style={{ marginTop: 0, maxWidth: 760, marginInline: "auto" }}>
+            {description}
           </p>
         </div>
       </GlassCard>

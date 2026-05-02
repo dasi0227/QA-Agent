@@ -10,8 +10,8 @@ export function Topbar() {
 
   return (
     <header className="topbar">
-      <Link className="avatar" to="/" aria-label="返回首页">
-        QA
+      <Link className="avatar" to="/" aria-label="返回首页" style={{ overflow: "hidden" }}>
+        <img src="/logo.svg" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
       </Link>
       <div className="topbar__nav">
         <NavCapsule />
