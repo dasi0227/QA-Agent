@@ -53,10 +53,6 @@ public class AuthService implements IAuthService {
 
     @Override
     public AuthResponse register(RegisterRequest request) {
-        if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())
-                || StrUtil.isBlank(request.getEmail()) || StrUtil.isBlank(request.getVerifyCode())) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
-        }
         if (identityRepository.findUserAccountByUsername(request.getUsername()) != null) {
             throw new ApiException(ResultCode.CONFLICT);
         }
@@ -87,9 +83,6 @@ public class AuthService implements IAuthService {
 
     @Override
     public void sendVerifyCode(String email) {
-        if (StrUtil.isBlank(email)) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
-        }
         if (identityRepository.findUserAccountByEmail(email) != null) {
             throw new ApiException(ResultCode.EMAIL_ALREADY_REGISTERED);
         }
@@ -106,9 +99,6 @@ public class AuthService implements IAuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
-        }
         UserAccountResponse account = identityRepository.findUserAccountByUsername(request.getUsername());
         if (account == null) {
             throw new ApiException(ResultCode.UNAUTHORIZED);

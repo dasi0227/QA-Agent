@@ -7,6 +7,7 @@ import com.dasi.qa.agent.types.model.request.auth.RegisterRequest;
 import com.dasi.qa.agent.types.model.request.auth.SendVerifyCodeRequest;
 import com.dasi.qa.agent.types.model.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.result.Result;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,12 +25,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public Result<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public Result<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return Result.success(authService.register(request));
     }
 
     @PostMapping("/login")
-    public Result<AuthResponse> login(@RequestBody LoginRequest request) {
+    public Result<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return Result.success(authService.login(request));
     }
 
@@ -39,10 +40,11 @@ public class AuthController {
     }
 
     @PostMapping("/send-verify-code")
-    public Result<Void> sendVerifyCode(@RequestBody SendVerifyCodeRequest request) {
+    public Result<Void> sendVerifyCode(@Valid @RequestBody SendVerifyCodeRequest request) {
         authService.sendVerifyCode(request.getEmail());
         return Result.success();
     }
+
 
     @GetMapping("/me")
     public Result<AuthResponse> me() {
