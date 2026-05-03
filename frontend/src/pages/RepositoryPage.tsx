@@ -418,6 +418,12 @@ export function RepositoryPage() {
                             </div>
                         ) : null}
 
+                        {!selectedSetQuery.isLoading && !selectedSetQuery.isError && !selectedSetQuery.data ? (
+                            <div className="qa-feedback">
+                                <strong>暂无问答集可预览</strong>
+                            </div>
+                        ) : null}
+
                         {selectedSetQuery.data ? (
                             showItemDetailView ? (
                                 <div className="repository-detail-view fade-in">
@@ -898,9 +904,6 @@ export function RepositoryPage() {
                         {!selectedDocumentQuery.isLoading && !selectedDocumentQuery.data ? (
                                 <div className="qa-feedback">
                                     <strong>暂无资料可预览</strong>
-                                    <div className="qa-text">
-                                        {hasDocuments ? "请从左侧选择一个资料文件。" : "资料上传功能尚未接入。"}
-                                    </div>
                                 </div>
                             ) : null}
                     </div>

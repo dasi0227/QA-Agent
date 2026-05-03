@@ -4,6 +4,13 @@ spring:
     profiles:
         active: dev
 
+server:
+    servlet:
+        encoding:
+            charset: UTF-8
+            enabled: true
+            force: true
+
 mybatis-plus:
     global-config:
         banner: false

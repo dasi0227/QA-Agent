@@ -4,9 +4,15 @@ import com.dasi.qa.agent.interfaces.interceptor.JwtInterceptor;
 import com.dasi.qa.agent.interfaces.interceptor.RequestLoggerInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.converter.AbstractHttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Configuration
 public class WebMvcConfiguration implements WebMvcConfigurer {
@@ -18,6 +24,17 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     public WebMvcConfiguration(JwtInterceptor jwtInterceptor, RequestLoggerInterceptor requestLoggerInterceptor) {
         this.requestLoggerInterceptor = requestLoggerInterceptor;
         this.jwtInterceptor = jwtInterceptor;
+    }
+
+    @Override
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        for (HttpMessageConverter<?> converter : converters) {
+            if (converter instanceof StringHttpMessageConverter stringConverter) {
+                stringConverter.setDefaultCharset(StandardCharsets.UTF_8);
+            } else if (converter instanceof AbstractHttpMessageConverter<?> abstractConverter) {
+                abstractConverter.setDefaultCharset(StandardCharsets.UTF_8);
+            }
+        }
     }
 
     @Override

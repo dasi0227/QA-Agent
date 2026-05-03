@@ -87,6 +87,29 @@ export function QuizPage() {
                         </div>
                     ) : null}
 
+                    {!questionSetsQuery.isLoading && !questionSetsQuery.isError && !activeSet ? (
+                        <section className="quiz-carousel" aria-label="测试集轮播">
+                            <div className="quiz-carousel__stage" style={{ overflow: "visible" }}>
+                                <button
+                                    type="button"
+                                    className="quiz-carousel__card quiz-carousel__card--active"
+                                    style={{
+                                        transform: "translate(-50%, -50%) translateX(0%) translateY(-10px) scale(1) rotateY(0deg)",
+                                        opacity: 1,
+                                        filter: "none",
+                                        zIndex: 3,
+                                        placeContent: "center",
+                                    }}
+                                    onClick={() => navigate("/create")}
+                                >
+                                    <div className="quiz-focus-card__center">
+                                        <div className="quiz-focus-card__title">问答集为空，点击创建</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </section>
+                    ) : null}
+
                     {activeSet ? (
                         <>
                             <section className="quiz-carousel" aria-label="测试集轮播">
@@ -169,6 +192,9 @@ export function QuizPage() {
                                 </button>
                             </section>
 
+                        </>
+                    ) : null}
+
                             <section className="quiz-controls" style={{ marginTop: 10 }}>
                                 <div className="quiz-controls__group">
                                     <div className="sidebar__label">练习模式</div>
@@ -222,9 +248,6 @@ export function QuizPage() {
                                     </div>
                                 </div>
                             </section>
-
-                        </>
-                    ) : null}
                 </div>
             </GlassCard>
         </div>
