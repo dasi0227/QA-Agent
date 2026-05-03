@@ -10,7 +10,7 @@ import { getRememberPreference } from "@/lib/auth";
 import { resolveAuthRedirectTarget, type AuthRedirectLocation } from "@/lib/authRedirect";
 
 const loginSchema = z.object({
-  account: z.string().min(1, "请输入邮箱或用户名"),
+  account: z.string().min(4, "用户名至少 4 位"),
   password: z.string().min(6, "密码至少 6 位"),
   remember: z.boolean().optional(),
 });
@@ -48,11 +48,11 @@ export function LoginPage() {
           );
         })}
       >
-        <Field label="邮箱或用户名" error={form.formState.errors.account?.message}>
-          <TextInput placeholder="teacher@example.com" {...form.register("account")} />
+        <Field label="用户名" error={form.formState.errors.account?.message}>
+          <TextInput placeholder="请输入用户名，至少 4 位" {...form.register("account")} />
         </Field>
         <Field label="密码" error={form.formState.errors.password?.message}>
-          <TextInput type="password" placeholder="至少 6 位" {...form.register("password")} />
+          <TextInput type="password" placeholder="请输入密码，至少 6 位" {...form.register("password")} />
         </Field>
         <label className="auth-form__check">
           <input type="checkbox" {...form.register("remember")} />

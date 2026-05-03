@@ -1406,7 +1406,7 @@ button {
 
 .auth-form {
   display: grid;
-  gap: 18px;
+  gap: 40px;
   align-content: start;
   width: min(680px, 100%);
   padding: 42px 44px 40px;
@@ -1419,6 +1419,7 @@ button {
   line-height: 1.1;
   letter-spacing: -0.04em;
   font-weight: 600;
+  text-align: left;
 }
 
 .auth-form__copy {
@@ -1426,6 +1427,7 @@ button {
   color: var(--ink-soft);
   font-size: 15px;
   line-height: 1.75;
+  text-align: left;
 }
 
 .auth-form__grid {
@@ -1438,7 +1440,7 @@ button {
   align-items: center;
   gap: 10px;
   align-self: start;
-  margin-top: 2px;
+  margin-top: 20px;
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 13px;
@@ -1460,6 +1462,86 @@ button {
   justify-content: space-between;
   gap: 16px;
   margin-top: 4px;
+}
+
+.auth-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(680px, 100%);
+  padding: 0 4px;
+}
+
+.auth-banner__icon {
+  flex: none;
+  width: 60px;
+  height: 60px;
+}
+
+.auth-banner__text {
+  font-family: var(--font-sans);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.verify-code-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.verify-code-input {
+  width: 52px;
+  height: 62px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.65);
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.verify-code-input:focus {
+  border-color: var(--btn-secondary-ink);
+  box-shadow: 0 0 0 3px rgba(155, 115, 65, 0.12);
+}
+
+.verify-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  margin-bottom: 16px;
+}
+
+.verify-back-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink);
+}
+
+.verify-card__subtitle {
+  margin-top: 12px;
+}
+
+.error-dialog__message {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-soft);
 }
 
 .page-frame {

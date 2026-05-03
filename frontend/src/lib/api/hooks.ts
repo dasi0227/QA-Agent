@@ -12,6 +12,7 @@ import type {
     QuestionItemDraft,
     QuestionSet,
     RegisterInput,
+    SendVerifyCodeInput,
     UpdateQuestionItemInput,
     UpdateQuestionSetInput,
 } from "./types";
@@ -283,8 +284,19 @@ export function useLoginMutation() {
     });
 }
 
+export function useSendVerifyCodeMutation() {
+    return useMutation({
+        mutationFn: async (input: SendVerifyCodeInput) => {
+            await apiRequest<void>("/auth/send-verify-code", {
+                method: "POST",
+                body: { email: input.email },
+                auth: false,
+            });
+        },
+    });
+}
+
 export function useRegisterMutation() {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (input: RegisterInput) => {
             const session = await apiRequest<AuthSession>("/auth/register", {
@@ -293,22 +305,11 @@ export function useRegisterMutation() {
                     username: input.name,
                     email: input.email,
                     password: input.password,
+                    verifyCode: input.verifyCode,
                 },
                 auth: false,
             });
-            const token = session.accessToken ?? "";
-            const refreshToken = session.refreshToken ?? "";
-            if (token) {
-                setAuthSession({
-                    token,
-                    refreshToken,
-                    remember: input.remember ?? true,
-                    user: normalizeAuthUser(session),
-                });
-                queryClient.clear();
-            }
             return {
-                token,
                 user: normalizeAuthUser(session),
             };
         },

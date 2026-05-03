@@ -910,7 +910,7 @@ export function RepositoryPage() {
 
             <ConfirmDialog
                 open={deleteSetDialogOpen}
-                title="删除问答集"
+                title="⚠️ 删除问答集"
                 variant="danger"
                 message={
                     <>
@@ -933,7 +933,7 @@ export function RepositoryPage() {
 
             <ConfirmDialog
                 open={deleteDocDialogOpen}
-                title="删除资料"
+                title="⚠️ 删除资料"
                 variant="danger"
                 message={
                     <>

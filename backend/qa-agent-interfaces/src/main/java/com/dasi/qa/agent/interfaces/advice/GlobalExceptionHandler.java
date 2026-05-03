@@ -22,11 +22,18 @@ public class GlobalExceptionHandler {
         return Result.fail(exception.getCode(), exception.getMessage());
     }
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class, IllegalArgumentException.class})
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleInvalidArgument(Exception exception) {
+        log.error("error={}", exception.getMessage(), exception);
+        return Result.fail(ResultCode.BAD_REQUEST.getCode(), exception.getMessage());
+    }
+
+    @ExceptionHandler({BindException.class, IllegalArgumentException.class})
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleBadRequest(Exception exception) {
         log.error("error={}", exception.getMessage(), exception);
-        return Result.fail(ResultCode.BAD_REQUEST.getCode(), exception.getMessage());
+        return Result.fail(ResultCode.INVALID_PARAM.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

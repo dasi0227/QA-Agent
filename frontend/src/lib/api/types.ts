@@ -29,10 +29,15 @@ export type LoginInput = {
     remember?: boolean;
 };
 
+export type SendVerifyCodeInput = {
+    email: string;
+};
+
 export type RegisterInput = {
     name: string;
     email: string;
     password: string;
+    verifyCode: string;
     remember?: boolean;
 };
 

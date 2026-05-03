@@ -130,7 +130,7 @@ async function tryRefreshAuthSession() {
                         retryOnAuthFailure: false,
                     },
                 );
-                const nextAccessToken = refreshed.accessToken ?? refreshed.token ?? "";
+                const nextAccessToken = refreshed.accessToken ?? "";
                 const nextRefreshToken = refreshed.refreshToken ?? refreshToken;
                 if (!nextAccessToken || !nextRefreshToken) {
                     clearAccessToken();
