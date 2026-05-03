@@ -28,6 +28,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 "/qa-agent/api/v1/auth/register",
                 "/qa-agent/api/v1/auth/login",
                 "/qa-agent/api/v1/auth/refresh",
+                "/qa-agent/api/v1/auth/send-verify-code",
                 "/actuator/health",
                 "/error"
             );
