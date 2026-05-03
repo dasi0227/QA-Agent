@@ -603,7 +603,7 @@ button {
 
 .document-markdown {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   color: var(--ink);
   font-size: 15px;
   line-height: 1.85;
@@ -616,7 +616,21 @@ button {
   font-size: 14px;
 }
 
-.document-markdown__heading {
+.document-markdown > :first-child {
+  margin-top: 0;
+}
+
+.document-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+/* headings */
+.document-markdown h1,
+.document-markdown h2,
+.document-markdown h3,
+.document-markdown h4,
+.document-markdown h5,
+.document-markdown h6 {
   margin: 0;
   color: var(--ink);
   font-family: var(--font-serif);
@@ -625,44 +639,48 @@ button {
   line-height: 1.2;
 }
 
-.document-markdown__heading--1 {
-  font-size: clamp(24px, 2vw, 30px);
-}
+.document-markdown h1 { font-size: clamp(24px, 2vw, 30px); }
+.document-markdown h2 { font-size: clamp(22px, 1.8vw, 26px); }
+.document-markdown h3 { font-size: 20px; }
+.document-markdown h4 { font-size: 18px; }
+.document-markdown h5,
+.document-markdown h6 { font-size: 16px; }
 
-.document-markdown__heading--2 {
-  font-size: clamp(22px, 1.8vw, 26px);
-}
-
-.document-markdown__heading--3 {
-  font-size: 20px;
-}
-
-.document-markdown__heading--4 {
-  font-size: 18px;
-}
-
-.document-markdown__heading--5,
-.document-markdown__heading--6 {
-  font-size: 16px;
-}
-
-.document-markdown__paragraph {
+/* paragraph */
+.document-markdown p {
   margin: 0;
   color: var(--ink);
 }
 
-.document-markdown__list {
+/* lists */
+.document-markdown ul,
+.document-markdown ol {
   margin: 0;
   padding-left: 22px;
   display: grid;
   gap: 10px;
 }
 
-.document-markdown__list-item {
+.document-markdown li {
   padding-left: 4px;
 }
 
-.document-markdown__blockquote {
+.document-markdown li::marker {
+  color: var(--ink-faint);
+}
+
+.document-markdown li > p {
+  display: inline;
+}
+
+/* task list (GFM) */
+.document-markdown li input[type="checkbox"] {
+  margin: 0 6px 0 -14px;
+  accent-color: #8e642d;
+}
+
+/* blockquote */
+.document-markdown blockquote {
   margin: 0;
   padding: 14px 18px;
   border-left: 3px solid rgba(23, 22, 20, 0.16);
@@ -671,7 +689,12 @@ button {
   color: var(--ink-soft);
 }
 
-.document-markdown__code-block {
+.document-markdown blockquote p {
+  color: inherit;
+}
+
+/* code block */
+.document-markdown pre {
   margin: 0;
   padding: 16px 18px;
   border-radius: 22px;
@@ -680,11 +703,20 @@ button {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 13px;
   line-height: 1.7;
-  overflow: auto;
+  overflow-x: auto;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.document-markdown__inline-code {
+.document-markdown pre code {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* inline code */
+.document-markdown code {
   padding: 2px 6px;
   border-radius: 999px;
   background: rgba(23, 22, 20, 0.08);
@@ -692,18 +724,52 @@ button {
   font-size: 0.92em;
 }
 
-.document-markdown__hr {
+/* horizontal rule */
+.document-markdown hr {
   width: 100%;
   margin: 0;
   border: 0;
   border-top: 1px solid var(--line);
 }
 
-.document-markdown__link {
+/* link */
+.document-markdown a {
   color: #8e642d;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+
+.document-markdown a:hover {
+  opacity: 0.8;
+}
+
+/* table (GFM) */
+.document-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.document-markdown th,
+.document-markdown td {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+
+.document-markdown th {
+  background: rgba(23, 22, 20, 0.04);
+  font-weight: 600;
+}
+
+.document-markdown td {
+  background: transparent;
+}
+
+/* strikethrough (GFM) */
+.document-markdown del {
+  color: var(--ink-faint);
 }
 
 .repository-items-panel {

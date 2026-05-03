@@ -851,7 +851,7 @@ export function RepositoryPage() {
                                             <div className="document-detail-view__meta">
                                                 <span>添加于 {formatCompactDateTime(selectedDocumentQuery.data.createdAt || selectedDocumentUpdatedAt)}</span>
                                                 <span>更新于 {formatCompactDateTime(selectedDocumentUpdatedAt)}</span>
-                                                <span>使用次数 {selectedDocumentUseCount} 次</span>
+                                                <span>引用次数 {selectedDocumentUseCount} 次</span>
                                             </div>
                                         </div>
                                     </div>
@@ -891,10 +891,8 @@ export function RepositoryPage() {
                                                     aria-label="资料正文编辑"
                                                 />
                                             </div>
-                                        ) : selectedDocumentQuery.data.fileType === "markdown" ? (
-                                            <MarkdownRenderer content={documentBody} className="document-markdown--doc" />
                                         ) : (
-                                            <pre className="document-plain-text">{documentBody || "暂无正文"}</pre>
+                                            <MarkdownRenderer content={documentBody} className="document-markdown--doc" />
                                         )}
                                     </div>
                                 </div>
