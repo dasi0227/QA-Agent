@@ -4,12 +4,19 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
+import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionEntity;
+import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItemEntity;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaItemEntity;
+import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetDocumentRefEntity;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetEntity;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetDocumentRefMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.qa.QaItemRequest;
@@ -29,10 +36,19 @@ public class QaRepository implements IQaRepository {
 
     private final QaSetMapper qaSetMapper;
     private final QaItemMapper qaItemMapper;
+    private final PracticeSessionMapper practiceSessionMapper;
+    private final PracticeSessionItemMapper practiceSessionItemMapper;
+    private final QaSetDocumentRefMapper qaSetDocumentRefMapper;
 
-    public QaRepository(QaSetMapper qaSetMapper, QaItemMapper qaItemMapper) {
+    public QaRepository(QaSetMapper qaSetMapper, QaItemMapper qaItemMapper,
+                        PracticeSessionMapper practiceSessionMapper,
+                        PracticeSessionItemMapper practiceSessionItemMapper,
+                        QaSetDocumentRefMapper qaSetDocumentRefMapper) {
         this.qaSetMapper = qaSetMapper;
         this.qaItemMapper = qaItemMapper;
+        this.practiceSessionMapper = practiceSessionMapper;
+        this.practiceSessionItemMapper = practiceSessionItemMapper;
+        this.qaSetDocumentRefMapper = qaSetDocumentRefMapper;
     }
 
     @Override
@@ -57,6 +73,18 @@ public class QaRepository implements IQaRepository {
 
     @Override
     public void deleteQaSet(String id, String userId) {
+        List<PracticeSessionEntity> sessions = practiceSessionMapper.selectList(
+            new LambdaQueryWrapper<PracticeSessionEntity>().eq(PracticeSessionEntity::getQaSetId, id));
+        for (PracticeSessionEntity session : sessions) {
+            practiceSessionItemMapper.delete(
+                new LambdaQueryWrapper<PracticeSessionItemEntity>().eq(PracticeSessionItemEntity::getSessionId, session.getId()));
+        }
+        practiceSessionMapper.delete(
+            new LambdaQueryWrapper<PracticeSessionEntity>().eq(PracticeSessionEntity::getQaSetId, id));
+        qaItemMapper.delete(
+            new LambdaQueryWrapper<QaItemEntity>().eq(QaItemEntity::getQaSetId, id));
+        qaSetDocumentRefMapper.delete(
+            new LambdaQueryWrapper<QaSetDocumentRefEntity>().eq(QaSetDocumentRefEntity::getQaSetId, id));
         qaSetMapper.deleteById(id);
     }
 

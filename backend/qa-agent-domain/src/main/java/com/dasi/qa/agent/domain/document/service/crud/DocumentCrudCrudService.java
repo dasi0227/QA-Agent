@@ -48,16 +48,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
 
     @Override
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
-    public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request) {
-        String userId = currentUserId();
-        if (request.getId() == null || request.getId().isBlank()) {
-            request.setId(UUID.randomUUID().toString());
-        }
-        return repository.createSourceDocument(request, userId);
-    }
-
-    @Override
-    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request) {
         String userId = currentUserId();
         return repository.updateSourceDocument(request, userId);

@@ -57,7 +57,12 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     public void deleteSourceDocument(String id, String userId) {
-        sourceDocumentMapper.deleteById(id);
+        SourceDocumentEntity entity = sourceDocumentMapper.selectById(id);
+        if (entity == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        entity.setDeleted(true);
+        sourceDocumentMapper.updateById(entity);
     }
 
     @Override
@@ -107,6 +112,9 @@ public class DocumentRepository implements IDocumentRepository {
         queryWrapper.allEq(snakeMap, false);
         if (ReflectUtil.getField(entityType, "userId") != null) {
             queryWrapper.eq("user_id", userId);
+        }
+        if (ReflectUtil.getField(entityType, "deleted") != null) {
+            queryWrapper.eq("deleted", false);
         }
         return mapper.selectList(queryWrapper).stream().map(entity -> toResponse(entity, responseType)).toList();
     }

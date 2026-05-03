@@ -48,16 +48,6 @@ public class QaCrudService implements IQaCrudService {
 
     @Override
     @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
-    public QaSetResponse createQaSet(QaSetRequest request) {
-        String userId = currentUserId();
-        if (request.getId() == null || request.getId().isBlank()) {
-            request.setId(UUID.randomUUID().toString());
-        }
-        return repository.createQaSet(request, userId);
-    }
-
-    @Override
-    @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
     public QaSetResponse updateQaSet(QaSetRequest request) {
         String userId = currentUserId();
         return repository.updateQaSet(request, userId);

@@ -13,8 +13,6 @@ public interface IDocumentCrudService {
 
     List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request);
 
-    SourceDocumentResponse createSourceDocument(SourceDocumentRequest request);
-
     SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request);
 
     void deleteSourceDocument(String id);

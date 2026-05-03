@@ -13,8 +13,6 @@ public interface IQaCrudService {
 
     List<QaSetResponse> queryQaSet(QaSetRequest request);
 
-    QaSetResponse createQaSet(QaSetRequest request);
-
     QaSetResponse updateQaSet(QaSetRequest request);
 
     void deleteQaSet(String id);
