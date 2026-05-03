@@ -25,6 +25,8 @@ export const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <IndexPage /> },
+      { path: "/index", element: <Navigate to="/" replace /> },
+      { path: "/home", element: <Navigate to="/" replace /> },
       {
         element: <RequireAuth />,
         children: [

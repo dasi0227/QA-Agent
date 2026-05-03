@@ -6,8 +6,11 @@
     <!-- 关闭 Logback 自己的内部状态输出 -->
     <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 
-    <!-- 日志输出路径 -->
-    <property name="LOG_PATH" value="./logs"/>
+    <!-- 输出路径 -->
+    <property name="LOG_PATH" value="/Users/wyw/Desktop/Project/QA_Agent/backend/logs"/>
+
+    <!-- 时间戳 -->
+    <timestamp key="START_TIME" datePattern="yyyy-MM-dd_HH-mm-ss"/>
 
     <!-- ========= 开发环境降噪 ========= -->
     <springProfile name="dev">
@@ -35,31 +38,22 @@
     <!-- ========= 转换规则 ========= -->
     <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter"/>
     <conversionRule conversionWord="wex" class="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
-    <conversionRule conversionWord="wEx" class="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
 
     <!-- ========= 控制台输出 ========= -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-8.-8thread] %-5p %-40logger{40} - %msg%n</pattern>
+            <pattern>
+                %clr(%d{MM-dd HH:mm:ss}){faint} %clr(%-5level) %clr(%-40logger{40}){cyan} %clr(-){faint} %msg%n
+            </pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
 
-    <!-- ========= 文件输出（按月滚动） ========= -->
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-
-        <!-- 当前正在写的文件 -->
-        <file>${LOG_PATH}/app.log</file>
-
-        <!-- 按时间滚动策略 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/%d{yyyy-MM}/app.%d{yyyy-MM}.log</fileNamePattern>
-            <maxHistory>12</maxHistory>
-            <totalSizeCap>1GB</totalSizeCap>
-        </rollingPolicy>
-
+    <!-- ========= 文件输出 ========= -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_PATH}/${START_TIME}.log</file>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-8.-8thread] %-5p %-40logger{40} - %msg%n</pattern>
+            <pattern>%d{MM-dd HH:mm:ss} %-5p %-40logger{40} —— %msg%n</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
@@ -69,4 +63,5 @@
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
+
 </configuration>

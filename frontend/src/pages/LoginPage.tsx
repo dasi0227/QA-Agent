@@ -43,7 +43,7 @@ export function LoginPage() {
         onSubmit={form.handleSubmit(async (values) => {
           const session = await loginMutation.mutateAsync(values);
           navigate(
-            resolveAuthRedirectTarget(from, session.user?.profileCompleted ? "/repository" : "/profile"),
+            resolveAuthRedirectTarget(from, session.user?.profileCompleted ? "/quiz" : "/profile"),
             { replace: true },
           );
         })}
