@@ -19,7 +19,6 @@ import com.dasi.qa.agent.types.model.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +64,6 @@ public class IdentityRepository implements IIdentityRepository {
     @Override
     public UserAccountResponse createUserAccount(UserAccountRequest request, String userId) {
         UserAccountEntity entity = toEntity(request, UserAccountEntity.class);
-        entity.setCreatedAt(LocalDateTime.now());
-        entity.setUpdatedAt(LocalDateTime.now());
         userAccountMapper.insert(entity);
         return toUserAccountResponse(entity);
     }
@@ -74,7 +71,6 @@ public class IdentityRepository implements IIdentityRepository {
     @Override
     public UserAccountResponse updateUserAccount(UserAccountRequest request, String userId) {
         UserAccountEntity entity = toEntity(request, UserAccountEntity.class);
-        entity.setUpdatedAt(LocalDateTime.now());
         userAccountMapper.updateById(entity);
         return toUserAccountResponse(entity);
     }
@@ -86,7 +82,6 @@ public class IdentityRepository implements IIdentityRepository {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
         entity.setStatus("DISABLED");
-        entity.setUpdatedAt(LocalDateTime.now());
         userAccountMapper.updateById(entity);
     }
 
@@ -129,8 +124,6 @@ public class IdentityRepository implements IIdentityRepository {
     public UserProfileResponse createUserProfile(UserProfileRequest request, String userId) {
         UserProfileEntity entity = toEntity(request, UserProfileEntity.class);
         entity.setUserId(userId);
-        entity.setCreatedAt(LocalDateTime.now());
-        entity.setUpdatedAt(LocalDateTime.now());
         userProfileMapper.insert(entity);
         return toUserProfileResponse(entity);
     }
