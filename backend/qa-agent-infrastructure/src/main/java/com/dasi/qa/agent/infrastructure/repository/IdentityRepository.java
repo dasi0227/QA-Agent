@@ -65,6 +65,8 @@ public class IdentityRepository implements IIdentityRepository {
     @Override
     public UserAccountResponse createUserAccount(UserAccountRequest request, String userId) {
         UserAccountEntity entity = toEntity(request, UserAccountEntity.class);
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
         userAccountMapper.insert(entity);
         return toUserAccountResponse(entity);
     }
@@ -72,6 +74,7 @@ public class IdentityRepository implements IIdentityRepository {
     @Override
     public UserAccountResponse updateUserAccount(UserAccountRequest request, String userId) {
         UserAccountEntity entity = toEntity(request, UserAccountEntity.class);
+        entity.setUpdatedAt(LocalDateTime.now());
         userAccountMapper.updateById(entity);
         return toUserAccountResponse(entity);
     }
@@ -126,6 +129,8 @@ public class IdentityRepository implements IIdentityRepository {
     public UserProfileResponse createUserProfile(UserProfileRequest request, String userId) {
         UserProfileEntity entity = toEntity(request, UserProfileEntity.class);
         entity.setUserId(userId);
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
         userProfileMapper.insert(entity);
         return toUserProfileResponse(entity);
     }
