@@ -7,14 +7,17 @@
 - 鉴权：受保护接口统一使用 `Authorization: Bearer <accessToken>`
 - 刷新接口：`POST /auth/refresh`，请求体携带 `refreshToken`
 - 时间格式：`yyyy-MM-dd HH:mm:ss`
+- 基础路径：`/qa-agent/api/v1`
 
 ## Auth
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 响应 |
 | --- | --- | --- | --- | --- |
-| POST | `/auth/register` | 否 | `username`, `email`, `password` | `userId`, `username`, `email`, `avatar`, `accessToken`, `refreshToken` |
+| POST | `/auth/register` | 否 | `username`, `email`, `password`, `verifyCode` | `userId`, `username`, `email`, `avatar`, `accessToken`, `refreshToken` |
 | POST | `/auth/login` | 否 | `username`, `password` | 同上 |
 | POST | `/auth/refresh` | 否 | `refreshToken` | 同上 |
+| POST | `/auth/send-verify-code` | 否 | `email` | 无 data，60s 限频 |
+| GET | `/auth/me` | 是 | — | `userId`, `username`, `email`, `avatar`, `profileCompleted` |
 
 ### 示例响应
 
@@ -26,7 +29,8 @@
     "userId": "11111111-1111-1111-1111-111111111111",
     "username": "root",
     "email": "root@example.com",
-    "avatar": "https://qa-agent-avatars.oss-cn-hangzhou.aliyuncs.com/avatar/default_avatar.png",
+    "profileCompleted": true,
+    "avatar": "https://dasi-qa-agent.oss-cn-guangzhou.aliyuncs.com/avatar/default.png",
     "accessToken": "eyJhbGciOi...",
     "refreshToken": "eyJhbGciOi..."
   }
@@ -40,8 +44,8 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/user-account/detail?id=...` | 是 | `id` | 按主键查询 |
-| POST | `/user-account/query` | 是 | `id?`, `username?`, `email?`, `password?`, `status?`, `avatar?` | 条件查询 |
-| POST | `/user-account/create` | 是 | 同上 | 创建账号，密码会做 BCrypt |
+| POST | `/user-account/query` | 是 | `id?`, `username?`, `email?`, `status?`, `avatar?` | 条件查询 |
+| POST | `/user-account/create` | 是 | 同上 | 创建账号，密码做 BCrypt |
 | POST | `/user-account/update` | 是 | 同上，`id` 必填 | 更新账号 |
 | POST | `/user-account/delete` | 是 | `id` | 账号改为 `DISABLED` |
 | POST | `/user-account/avatar` | 是 | `file` (multipart/form-data, image/*) | 上传/替换头像，旧 OSS 对象自动删除 |
@@ -50,7 +54,7 @@
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
-| GET | `/user-profile/detail?id=...` | 是 | `id` | 返回当前用户画像，`id` 仅作兼容 |
+| GET | `/user-profile/me` | 是 | — | 返回当前登录用户的画像 |
 | POST | `/user-profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?` | 条件查询 |
 | POST | `/user-profile/create` | 是 | 同上 | 创建当前用户画像 |
 | POST | `/user-profile/update` | 是 | 同上 | 更新当前用户画像 |
@@ -60,25 +64,67 @@
 
 ### `source_document`
 
-| 方法 | 路径 | 鉴权 | 请求字段 |
-| --- | --- | --- | --- |
-| GET | `/source-document/detail?id=...` | 是 | `id` |
-| POST | `/source-document/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?`, `normalizedContent?`, `summary?`, `moduleTagsJson?`, `referenceCount?`, `deleted?` |
-| POST | `/source-document/create` | 是 | 同上 |
-| POST | `/source-document/update` | 是 | 同上，`id` 必填 |
-| POST | `/source-document/delete` | 是 | `id` |
-
-说明：删除为软删，`deleted=true`。
+| 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
+| --- | --- | --- | --- | --- |
+| GET | `/source-document/detail?id=...` | 是 | `id` | 按主键查询 |
+| POST | `/source-document/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?`, `summary?`, `moduleTagsJson?` | 条件查询 |
+| POST | `/source-document/upload` | 是 | `fileName`, `fileType`, `rawContent`, `summary?`, `moduleTagsJson?` | 上传资料，自动触发异步 RAG 索引 |
+| POST | `/source-document/update` | 是 | 同上，`id` 必填 | 更新资料，自动触发重新索引 |
+| POST | `/source-document/delete` | 是 | `id` | 软删除（`deleted=true`），级联清理切片和检索数据 |
 
 ### `document_chunk`
 
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
 | GET | `/document-chunk/detail?id=...` | 是 | `id` |
-| POST | `/document-chunk/query` | 是 | `id?`, `documentId?`, `chunkIndex?`, `titlePath?`, `content?`, `summary?`, `moduleTagsJson?`, `embeddingVector?` |
+| POST | `/document-chunk/query` | 是 | `id?`, `documentId?`, `chunkIndex?`, `titlePath?`, `content?`, `summary?`, `moduleTagsJson?` |
 | POST | `/document-chunk/create` | 是 | 同上 |
 | POST | `/document-chunk/update` | 是 | 同上，`id` 必填 |
 | POST | `/document-chunk/delete` | 是 | `id` |
+
+### V2 RAG 检索
+
+| 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
+| --- | --- | --- | --- | --- |
+| POST | `/source-document/search` | 是 | `queryText`, `strategy`(SEMANTIC/KEYWORD/HYBRID), `filterDocumentIds?`, `filterModuleTags?`, `filterTitlePathPrefix?`, `topK?`(默认10), `agentType?`(GENERATION/FEEDBACK/SCORING) | 混合检索证据 |
+| POST | `/source-document/reindex` | 是 | `id` | 手动触发指定资料重索引 |
+| GET | `/source-document/chunks?documentId=...` | 是 | `documentId` | 查看某资料的切片列表 |
+
+#### `/source-document/search` 请求示例
+
+```json
+{
+  "queryText": "Redis 跳表的数据结构和应用场景",
+  "strategy": "HYBRID",
+  "filterDocumentIds": ["uuid-1"],
+  "filterModuleTags": ["Redis"],
+  "filterTitlePathPrefix": "Redis > 数据结构",
+  "topK": 10,
+  "agentType": "GENERATION"
+}
+```
+
+#### 响应示例
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": [
+    {
+      "chunkId": "chunk-uuid-1",
+      "documentId": "doc-uuid-1",
+      "titlePath": "Redis > 五大数据结构 > 跳表",
+      "content": "跳表（Skip List）是一种随机化的数据结构...",
+      "moduleTags": ["Redis", "数据结构"],
+      "score": 0.8912,
+      "vectorScore": 0.8765,
+      "keywordScore": 0.7234,
+      "source": "HYBRID"
+    }
+  ]
+}
+```
 
 ## QA
 
@@ -87,7 +133,7 @@
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
 | GET | `/qa-set/detail?id=...` | 是 | `id` |
-| POST | `/qa-set/query` | 是 | `id?`, `taskId?`, `title?`, `description?`, `moduleTagsJson?`, `questionCount?`, `practiceCount?`, `averageScore?`, `bestScore?`, `averageAccuracy?`, `bestAccuracy?`, `lastPracticedAt?` |
+| POST | `/qa-set/query` | 是 | `id?`, `taskId?`, `title?`, `description?`, `moduleTagsJson?`, `questionCount?`, `practiceCount?`, `averageScore?`, `bestScore?` |
 | POST | `/qa-set/create` | 是 | 同上 |
 | POST | `/qa-set/update` | 是 | 同上，`id` 必填 |
 | POST | `/qa-set/delete` | 是 | `id` |
@@ -111,7 +157,7 @@
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
 | GET | `/practice-session/detail?id=...` | 是 | `id` |
-| POST | `/practice-session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?`, `startedAt?`, `finishedAt?` |
+| POST | `/practice-session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?` |
 | POST | `/practice-session/create` | 是 | 同上 |
 | POST | `/practice-session/update` | 是 | 同上，`id` 必填 |
 | POST | `/practice-session/delete` | 是 | `id` |
@@ -121,7 +167,7 @@
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
 | GET | `/practice-session-item/detail?id=...` | 是 | `id` |
-| POST | `/practice-session-item/query` | 是 | `id?`, `sessionId?`, `qaItemId?`, `sortOrder?`, `userAnswer?`, `result?`, `score?`, `feedbackSummary?`, `answeredAt?` |
+| POST | `/practice-session-item/query` | 是 | `id?`, `sessionId?`, `qaItemId?`, `sortOrder?`, `userAnswer?`, `result?`, `score?`, `feedbackSummary?` |
 | POST | `/practice-session-item/create` | 是 | 同上 |
 | POST | `/practice-session-item/update` | 是 | 同上，`id` 必填 |
 | POST | `/practice-session-item/delete` | 是 | `id` |
@@ -132,9 +178,13 @@
 | --- | --- |
 | `0` | success |
 | `40000` | bad request |
+| `40001` | verify code expired |
+| `40002` | verify code invalid |
 | `40100` | unauthorized |
+| `40200` | invalid parameters |
 | `40300` | forbidden |
 | `40400` | not found |
-| `40900` | conflict |
+| `40900` | username already registered |
+| `40901` | email already registered |
+| `42900` | verify code rate limited |
 | `50000` | internal error |
-

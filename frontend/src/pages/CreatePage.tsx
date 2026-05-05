@@ -1,19 +1,213 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { ArrowUp, Mic } from "lucide-react";
-import { BaseButton, ChoiceButton } from "@/components/base/button";
-import { GlassCard } from "@/components/base/card";
+import { ArrowUp, Plus, Settings, X } from "lucide-react";
 import { TextArea } from "@/components/base/field";
-import { Chip, Tag } from "@/components/base/tag";
-import { useDocumentsQuery, useProfileQuery } from "@/lib/api/hooks";
+import { useDocumentsQuery } from "@/lib/api/hooks";
+import type { DocumentRecord } from "@/lib/api/types";
 
-const createSchema = z.object({
-    note: z.string().min(1, "请输入本轮补充说明"),
-});
+const STORAGE_KEY = "create-page-draft";
 
-type CreateForm = z.infer<typeof createSchema>;
+function loadDraft(): { selectedIds: string[]; note: string } {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || { selectedIds: [], note: "" };
+    } catch {
+        return { selectedIds: [], note: "" };
+    }
+}
+
+function saveDraft(selectedIds: string[], note: string) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ selectedIds, note }));
+}
+
+function clearDraft() {
+    localStorage.removeItem(STORAGE_KEY);
+}
+
+export function CreatePage() {
+    const [draft] = useState(loadDraft);
+    const documentsQuery = useDocumentsQuery();
+    const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>(draft.selectedIds);
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    const form = useForm({
+        defaultValues: {
+            note: draft.note,
+        },
+    });
+
+    const uploadedDocuments = documentsQuery.data ?? [];
+    const selectedDocuments = useMemo(
+        () => uploadedDocuments.filter((item) => selectedDocumentIds.includes(item.id)),
+        [selectedDocumentIds, uploadedDocuments],
+    );
+
+    const hasDocuments = selectedDocuments.length > 0;
+
+    // Persist draft on changes
+    useEffect(() => {
+        const sub = form.watch((value) => {
+            saveDraft(selectedDocumentIds, value.note || "");
+        });
+        return () => sub.unsubscribe();
+    }, [selectedDocumentIds, form]);
+
+    const handleDialogToggle = (id: string) => {
+        setSelectedDocumentIds((current) => {
+            if (current.includes(id)) {
+                return current.filter((item) => item !== id);
+            }
+            return [...current, id];
+        });
+    };
+
+    const openDialog = useCallback(() => setDialogOpen(true), []);
+    const closeDialog = useCallback(() => setDialogOpen(false), []);
+
+    return (
+        <div className="page-frame">
+            <div className="create-page">
+                <div className="create-page__main">
+                    <p className="create-page__empty">请添加笔记资料，并输入需求给 QA Agent</p>
+
+                    {hasDocuments ? (
+                        <div className="create-page__docs-grid">
+                            {selectedDocuments.map((doc) => (
+                                <div key={doc.id} className="create-page__doc-card">
+                                    <button
+                                        type="button"
+                                        className="create-page__doc-card-remove"
+                                        onClick={() => setSelectedDocumentIds((current) => current.filter((id) => id !== doc.id))}
+                                        aria-label="移除资料"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                    <div className="create-page__doc-card-name">{doc.fileName}</div>
+                                    <div className="create-page__doc-card-meta">{doc.fileType || "未知类型"}</div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
+
+                <div className="create-page__bottom">
+                    <details className="create-page__preview-ref">
+                        <summary>生成流程预览（参考）</summary>
+                        <div className="timeline">
+                            {stageSteps.map((activity) => (
+                                <div key={activity.key} className="timeline__item">
+                                    <div className="timeline__meta">待接入</div>
+                                    <div className="timeline__title">{activity.label}</div>
+                                    <div className="timeline__copy">{activity.copy}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </details>
+
+                    <form onSubmit={form.handleSubmit(() => {
+                        if (selectedDocumentIds.length === 0) {
+                            alert("请先添加本次要使用的资料。");
+                            return;
+                        }
+                        alert("接口尚未实现");
+                    })} style={{ width: "100%", maxWidth: 720 }}>
+                        <div className="create-page__input-area">
+                            <TextArea
+                                {...form.register("note")}
+                                placeholder="输入你的需求..."
+                                className="create-page__input"
+                            />
+                        </div>
+
+                        <div className="create-page__actions">
+                            <div className="create-page__actions-left">
+                                <button type="button" className="create-page__action-btn" onClick={openDialog}>
+                                    <Plus size={18} />
+                                    添加资料
+                                </button>
+                                <button type="button" className="create-page__action-btn create-page__action-btn--icon" onClick={() => alert("接口尚未实现")}>
+                                    <Settings size={18} />
+                                </button>
+                            </div>
+                            <button type="submit" className="create-page__send-btn" aria-label="发送">
+                                <ArrowUp size={20} strokeWidth={2.5} />
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {dialogOpen ? (
+                <DocumentSelectDialog
+                    documents={uploadedDocuments}
+                    selectedIds={selectedDocumentIds}
+                    onToggle={handleDialogToggle}
+                    onClose={closeDialog}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function DocumentSelectDialog({
+    documents,
+    selectedIds,
+    onToggle,
+    onClose,
+}: {
+    documents: DocumentRecord[];
+    selectedIds: string[];
+    onToggle: (id: string) => void;
+    onClose: () => void;
+}) {
+    return (
+        <div className="doc-select-dialog" onClick={onClose}>
+            <div className="doc-select-dialog__card" onClick={(e) => e.stopPropagation()}>
+                <div className="doc-select-dialog__header">
+                    <h3 className="doc-select-dialog__title">选择资料</h3>
+                    <button className="doc-select-dialog__close" onClick={onClose} aria-label="关闭">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="doc-select-dialog__body">
+                    {documents.length === 0 ? (
+                        <p style={{ gridColumn: "1/-1", textAlign: "center", color: "var(--ink-faint)", fontSize: 14, margin: 0, padding: 24 }}>
+                            资料库为空，请先上传资料
+                        </p>
+                    ) : (
+                        documents.map((doc) => {
+                            const selected = selectedIds.includes(doc.id);
+                            return (
+                                <button
+                                    key={doc.id}
+                                    type="button"
+                                    className={`doc-select-dialog__item ${selected ? "doc-select-dialog__item--selected" : ""}`}
+                                    onClick={() => onToggle(doc.id)}
+                                >
+                                    <span className="doc-select-dialog__check">
+                                        {selected ? <CheckSmall /> : null}
+                                    </span>
+                                    <span className="doc-select-dialog__item-info">
+                                        <span className="doc-select-dialog__item-name">{doc.fileName}</span>
+                                        <span className="doc-select-dialog__item-meta">{doc.fileType || "未知类型"}</span>
+                                    </span>
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function CheckSmall() {
+    return (
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
 
 const stageSteps = [
     { key: "PARSING", label: "资料解析", copy: "确认本轮资料范围，准备进入生成流程。" },
@@ -23,140 +217,3 @@ const stageSteps = [
     { key: "OPTIMIZING", label: "结果收口", copy: "准备落库并生成正式问答集。" },
     { key: "COMPLETED", label: "生成完成", copy: "问答集已经可进入仓库和练习链路。" },
 ] as const;
-
-export function CreatePage() {
-    const profileQuery = useProfileQuery();
-    const documentsQuery = useDocumentsQuery();
-    const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-    const [showPreview, setShowPreview] = useState(false);
-
-    const form = useForm<CreateForm>({
-        resolver: zodResolver(createSchema),
-        defaultValues: {
-            note: "优先覆盖项目经历和 Redis 高频追问，答案风格偏口语化但逻辑清晰。",
-        },
-    });
-
-    const uploadedDocuments = documentsQuery.data ?? [];
-    const selectedDocuments = useMemo(
-        () => uploadedDocuments.filter((item) => selectedDocumentIds.includes(item.id)),
-        [selectedDocumentIds, uploadedDocuments],
-    );
-    const selectedDocumentChips = useMemo(
-        () => selectedDocuments.map((item) => item.fileName),
-        [selectedDocuments],
-    );
-
-    return (
-        <div className="page-frame">
-            {showPreview ? (
-                <GlassCard className="hero-card" style={{ width: "min(1180px, 86vw)" }}>
-                    <section className="timeline">
-                        {stageSteps.map((activity) => (
-                            <div key={activity.key} className="timeline__item">
-                                <div className="timeline__meta">待接入</div>
-                                <div className="timeline__title">{activity.label}</div>
-                                <div className="timeline__copy">{activity.copy}</div>
-                                <Chip className="fade-in">{activity.key}</Chip>
-                            </div>
-                        ))}
-                    </section>
-                    <div className="qa-feedback" style={{ marginTop: 16 }}>
-                        <strong>生成链路尚未接入</strong>
-                        <div className="qa-text">后续版本将接入 Agent DAG 生成链路，按阶段推进并实时更新进度。</div>
-                    </div>
-                </GlassCard>
-            ) : null}
-
-            <GlassCard className="panel" style={{ width: "min(1180px, 86vw)", margin: "0 auto", padding: 22 }}>
-                <form
-                    className="page-grid"
-                    onSubmit={form.handleSubmit(() => {
-                        if (selectedDocumentIds.length === 0) {
-                            alert("请先在资料库中勾选本次要使用的资料。");
-                            return;
-                        }
-                        alert("接口尚未实现");
-                    })}
-                >
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                        {selectedDocumentChips.map((fileName) => <Chip key={fileName}>{fileName}</Chip>)}
-                    </div>
-
-                    <div className="page-copy" style={{ marginTop: -4 }}>
-                        本次资料范围
-                    </div>
-
-                    <div className="selection-panel">
-                        <div className="selection-panel__body">
-                            {documentsQuery.isLoading ? <Chip>资料加载中</Chip> : null}
-                            {uploadedDocuments.map((document) => {
-                                const selected = selectedDocumentIds.includes(document.id);
-                                return (
-                                    <ChoiceButton
-                                        key={document.id}
-                                        selected={selected}
-                                        className="selection-chip"
-                                        onClick={() => {
-                                            setSelectedDocumentIds((current) => {
-                                                if (current.includes(document.id)) {
-                                                    return current.filter((item) => item !== document.id);
-                                                }
-                                                return [...current, document.id];
-                                            });
-                                        }}
-                                    >
-                                        <span>{document.fileName}</span>
-                                    </ChoiceButton>
-                                );
-                            })}
-                            {!documentsQuery.isLoading && uploadedDocuments.length === 0 ? (
-                                <Chip>资料库里还没有可复用资料</Chip>
-                            ) : null}
-                        </div>
-                    </div>
-
-                    <div className="page-copy" style={{ marginTop: -4 }}>
-                        本次生成补充说明
-                    </div>
-
-                    <TextArea {...form.register("note")} placeholder="补充说明" />
-                    {form.formState.errors.note?.message ? (
-                        <div className="field__error">{form.formState.errors.note.message}</div>
-                    ) : null}
-
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 4 }}>
-                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                            <Tag>问答规模 · 中等</Tag>
-                            <Tag>
-                                补充通用知识 · {profileQuery.data?.allowGeneralKnowledge ? "允许" : "关闭"}
-                            </Tag>
-                            <Tag>答案风格 · {profileQuery.data?.answerStyle || "口语化"}</Tag>
-                            <Tag>已选资料 · {selectedDocumentChips.length}</Tag>
-                        </div>
-                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                            <button className="btn btn--ghost" type="button" aria-label="语音输入" onClick={() => alert("接口尚未实现")}>
-                                <Mic size={16} strokeWidth={2} />
-                            </button>
-                            <button className="btn btn--primary" type="submit" aria-label="发送">
-                                <ArrowUp size={16} strokeWidth={2} />
-                            </button>
-                        </div>
-                    </div>
-
-                    {profileQuery.isError ? (
-                        <div className="page-copy" style={{ color: "var(--ink)" }}>
-                            Profile 加载失败：{profileQuery.error instanceof Error ? profileQuery.error.message : "请重试"}
-                        </div>
-                    ) : null}
-
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <BaseButton variant="ghost" type="button" onClick={() => setShowPreview((v) => !v)}>
-                            {showPreview ? "收起流程预览" : "查看生成流程预览"}
-                        </BaseButton>
-                    </div>
-                </form>
-            </GlassCard>
-        </div>
-    );
-}
