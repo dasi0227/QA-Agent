@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-import static com.dasi.qa.agent.types.constant.SystemConstant.AVATAR_PATH;
+import static com.dasi.qa.agent.types.constant.SystemConstant.AVATAR_ROOT_PATH;
 
 @RestController
 @RequestMapping("/qa-agent/api/v1")
@@ -110,7 +110,7 @@ public class IdentityController {
         }
 
         byte[] bytes = file.getBytes();
-        String objectKey = AVATAR_PATH + UUID.randomUUID() + "." + extension;
+        String objectKey = AVATAR_ROOT_PATH + UUID.randomUUID() + "." + extension;
         aliOssUtil.upload(bytes, objectKey);
 
         UserAccountRequest updateRequest = new UserAccountRequest();

@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.application.configuration;
 
-import com.dasi.qa.agent.application.properties.DatasourceProperties;
+import com.dasi.qa.agent.infrastructure.properties.DatasourceProperties;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

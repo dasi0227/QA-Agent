@@ -2,7 +2,7 @@ package com.dasi.qa.agent.application.job;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJobEntity;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
@@ -14,23 +14,23 @@ import java.util.List;
 
 @Component
 @Slf4j
-public class MessageJobRetryHandler {
+public class MessageRetryJob {
 
     private static final int MAX_RETRY = 3;
 
     private final MessageJobMapper messageJobMapper;
     private final IMqUtil mqUtil;
 
-    public MessageJobRetryHandler(MessageJobMapper messageJobMapper, IMqUtil mqUtil) {
+    public MessageRetryJob(MessageJobMapper messageJobMapper, IMqUtil mqUtil) {
         this.messageJobMapper = messageJobMapper;
         this.mqUtil = mqUtil;
     }
 
     @XxlJob("messageJobRetryHandler")
     public void execute() {
-        log.info("MessageJobRetryHandler started");
-        QueryWrapper<MessageJobEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("job_status", JobStatus.UNSOLVED.name());
+        log.info("MessageRetryJob started");
+        LambdaQueryWrapper<MessageJobEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MessageJobEntity::getJobStatus, JobStatus.UNSOLVED.name());
         List<MessageJobEntity> unsolvedJobs = messageJobMapper.selectList(wrapper);
 
         if (unsolvedJobs.isEmpty()) {

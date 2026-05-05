@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.constant.RedisConstant;
+import com.dasi.qa.agent.types.enums.AccountStatus;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
@@ -58,7 +59,7 @@ public class ProfileCrudService implements IProfileCrudService {
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setStatus(StrUtil.isBlank(request.getStatus()) ? "ACTIVE" : request.getStatus());
+        request.setStatus(StrUtil.isBlank(request.getStatus()) ? AccountStatus.ACTIVE.name() : request.getStatus());
         if (StrUtil.isNotBlank(request.getPassword())) {
             request.setPassword(passwordEncoder.encode(request.getPassword()));
         }

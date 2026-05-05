@@ -1,5 +1,7 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
+import static com.dasi.qa.agent.types.constant.SystemConstant.DB_USER_ID;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
@@ -11,6 +13,7 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.UserAccountEntity;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfileEntity;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserAccountMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
+import com.dasi.qa.agent.types.enums.AccountStatus;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
@@ -81,7 +84,7 @@ public class IdentityRepository implements IIdentityRepository {
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
-        entity.setStatus("DISABLED");
+        entity.setStatus(AccountStatus.DISABLED.name());
         userAccountMapper.updateById(entity);
     }
 
@@ -116,7 +119,7 @@ public class IdentityRepository implements IIdentityRepository {
         Map<String, Object> snakeMap = new LinkedHashMap<>();
         map.forEach((k, v) -> snakeMap.put(StrUtil.toUnderlineCase(k), v));
         queryWrapper.allEq(snakeMap, false);
-        queryWrapper.eq("user_id", userId);
+        queryWrapper.eq(DB_USER_ID, userId);
         return userProfileMapper.selectList(queryWrapper).stream().map(this::toUserProfileResponse).toList();
     }
 

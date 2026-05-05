@@ -11,8 +11,11 @@ import com.dasi.qa.agent.types.model.request.document.SearchRequest;
 import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.model.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.model.response.document.SearchResult;
+import static com.dasi.qa.agent.types.constant.SystemConstant.INDEX_JOB_ID_PREFIX;
+
 import com.dasi.qa.agent.types.model.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.result.Result;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,17 +35,20 @@ public class DocumentController {
     private final IIndexService indexService;
     private final IContextUtil contextUtil;
     private final IMqUtil mqUtil;
+    private final String indexingTopic;
 
     public DocumentController(IDocumentCrudService documentService,
                               ISearchService searchService,
                               IIndexService indexService,
                               IContextUtil contextUtil,
-                              IMqUtil mqUtil) {
+                              IMqUtil mqUtil,
+                              @Value("${qa-agent.kafka.topic-document-indexing}") String indexingTopic) {
         this.documentService = documentService;
         this.searchService = searchService;
         this.indexService = indexService;
         this.contextUtil = contextUtil;
         this.mqUtil = mqUtil;
+        this.indexingTopic = indexingTopic;
     }
 
     // ======================== source-document CRUD ========================
@@ -60,18 +66,18 @@ public class DocumentController {
     @PostMapping("/source-document/upload")
     public Result<SourceDocumentResponse> sourceDocumentUpload(@RequestBody SourceDocumentRequest request) {
         SourceDocumentResponse response = documentService.createSourceDocument(request);
-        String jobId = "rag_" + response.getId();
+        String jobId = INDEX_JOB_ID_PREFIX + response.getId();
         String content = JSON.toJSONString(Map.of("documentId", response.getId()));
-        mqUtil.send("document.indexing", jobId, content);
+        mqUtil.send(indexingTopic, jobId, content);
         return Result.success(response);
     }
 
     @PostMapping("/source-document/update")
     public Result<SourceDocumentResponse> sourceDocumentUpdate(@RequestBody SourceDocumentRequest request) {
         SourceDocumentResponse response = documentService.updateSourceDocument(request);
-        String jobId = "rag_" + request.getId();
+        String jobId = INDEX_JOB_ID_PREFIX + request.getId();
         String content = JSON.toJSONString(Map.of("documentId", request.getId()));
-        mqUtil.send("document.indexing", jobId, content);
+        mqUtil.send(indexingTopic, jobId, content);
         return Result.success(response);
     }
 

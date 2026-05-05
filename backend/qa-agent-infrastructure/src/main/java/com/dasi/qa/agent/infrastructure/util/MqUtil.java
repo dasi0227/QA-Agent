@@ -2,7 +2,7 @@ package com.dasi.qa.agent.infrastructure.util;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJobEntity;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
@@ -82,8 +82,8 @@ public class MqUtil implements IMqUtil {
     }
 
     private MessageJobEntity findExistingJob(String jobId) {
-        QueryWrapper<MessageJobEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("job_id", jobId);
+        LambdaQueryWrapper<MessageJobEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MessageJobEntity::getJobId, jobId);
         return messageJobMapper.selectOne(wrapper);
     }
 }

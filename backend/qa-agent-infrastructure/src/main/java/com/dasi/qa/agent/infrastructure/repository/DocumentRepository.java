@@ -1,9 +1,13 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
+import static com.dasi.qa.agent.types.constant.SystemConstant.DB_DELETED;
+import static com.dasi.qa.agent.types.constant.SystemConstant.DB_USER_ID;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.document.model.ChunkDraft;
@@ -114,8 +118,8 @@ public class DocumentRepository implements IDocumentRepository {
     @Transactional(transactionManager = "mysqlTransactionManager")
     public void replaceDocumentChunks(String documentId, String userId, List<ChunkDraft> drafts) {
         // delete old chunks
-        QueryWrapper<DocumentChunkEntity> deleteWrapper = new QueryWrapper<>();
-        deleteWrapper.eq("document_id", documentId);
+        LambdaQueryWrapper<DocumentChunkEntity> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(DocumentChunkEntity::getDocumentId, documentId);
         documentChunkMapper.delete(deleteWrapper);
 
         // insert new chunks
@@ -140,8 +144,8 @@ public class DocumentRepository implements IDocumentRepository {
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
     public void deleteDocumentChunksByDocumentId(String documentId) {
-        QueryWrapper<DocumentChunkEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("document_id", documentId);
+        LambdaQueryWrapper<DocumentChunkEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DocumentChunkEntity::getDocumentId, documentId);
         documentChunkMapper.delete(wrapper);
     }
 
@@ -324,10 +328,10 @@ public class DocumentRepository implements IDocumentRepository {
         map.forEach((k, v) -> snakeMap.put(StrUtil.toUnderlineCase(k), v));
         queryWrapper.allEq(snakeMap, false);
         if (ReflectUtil.getField(entityType, "userId") != null) {
-            queryWrapper.eq("user_id", userId);
+            queryWrapper.eq(DB_USER_ID, userId);
         }
         if (ReflectUtil.getField(entityType, "deleted") != null) {
-            queryWrapper.eq("deleted", false);
+            queryWrapper.eq(DB_DELETED, false);
         }
         return mapper.selectList(queryWrapper).stream()
                 .map(entity -> toResponse(entity, responseType)).toList();

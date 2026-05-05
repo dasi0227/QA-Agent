@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.application.configuration;
 
-import com.dasi.qa.agent.application.properties.ThreadPoolProperties;
+import com.dasi.qa.agent.infrastructure.properties.ThreadPoolProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

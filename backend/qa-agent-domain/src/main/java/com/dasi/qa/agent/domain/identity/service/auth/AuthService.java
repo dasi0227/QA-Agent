@@ -7,7 +7,10 @@ import com.dasi.qa.agent.domain.util.IEmailUtil;
 import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.domain.util.IRedisUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
+import static com.dasi.qa.agent.types.constant.SystemConstant.VERIFY_CODE_FORMAT;
+
 import com.dasi.qa.agent.types.constant.RedisConstant;
+import com.dasi.qa.agent.types.enums.AccountStatus;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;
@@ -72,7 +75,7 @@ public class AuthService implements IAuthService {
         accountRequest.setUsername(request.getUsername());
         accountRequest.setEmail(request.getEmail());
         accountRequest.setPassword(passwordEncoder.encode(request.getPassword()));
-        accountRequest.setStatus("ACTIVE");
+        accountRequest.setStatus(AccountStatus.ACTIVE.name());
         if (StrUtil.isNotBlank(defaultAvatarUrl)) {
             accountRequest.setAvatar(defaultAvatarUrl);
         }
@@ -95,7 +98,7 @@ public class AuthService implements IAuthService {
         if (redisUtil.get(rateLimitKey) != null) {
             throw new ApiException(ResultCode.VERIFY_CODE_RATE_LIMITED);
         }
-        String code = String.format("%06d", new Random().nextInt(1000000));
+        String code = String.format(VERIFY_CODE_FORMAT, new Random().nextInt(1000000));
         String codeKey = RedisConstant.AUTH_VERIFY_CODE_KEY + email;
         redisUtil.set(codeKey, code, 300);
         redisUtil.set(rateLimitKey, "1", 60);
@@ -108,7 +111,7 @@ public class AuthService implements IAuthService {
         if (account == null) {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
-        if (!"ACTIVE".equals(account.getStatus())) {
+        if (!AccountStatus.ACTIVE.name().equals(account.getStatus())) {
             throw new ApiException(ResultCode.FORBIDDEN);
         }
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
@@ -124,7 +127,7 @@ public class AuthService implements IAuthService {
         }
         String userId = IJwtUtil.parseUserId(request.getRefreshToken());
         UserAccountResponse account = identityRepository.detailUserAccount(userId, userId);
-        if (!"ACTIVE".equals(account.getStatus())) {
+        if (!AccountStatus.ACTIVE.name().equals(account.getStatus())) {
             throw new ApiException(ResultCode.FORBIDDEN);
         }
         return buildAuthResponse(account);
@@ -137,7 +140,7 @@ public class AuthService implements IAuthService {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
         UserAccountResponse account = identityRepository.detailUserAccount(userId, userId);
-        if (!"ACTIVE".equals(account.getStatus())) {
+        if (!AccountStatus.ACTIVE.name().equals(account.getStatus())) {
             throw new ApiException(ResultCode.FORBIDDEN);
         }
         return buildAuthResponse(account, false);

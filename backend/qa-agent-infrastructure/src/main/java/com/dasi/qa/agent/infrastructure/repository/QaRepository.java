@@ -1,5 +1,7 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
+import static com.dasi.qa.agent.types.constant.SystemConstant.DB_USER_ID;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
@@ -134,7 +136,7 @@ public class QaRepository implements IQaRepository {
         map.forEach((k, v) -> snakeMap.put(StrUtil.toUnderlineCase(k), v));
         queryWrapper.allEq(snakeMap, false);
         if (ReflectUtil.getField(entityType, "userId") != null) {
-            queryWrapper.eq("user_id", userId);
+            queryWrapper.eq(DB_USER_ID, userId);
         }
         return mapper.selectList(queryWrapper).stream().map(entity -> toResponse(entity, responseType)).toList();
     }

@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.application.configuration;
 
-import com.dasi.qa.agent.application.properties.RedisProperties;
+import com.dasi.qa.agent.infrastructure.properties.RedisProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

@@ -1,5 +1,7 @@
 package com.dasi.qa.agent.interfaces.interceptor;
 
+import static com.dasi.qa.agent.types.constant.SystemConstant.AUTH_BEARER_PREFIX;
+
 import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -29,7 +31,7 @@ public class JwtInterceptor implements HandlerInterceptor {
             return true;
         }
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
+        if (authorization == null || !authorization.startsWith(AUTH_BEARER_PREFIX)) {
             log.error("【鉴权】缺少令牌：uri={}", request.getRequestURI());
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
