@@ -36,6 +36,9 @@
         <hutool.version>5.8.36</hutool.version>
         <jackson-datatype-jsr310.version>2.19.1</jackson-datatype-jsr310.version>
         <aliyun-sdk-oss.version>3.17.4</aliyun-sdk-oss.version>
+        <langchain4j.version>1.14.0</langchain4j.version>
+        <langchain4j-community.version>1.14.0-beta24</langchain4j-community.version>
+        <xxl-job.version>2.4.2</xxl-job.version>
     </properties>
 
     <dependencyManagement>
@@ -91,6 +94,35 @@
                 <artifactId>aliyun-sdk-oss</artifactId>
                 <version>${aliyun-sdk-oss.version}</version>
             </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j</artifactId>
+                <version>${langchain4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-dashscope</artifactId>
+                <version>${langchain4j-community.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xuxueli</groupId>
+                <artifactId>xxl-job-core</artifactId>
+                <version>${xxl-job.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:-options</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

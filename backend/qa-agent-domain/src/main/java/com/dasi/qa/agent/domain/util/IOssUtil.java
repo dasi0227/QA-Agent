@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.util;
 
-public interface IAliOssUtil {
+public interface IOssUtil {
 
     void upload(byte[] bytes, String objectKey);
 

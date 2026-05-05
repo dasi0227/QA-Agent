@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.interfaces.advice;
+package com.dasi.qa.agent.interfaces.controller;
 
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.Result;

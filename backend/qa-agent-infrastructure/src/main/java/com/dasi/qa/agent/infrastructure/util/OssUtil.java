@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.infrastructure.util;
 
 import com.aliyun.oss.OSS;
-import com.dasi.qa.agent.domain.util.IAliOssUtil;
+import com.dasi.qa.agent.domain.util.IOssUtil;
 import com.dasi.qa.agent.infrastructure.properties.AliOssProperties;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
@@ -10,12 +10,12 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 
 @Component
-public class AliOssUtil implements IAliOssUtil {
+public class OssUtil implements IOssUtil {
 
     private final OSS ossClient;
     private final AliOssProperties aliOssProperties;
 
-    public AliOssUtil(OSS ossClient, AliOssProperties aliOssProperties) {
+    public OssUtil(OSS ossClient, AliOssProperties aliOssProperties) {
         this.ossClient = ossClient;
         this.aliOssProperties = aliOssProperties;
     }

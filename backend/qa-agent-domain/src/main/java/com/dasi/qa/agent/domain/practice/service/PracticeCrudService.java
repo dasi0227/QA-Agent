@@ -2,7 +2,7 @@ package com.dasi.qa.agent.domain.practice.service;
 
 import com.dasi.qa.agent.domain.practice.repository.IPracticeRepository;
 import com.dasi.qa.agent.domain.practice.service.crud.IPracticeCrudService;
-import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.practice.PracticeSessionItemRequest;
@@ -21,17 +21,17 @@ import java.util.UUID;
 public class PracticeCrudService implements IPracticeCrudService {
 
     private final IPracticeRepository repository;
-    private final UserContextUtil userContext;
+    private final IContextUtil contextUtil;
 
-    public PracticeCrudService(IPracticeRepository repository, UserContextUtil userContext) {
+    public PracticeCrudService(IPracticeRepository repository, IContextUtil contextUtil) {
         this.repository = repository;
-        this.userContext = userContext;
+        this.contextUtil = contextUtil;
     }
 
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_DETAIL_KEY, @userContext.getUserId(), #id)"
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public PracticeSessionResponse detailPracticeSession(String id) {
         return repository.detailPracticeSession(id, currentUserId());
@@ -40,7 +40,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_QUERY_KEY, @userContext.getUserId(), #request)"
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request) {
         String userId = currentUserId();
@@ -73,7 +73,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_DETAIL_KEY, @userContext.getUserId(), #id)"
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public PracticeSessionItemResponse detailPracticeSessionItem(String id) {
         return repository.detailPracticeSessionItem(id, currentUserId());
@@ -82,7 +82,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_QUERY_KEY, @userContext.getUserId(), #request)"
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request) {
         String userId = currentUserId();
@@ -113,7 +113,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     }
 
     private String currentUserId() {
-        String userId = userContext.getUserId();
+        String userId = contextUtil.getUserId();
         if (userId == null) {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }

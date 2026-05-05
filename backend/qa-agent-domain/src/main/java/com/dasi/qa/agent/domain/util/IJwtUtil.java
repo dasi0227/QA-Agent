@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.util;
 
-public interface JwtUtil {
+public interface IJwtUtil {
 
     String generateAccessToken(String userId);
 

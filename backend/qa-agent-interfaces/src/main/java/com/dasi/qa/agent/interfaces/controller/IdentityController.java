@@ -2,8 +2,8 @@ package com.dasi.qa.agent.interfaces.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.service.crud.IProfileCrudService;
-import com.dasi.qa.agent.domain.util.IAliOssUtil;
-import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.domain.util.IOssUtil;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
@@ -25,13 +25,13 @@ import static com.dasi.qa.agent.types.constant.SystemConstant.AVATAR_PATH;
 public class IdentityController {
 
     private final IProfileCrudService identityService;
-    private final IAliOssUtil aliOssUtil;
-    private final UserContextUtil userContext;
+    private final IOssUtil aliOssUtil;
+    private final IContextUtil contextUtil;
 
-    public IdentityController(IProfileCrudService identityService, IAliOssUtil aliOssUtil, UserContextUtil userContext) {
+    public IdentityController(IProfileCrudService identityService, IOssUtil aliOssUtil, IContextUtil contextUtil) {
         this.identityService = identityService;
         this.aliOssUtil = aliOssUtil;
-        this.userContext = userContext;
+        this.contextUtil = contextUtil;
     }
 
     @GetMapping("/user-account/detail")
@@ -95,7 +95,7 @@ public class IdentityController {
         if (contentType == null || !contentType.startsWith("image/")) {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
-        String userId = userContext.getUserId();
+        String userId = contextUtil.getUserId();
         if (StrUtil.isBlank(userId)) {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }

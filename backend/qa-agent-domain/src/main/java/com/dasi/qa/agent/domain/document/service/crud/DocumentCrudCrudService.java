@@ -1,7 +1,8 @@
 package com.dasi.qa.agent.domain.document.service.crud;
 
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
-import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.document.DocumentChunkRequest;
@@ -20,17 +21,21 @@ import java.util.UUID;
 public class DocumentCrudCrudService implements IDocumentCrudService {
 
     private final IDocumentRepository repository;
-    private final UserContextUtil userContext;
+    private final IContextUtil contextUtil;
+    private final IIndexService indexService;
 
-    public DocumentCrudCrudService(IDocumentRepository repository, UserContextUtil userContext) {
+    public DocumentCrudCrudService(IDocumentRepository repository,
+                                   IContextUtil contextUtil,
+                                   IIndexService indexService) {
         this.repository = repository;
-        this.userContext = userContext;
+        this.contextUtil = contextUtil;
+        this.indexService = indexService;
     }
 
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_DETAIL_KEY, @userContext.getUserId(), #id)"
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public SourceDocumentResponse detailSourceDocument(String id) {
         return repository.detailSourceDocument(id, currentUserId());
@@ -39,11 +44,21 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_QUERY_KEY, @userContext.getUserId(), #request)"
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request) {
         String userId = currentUserId();
         return repository.querySourceDocument(request, userId);
+    }
+
+    @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
+    public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request) {
+        String userId = currentUserId();
+        if (request.getId() == null || request.getId().isBlank()) {
+            request.setId(UUID.randomUUID().toString());
+        }
+        return repository.createSourceDocument(request, userId);
     }
 
     @Override
@@ -57,12 +72,13 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public void deleteSourceDocument(String id) {
         repository.deleteSourceDocument(id, currentUserId());
+        indexService.remove(id);
     }
 
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_DETAIL_KEY, @userContext.getUserId(), #id)"
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public DocumentChunkResponse detailDocumentChunk(String id) {
         return repository.detailDocumentChunk(id, currentUserId());
@@ -71,7 +87,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_QUERY_KEY, @userContext.getUserId(), #request)"
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request) {
         String userId = currentUserId();
@@ -102,7 +118,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     }
 
     private String currentUserId() {
-        String userId = userContext.getUserId();
+        String userId = contextUtil.getUserId();
         if (userId == null) {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }

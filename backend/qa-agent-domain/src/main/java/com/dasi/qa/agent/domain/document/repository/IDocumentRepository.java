@@ -1,5 +1,7 @@
 package com.dasi.qa.agent.domain.document.repository;
 
+import com.dasi.qa.agent.domain.document.model.ChunkDraft;
+import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.types.model.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.model.response.document.DocumentChunkResponse;
@@ -28,4 +30,24 @@ public interface IDocumentRepository {
     DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request, String userId);
 
     void deleteDocumentChunk(String id, String userId);
+
+    // -- V2 RAG: MySQL document_chunk batch operations --
+
+    void replaceDocumentChunks(String documentId, String userId, List<ChunkDraft> drafts);
+
+    void deleteDocumentChunksByDocumentId(String documentId);
+
+    String getDocumentUserId(String documentId);
+
+    // -- V2 RAG: PostgreSQL chunk_search operations --
+
+    void batchInsertChunkSearch(List<ChunkSearchRow> rows);
+
+    void deleteChunkSearchByDocumentId(String documentId);
+
+    List<ChunkSearchRow> semanticSearch(float[] queryVector, String userId,
+            List<String> docIds, List<String> tags, String pathPrefix, int limit);
+
+    List<ChunkSearchRow> keywordSearch(String queryText, String userId,
+            List<String> docIds, List<String> tags, String pathPrefix, int limit);
 }

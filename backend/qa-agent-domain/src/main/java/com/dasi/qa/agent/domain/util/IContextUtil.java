@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.util;
 
-public interface UserContextUtil {
+public interface IContextUtil {
 
     void setUserId(String userId);
 

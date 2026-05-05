@@ -6,14 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.util.concurrent.Executor;
-
 @Configuration
 @EnableConfigurationProperties(ThreadPoolProperties.class)
 public class ThreadPoolConfiguration {
 
     @Bean(name = "applicationTaskExecutor")
-    public Executor applicationTaskExecutor(ThreadPoolProperties properties) {
+    public ThreadPoolTaskExecutor applicationTaskExecutor(ThreadPoolProperties properties) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(properties.getCorePoolSize());
         executor.setMaxPoolSize(properties.getMaxPoolSize());

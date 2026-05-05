@@ -2,7 +2,7 @@ package com.dasi.qa.agent.domain.identity.service.crud;
 
 import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
-import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
@@ -23,12 +23,12 @@ public class ProfileCrudService implements IProfileCrudService {
 
     private final IIdentityRepository repository;
     private final PasswordEncoder passwordEncoder;
-    private final UserContextUtil userContext;
+    private final IContextUtil contextUtil;
 
-    public ProfileCrudService(IIdentityRepository repository, PasswordEncoder passwordEncoder, UserContextUtil userContext) {
+    public ProfileCrudService(IIdentityRepository repository, PasswordEncoder passwordEncoder, IContextUtil contextUtil) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
-        this.userContext = userContext;
+        this.contextUtil = contextUtil;
     }
 
     @Override
@@ -88,7 +88,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_DETAIL_KEY, @userContext.getUserId(), #id)"
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public UserProfileResponse detailUserProfile(String id) {
         return repository.detailUserProfile(currentUserId(), currentUserId());
@@ -97,7 +97,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_QUERY_KEY, @userContext.getUserId(), #request)"
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
@@ -127,7 +127,7 @@ public class ProfileCrudService implements IProfileCrudService {
     }
 
     private String currentUserId() {
-        String userId = userContext.getUserId();
+        String userId = contextUtil.getUserId();
         if (userId == null) {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }

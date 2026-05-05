@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.interfaces.interceptor;
 
-import com.dasi.qa.agent.domain.util.JwtUtil;
-import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.domain.util.IJwtUtil;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,12 +15,12 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Slf4j
 public class JwtInterceptor implements HandlerInterceptor {
 
-    private final JwtUtil jwtUtil;
-    private final UserContextUtil userContext;
+    private final IJwtUtil IJwtUtil;
+    private final IContextUtil contextUtil;
 
-    public JwtInterceptor(JwtUtil jwtUtil, UserContextUtil userContext) {
-        this.jwtUtil = jwtUtil;
-        this.userContext = userContext;
+    public JwtInterceptor(IJwtUtil IJwtUtil, IContextUtil contextUtil) {
+        this.IJwtUtil = IJwtUtil;
+        this.contextUtil = contextUtil;
     }
 
     @Override
@@ -34,16 +34,16 @@ public class JwtInterceptor implements HandlerInterceptor {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
         String token = authorization.substring(7);
-        if (!jwtUtil.isAccessTokenValid(token)) {
+        if (!IJwtUtil.isAccessTokenValid(token)) {
             log.error("【鉴权】令牌非法：uri={}", request.getRequestURI());
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
-        userContext.setUserId(jwtUtil.parseUserId(token));
+        contextUtil.setUserId(IJwtUtil.parseUserId(token));
         return true;
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-        userContext.clear();
+        contextUtil.clear();
     }
 }

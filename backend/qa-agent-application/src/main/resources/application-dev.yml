@@ -1,6 +1,18 @@
 server:
     port: ${QA_AGENT_SERVER_PORT}
 
+spring:
+    kafka:
+        bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
+        consumer:
+            group-id: qa-agent
+            auto-offset-reset: earliest
+            key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        producer:
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 qa-agent:
     datasource:
         mysql:
@@ -55,6 +67,20 @@ qa-agent:
         port: ${QA_AGENT_MAIL_PORT}
         username: ${QA_AGENT_MAIL_USERNAME}
         password: ${QA_AGENT_MAIL_PASSWORD}
+    dashscope:
+        api-key: ${DASHSCOPE_API_KEY}
+        embedding-model: ${DASHSCOPE_EMBEDDING_MODEL}
+        rerank-model: ${DASHSCOPE_RERANK_MODEL}
+    kafka:
+        topic-document-indexing: document.indexing
+        topic-document-indexing-dlq: document.indexing.dlq
+    xxl-job:
+        admin-addresses: ${XXL_JOB_ADMIN_ADDRESSES:http://localhost:8088/xxl-job-admin}
+        app-name: qa-agent
+        port: ${XXL_JOB_EXECUTOR_PORT:9999}
+        access-token: ${XXL_JOB_ACCESS_TOKEN:}
+        log-path: /var/log/xxl-job
+        log-retention-days: 30
     aliyun:
         oss:
             endpoint: ${ALIYUN_OSS_ENDPOINT}

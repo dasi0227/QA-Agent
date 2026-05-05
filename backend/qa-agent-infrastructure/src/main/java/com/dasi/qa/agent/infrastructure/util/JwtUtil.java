@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.infrastructure.util;
 
+import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.infrastructure.properties.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -12,7 +13,7 @@ import java.time.Instant;
 import java.util.Date;
 
 @Component
-public class JwtUtil implements com.dasi.qa.agent.domain.util.JwtUtil {
+public class JwtUtil implements IJwtUtil {
 
     private static final String TOKEN_TYPE = "tokenType";
     private static final String ACCESS = "access";

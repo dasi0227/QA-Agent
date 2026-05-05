@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.qa.service.crud;
 
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
-import com.dasi.qa.agent.domain.util.UserContextUtil;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.model.request.qa.QaItemRequest;
@@ -20,17 +20,17 @@ import java.util.UUID;
 public class QaCrudService implements IQaCrudService {
 
     private final IQaRepository repository;
-    private final UserContextUtil userContext;
+    private final IContextUtil contextUtil;
 
-    public QaCrudService(IQaRepository repository, UserContextUtil userContext) {
+    public QaCrudService(IQaRepository repository, IContextUtil contextUtil) {
         this.repository = repository;
-        this.userContext = userContext;
+        this.contextUtil = contextUtil;
     }
 
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_SET_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_DETAIL_KEY, @userContext.getUserId(), #id)"
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public QaSetResponse detailQaSet(String id) {
         return repository.detailQaSet(id, currentUserId());
@@ -39,7 +39,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_SET_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_QUERY_KEY, @userContext.getUserId(), #request)"
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<QaSetResponse> queryQaSet(QaSetRequest request) {
         String userId = currentUserId();
@@ -62,7 +62,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_ITEM_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_DETAIL_KEY, @userContext.getUserId(), #id)"
+        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public QaItemResponse detailQaItem(String id) {
         return repository.detailQaItem(id, currentUserId());
@@ -71,7 +71,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_ITEM_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_QUERY_KEY, @userContext.getUserId(), #request)"
+        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<QaItemResponse> queryQaItem(QaItemRequest request) {
         String userId = currentUserId();
@@ -102,7 +102,7 @@ public class QaCrudService implements IQaCrudService {
     }
 
     private String currentUserId() {
-        String userId = userContext.getUserId();
+        String userId = contextUtil.getUserId();
         if (userId == null) {
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
