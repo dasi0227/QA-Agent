@@ -1,4 +1,4 @@
-# QA_Agent V2 RAG 设计说明
+# V2 RAG 设计说明
 
 ## 一、RAG 是什么
 

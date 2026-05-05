@@ -42,10 +42,10 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
             .addPathPatterns("/**")
             .excludePathPatterns(
-                "/qa-agent/api/v1/auth/register",
-                "/qa-agent/api/v1/auth/login",
-                "/qa-agent/api/v1/auth/refresh",
-                "/qa-agent/api/v1/auth/send-verify-code",
+                "/auth/register",
+                "/auth/login",
+                "/auth/refresh",
+                "/auth/send-verify-code",
                 "/actuator/health",
                 "/error"
             );
@@ -57,7 +57,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/qa-agent/api/v1/**")
+        registry.addMapping("/**")
                 .allowedOrigins(
                         "http://localhost:5173",
                         "http://127.0.0.1:5173",

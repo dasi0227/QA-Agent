@@ -38,7 +38,7 @@ public class SearchService implements ISearchService {
     @Override
     public List<SearchResult> execute(SearchRequest request) {
         SearchStrategy strategy = request.getStrategy();
-        String queryText = request.getQueryText();
+        String queryText = semanticAdapter.rewriteQuery(request.getQueryText());
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;
 
         float[] queryVector = null;

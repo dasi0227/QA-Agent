@@ -2,12 +2,12 @@
 
 ## 通用约定
 
+- 基础路径：`/qa-agent/api/v1`
 - 返回体：`Result<T>`，字段为 `code`、`msg`、`data`
 - 成功：`code=0`
 - 鉴权：受保护接口统一使用 `Authorization: Bearer <accessToken>`
 - 刷新接口：`POST /auth/refresh`，请求体携带 `refreshToken`
 - 时间格式：`yyyy-MM-dd HH:mm:ss`
-- 基础路径：`/qa-agent/api/v1`
 
 ## Auth
 
@@ -39,58 +39,58 @@
 
 ## Identity
 
-### `user_account`
+### 用户账号
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
-| GET | `/user-account/detail?id=...` | 是 | `id` | 按主键查询 |
-| POST | `/user-account/query` | 是 | `id?`, `username?`, `email?`, `status?`, `avatar?` | 条件查询 |
-| POST | `/user-account/create` | 是 | 同上 | 创建账号，密码做 BCrypt |
-| POST | `/user-account/update` | 是 | 同上，`id` 必填 | 更新账号 |
-| POST | `/user-account/delete` | 是 | `id` | 账号改为 `DISABLED` |
-| POST | `/user-account/avatar` | 是 | `file` (multipart/form-data, image/*) | 上传/替换头像，旧 OSS 对象自动删除 |
+| GET | `/identity/account/detail?id=...` | 是 | `id` | 按主键查询 |
+| POST | `/identity/account/query` | 是 | `id?`, `username?`, `email?`, `status?`, `avatar?` | 条件查询 |
+| POST | `/identity/account/create` | 是 | 同上 | 创建账号，密码做 BCrypt |
+| POST | `/identity/account/update` | 是 | 同上，`id` 必填 | 更新账号 |
+| POST | `/identity/account/delete` | 是 | `id` | 账号改为 `DISABLED` |
+| POST | `/identity/account/avatar` | 是 | `file` (multipart/form-data, image/*) | 上传/替换头像，旧 OSS 对象自动删除 |
 
-### `user_profile`
+### 用户画像
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
-| GET | `/user-profile/me` | 是 | — | 返回当前登录用户的画像 |
-| POST | `/user-profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?` | 条件查询 |
-| POST | `/user-profile/create` | 是 | 同上 | 创建当前用户画像 |
-| POST | `/user-profile/update` | 是 | 同上 | 更新当前用户画像 |
-| POST | `/user-profile/delete` | 是 | `id?` | 删除当前用户画像 |
+| GET | `/identity/profile/me` | 是 | — | 返回当前登录用户的画像 |
+| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?` | 条件查询 |
+| POST | `/identity/profile/create` | 是 | 同上 | 创建当前用户画像 |
+| POST | `/identity/profile/update` | 是 | 同上 | 更新当前用户画像 |
+| POST | `/identity/profile/delete` | 是 | `id?` | 删除当前用户画像 |
 
 ## Document
 
-### `source_document`
+### 资料文档
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
-| GET | `/source-document/detail?id=...` | 是 | `id` | 按主键查询 |
-| POST | `/source-document/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?`, `summary?`, `moduleTagsJson?` | 条件查询 |
-| POST | `/source-document/upload` | 是 | `fileName`, `fileType`, `rawContent`, `summary?`, `moduleTagsJson?` | 上传资料，自动触发异步 RAG 索引 |
-| POST | `/source-document/update` | 是 | 同上，`id` 必填 | 更新资料，自动触发重新索引 |
-| POST | `/source-document/delete` | 是 | `id` | 软删除（`deleted=true`），级联清理切片和检索数据 |
+| GET | `/document/source/detail?id=...` | 是 | `id` | 按主键查询 |
+| POST | `/document/source/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?`, `summary?`, `moduleTagsJson?` | 条件查询 |
+| POST | `/document/source/upload` | 是 | `fileName`, `fileType`, `rawContent`, `summary?`, `moduleTagsJson?` | 上传资料，自动触发异步 RAG 索引 |
+| POST | `/document/source/update` | 是 | 同上，`id` 必填 | 更新资料，自动触发重新索引 |
+| POST | `/document/source/delete` | 是 | `id` | 软删除（`deleted=true`），级联清理切片和检索数据 |
 
-### `document_chunk`
+### 文档切片
 
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
-| GET | `/document-chunk/detail?id=...` | 是 | `id` |
-| POST | `/document-chunk/query` | 是 | `id?`, `documentId?`, `chunkIndex?`, `titlePath?`, `content?`, `summary?`, `moduleTagsJson?` |
-| POST | `/document-chunk/create` | 是 | 同上 |
-| POST | `/document-chunk/update` | 是 | 同上，`id` 必填 |
-| POST | `/document-chunk/delete` | 是 | `id` |
+| GET | `/document/chunk/detail?id=...` | 是 | `id` |
+| POST | `/document/chunk/query` | 是 | `id?`, `documentId?`, `chunkIndex?`, `titlePath?`, `content?`, `summary?`, `moduleTagsJson?` |
+| POST | `/document/chunk/create` | 是 | 同上 |
+| POST | `/document/chunk/update` | 是 | 同上，`id` 必填 |
+| POST | `/document/chunk/delete` | 是 | `id` |
 
 ### V2 RAG 检索
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
-| POST | `/source-document/search` | 是 | `queryText`, `strategy`(SEMANTIC/KEYWORD/HYBRID), `filterDocumentIds?`, `filterModuleTags?`, `filterTitlePathPrefix?`, `topK?`(默认10), `agentType?`(GENERATION/FEEDBACK/SCORING) | 混合检索证据 |
-| POST | `/source-document/reindex` | 是 | `id` | 手动触发指定资料重索引 |
-| GET | `/source-document/chunks?documentId=...` | 是 | `documentId` | 查看某资料的切片列表 |
+| POST | `/document/source/search` | 是 | `queryText`, `strategy`(SEMANTIC/KEYWORD/HYBRID), `filterDocumentIds?`, `filterModuleTags?`, `filterTitlePathPrefix?`, `topK?`(默认10), `agentType?`(GENERATION/FEEDBACK/SCORING) | 混合检索证据 |
+| POST | `/document/source/reindex` | 是 | `id` | 手动触发指定资料重索引 |
+| GET | `/document/source/chunks?documentId=...` | 是 | `documentId` | 查看某资料的切片列表 |
 
-#### `/source-document/search` 请求示例
+#### `/document/source/search` 请求示例
 
 ```json
 {
@@ -128,49 +128,48 @@
 
 ## QA
 
-### `qa_set`
+### 题集
 
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
-| GET | `/qa-set/detail?id=...` | 是 | `id` |
-| POST | `/qa-set/query` | 是 | `id?`, `taskId?`, `title?`, `description?`, `moduleTagsJson?`, `questionCount?`, `practiceCount?`, `averageScore?`, `bestScore?` |
-| POST | `/qa-set/create` | 是 | 同上 |
-| POST | `/qa-set/update` | 是 | 同上，`id` 必填 |
-| POST | `/qa-set/delete` | 是 | `id` |
+| GET | `/qa/set/detail?id=...` | 是 | `id` |
+| POST | `/qa/set/query` | 是 | `id?`, `taskId?`, `title?`, `description?`, `moduleTagsJson?`, `questionCount?`, `practiceCount?`, `averageScore?`, `bestScore?` |
+| POST | `/qa/set/update` | 是 | 同上，`id` 必填 |
+| POST | `/qa/set/delete` | 是 | `id` |
 
 说明：删除 `qa_set` 会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
 
-### `qa_item`
+### 题目
 
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
-| GET | `/qa-item/detail?id=...` | 是 | `id` |
-| POST | `/qa-item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `conflictTip?`, `sourceChunkIdsJson?`, `sortOrder?` |
-| POST | `/qa-item/create` | 是 | 同上 |
-| POST | `/qa-item/update` | 是 | 同上，`id` 必填 |
-| POST | `/qa-item/delete` | 是 | `id` |
+| GET | `/qa/item/detail?id=...` | 是 | `id` |
+| POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `conflictTip?`, `sourceChunkIdsJson?`, `sortOrder?` |
+| POST | `/qa/item/create` | 是 | 同上 |
+| POST | `/qa/item/update` | 是 | 同上，`id` 必填 |
+| POST | `/qa/item/delete` | 是 | `id` |
 
 ## Practice
 
-### `practice_session`
+### 练习会话
 
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
-| GET | `/practice-session/detail?id=...` | 是 | `id` |
-| POST | `/practice-session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?` |
-| POST | `/practice-session/create` | 是 | 同上 |
-| POST | `/practice-session/update` | 是 | 同上，`id` 必填 |
-| POST | `/practice-session/delete` | 是 | `id` |
+| GET | `/practice/session/detail?id=...` | 是 | `id` |
+| POST | `/practice/session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?` |
+| POST | `/practice/session/create` | 是 | 同上 |
+| POST | `/practice/session/update` | 是 | 同上，`id` 必填 |
+| POST | `/practice/session/delete` | 是 | `id` |
 
-### `practice_session_item`
+### 练习题目
 
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
-| GET | `/practice-session-item/detail?id=...` | 是 | `id` |
-| POST | `/practice-session-item/query` | 是 | `id?`, `sessionId?`, `qaItemId?`, `sortOrder?`, `userAnswer?`, `result?`, `score?`, `feedbackSummary?` |
-| POST | `/practice-session-item/create` | 是 | 同上 |
-| POST | `/practice-session-item/update` | 是 | 同上，`id` 必填 |
-| POST | `/practice-session-item/delete` | 是 | `id` |
+| GET | `/practice/session-item/detail?id=...` | 是 | `id` |
+| POST | `/practice/session-item/query` | 是 | `id?`, `sessionId?`, `qaItemId?`, `sortOrder?`, `userAnswer?`, `result?`, `score?`, `feedbackSummary?` |
+| POST | `/practice/session-item/create` | 是 | 同上 |
+| POST | `/practice/session-item/update` | 是 | 同上，`id` 必填 |
+| POST | `/practice/session-item/delete` | 是 | `id` |
 
 ## 错误码
 

@@ -24,7 +24,7 @@ public class IndexConsumer {
         this.mqUtil = mqUtil;
     }
 
-    @KafkaListener(topics = "${qa-agent.kafka.topic-document-indexing}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${qa-agent.kafka.topic-document-index}", groupId = "${spring.kafka.consumer.group-id}")
     public void onDocumentIndexing(String message) {
         String documentId = null;
         String jobId = null;

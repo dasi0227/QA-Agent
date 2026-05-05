@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class DlqConsumer {
 
 
-    @KafkaListener(topics = "${qa-agent.kafka.topic-document-indexing-dlq}", groupId = "${spring.kafka.consumer.group-id}-dlq")
+    @KafkaListener(topics = "${qa-agent.kafka.topic-document-index-dlq}", groupId = "${spring.kafka.consumer.group-id}-dlq")
     public void onDlqMessage(String message) {
         log.error("DLQ received dead message: {}", message);
     }

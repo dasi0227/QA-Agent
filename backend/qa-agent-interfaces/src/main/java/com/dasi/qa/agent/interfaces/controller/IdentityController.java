@@ -21,7 +21,7 @@ import java.util.UUID;
 import static com.dasi.qa.agent.types.constant.SystemConstant.AVATAR_ROOT_PATH;
 
 @RestController
-@RequestMapping("/qa-agent/api/v1")
+@RequestMapping("/identity")
 public class IdentityController {
 
     private final IProfileCrudService identityService;
@@ -34,59 +34,59 @@ public class IdentityController {
         this.contextUtil = contextUtil;
     }
 
-    @GetMapping("/user-account/detail")
+    @GetMapping("/account/detail")
     public Result<UserAccountResponse> userAccountDetail(@RequestParam("id") String id) {
         return Result.success(identityService.detailUserAccount(id));
     }
 
-    @PostMapping("/user-account/query")
+    @PostMapping("/account/query")
     public Result<List<UserAccountResponse>> userAccountQuery(@RequestBody UserAccountRequest request) {
         return Result.success(identityService.queryUserAccount(request));
     }
 
-    @PostMapping("/user-account/create")
+    @PostMapping("/account/create")
     public Result<UserAccountResponse> userAccountCreate(@RequestBody UserAccountRequest request) {
         return Result.success(identityService.createUserAccount(request));
     }
 
-    @PostMapping("/user-account/update")
+    @PostMapping("/account/update")
     public Result<UserAccountResponse> userAccountUpdate(@RequestBody UserAccountRequest request) {
         return Result.success(identityService.updateUserAccount(request));
     }
 
-    @PostMapping("/user-account/delete")
+    @PostMapping("/account/delete")
     public Result<Void> userAccountDelete(@RequestBody UserAccountRequest request) {
         identityService.deleteUserAccount(request.getId());
         return Result.success();
     }
 
-    @GetMapping("/user-profile/me")
+    @GetMapping("/profile/me")
     public Result<UserProfileResponse> userProfileMe() {
         return Result.success(identityService.detailUserProfile("self"));
     }
 
-    @PostMapping("/user-profile/query")
+    @PostMapping("/profile/query")
     public Result<List<UserProfileResponse>> userProfileQuery(@RequestBody UserProfileRequest request) {
         return Result.success(identityService.queryUserProfile(request));
     }
 
-    @PostMapping("/user-profile/create")
+    @PostMapping("/profile/create")
     public Result<UserProfileResponse> userProfileCreate(@RequestBody UserProfileRequest request) {
         return Result.success(identityService.createUserProfile(request));
     }
 
-    @PostMapping("/user-profile/update")
+    @PostMapping("/profile/update")
     public Result<UserProfileResponse> userProfileUpdate(@RequestBody UserProfileRequest request) {
         return Result.success(identityService.updateUserProfile(request));
     }
 
-    @PostMapping("/user-profile/delete")
+    @PostMapping("/profile/delete")
     public Result<Void> userProfileDelete(@RequestBody UserProfileRequest request) {
         identityService.deleteUserProfile(request.getId());
         return Result.success();
     }
 
-    @PostMapping("/user-account/avatar")
+    @PostMapping("/account/avatar")
     public Result<UserAccountResponse> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new ApiException(ResultCode.BAD_REQUEST);

@@ -6,17 +6,12 @@ import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.Result;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/qa-agent/api/v1")
+@RequestMapping("/practice")
 public class PracticeController {
 
     private final IPracticeCrudService practiceService;
@@ -25,53 +20,53 @@ public class PracticeController {
         this.practiceService = practiceService;
     }
 
-    @GetMapping("/practice-session/detail")
+    @GetMapping("/session/detail")
     public Result<PracticeSessionResponse> practiceSessionDetail(@RequestParam("id") String id) {
         return Result.success(practiceService.detailPracticeSession(id));
     }
 
-    @PostMapping("/practice-session/query")
+    @PostMapping("/session/query")
     public Result<List<PracticeSessionResponse>> practiceSessionQuery(@RequestBody PracticeSessionRequest request) {
         return Result.success(practiceService.queryPracticeSession(request));
     }
 
-    @PostMapping("/practice-session/create")
+    @PostMapping("/session/create")
     public Result<PracticeSessionResponse> practiceSessionCreate(@RequestBody PracticeSessionRequest request) {
         return Result.success(practiceService.createPracticeSession(request));
     }
 
-    @PostMapping("/practice-session/update")
+    @PostMapping("/session/update")
     public Result<PracticeSessionResponse> practiceSessionUpdate(@RequestBody PracticeSessionRequest request) {
         return Result.success(practiceService.updatePracticeSession(request));
     }
 
-    @PostMapping("/practice-session/delete")
+    @PostMapping("/session/delete")
     public Result<Void> practiceSessionDelete(@RequestBody PracticeSessionRequest request) {
         practiceService.deletePracticeSession(request.getId());
         return Result.success();
     }
 
-    @GetMapping("/practice-session-item/detail")
+    @GetMapping("/session-item/detail")
     public Result<PracticeSessionItemResponse> practiceSessionItemDetail(@RequestParam("id") String id) {
         return Result.success(practiceService.detailPracticeSessionItem(id));
     }
 
-    @PostMapping("/practice-session-item/query")
+    @PostMapping("/session-item/query")
     public Result<List<PracticeSessionItemResponse>> practiceSessionItemQuery(@RequestBody PracticeSessionItemRequest request) {
         return Result.success(practiceService.queryPracticeSessionItem(request));
     }
 
-    @PostMapping("/practice-session-item/create")
+    @PostMapping("/session-item/create")
     public Result<PracticeSessionItemResponse> practiceSessionItemCreate(@RequestBody PracticeSessionItemRequest request) {
         return Result.success(practiceService.createPracticeSessionItem(request));
     }
 
-    @PostMapping("/practice-session-item/update")
+    @PostMapping("/session-item/update")
     public Result<PracticeSessionItemResponse> practiceSessionItemUpdate(@RequestBody PracticeSessionItemRequest request) {
         return Result.success(practiceService.updatePracticeSessionItem(request));
     }
 
-    @PostMapping("/practice-session-item/delete")
+    @PostMapping("/session-item/delete")
     public Result<Void> practiceSessionItemDelete(@RequestBody PracticeSessionItemRequest request) {
         practiceService.deletePracticeSessionItem(request.getId());
         return Result.success();

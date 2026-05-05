@@ -5,18 +5,14 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.dasi.qa.agent.domain.document.adapter.ISemanticAdapter;
 import com.dasi.qa.agent.infrastructure.properties.DashScopeProperties;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
+import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -43,6 +39,7 @@ public class DashScopeSemanticAdapter implements ISemanticAdapter {
     private final OkHttpClient httpClient;
     private final String apiKey;
     private final String rerankModel;
+    private final String llmModel;
 
     public DashScopeSemanticAdapter(QwenEmbeddingModel embeddingModel,
                                     @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor executor,
@@ -55,6 +52,67 @@ public class DashScopeSemanticAdapter implements ISemanticAdapter {
                 .build();
         this.apiKey = properties.getApiKey();
         this.rerankModel = properties.getRerankModel();
+        this.llmModel = properties.getLlmModel();
+    }
+
+    // ======================== rewrite ========================
+
+    private static final String REWRITE_PROMPT =
+            "你是一个检索查询优化器。将用户问题改写为更适合向量检索和关键词检索的查询文本。\n" +
+            "\n" +
+            "规则：\n" +
+            "- 剥离口语词（\"请问\"、\"怎么\"、\"说说\"、\"是什么\"）\n" +
+            "- 保留并前置核心概念和专业术语\n" +
+            "- 对比类问题保留双方关键词；因果类保留因和果\n" +
+            "- 补充1-2个关键同义词或相关概念，空格分隔\n" +
+            "- 只输出改写文本，不加任何前缀、引号或解释\n" +
+            "\n" +
+            "用户问题：";
+
+    @Override
+    public String rewriteQuery(String query) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("model", llmModel);
+            JSONArray messages = new JSONArray();
+            JSONObject systemMsg = new JSONObject();
+            systemMsg.put("role", "system");
+            systemMsg.put("content", "你是一个检索查询优化器。");
+            messages.add(systemMsg);
+            JSONObject userMsg = new JSONObject();
+            userMsg.put("role", "user");
+            userMsg.put("content", REWRITE_PROMPT + query);
+            messages.add(userMsg);
+            body.put("messages", messages);
+            body.put("temperature", 0.1);
+            body.put("max_tokens", 200);
+
+            Request request = new Request.Builder()
+                    .url("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .post(RequestBody.create(body.toJSONString(), JSON_MEDIA))
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    log.warn("Query rewrite API error, falling back to original query: {}", response.code());
+                    return query;
+                }
+                String responseBody = response.body().string();
+                JSONObject respJson = JSON.parseObject(responseBody);
+                String rewritten = respJson.getJSONArray("choices")
+                        .getJSONObject(0)
+                        .getJSONObject("message")
+                        .getString("content")
+                        .trim();
+                log.debug("Query rewritten: {} -> {}", query, rewritten);
+                return rewritten;
+            }
+        } catch (Exception e) {
+            log.warn("Query rewrite failed, falling back to original query: {}", e.getMessage());
+            return query;
+        }
     }
 
     // ======================== embed ========================
@@ -158,9 +216,7 @@ public class DashScopeSemanticAdapter implements ISemanticAdapter {
         JSONObject input = new JSONObject();
         input.put("query", query);
         JSONArray docs = new JSONArray();
-        for (String doc : documents) {
-            docs.add(doc);
-        }
+        docs.addAll(documents);
         input.put("documents", docs);
         body.put("input", input);
 

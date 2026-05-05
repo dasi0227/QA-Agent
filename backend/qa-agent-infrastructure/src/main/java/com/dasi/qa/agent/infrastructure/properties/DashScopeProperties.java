@@ -12,4 +12,6 @@ public class DashScopeProperties {
     private String embeddingModel;
 
     private String rerankModel;
+
+    private String llmModel = "qwen-turbo";
 }

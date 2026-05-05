@@ -9,4 +9,6 @@ public interface ISemanticAdapter {
     List<float[]> embed(List<String> texts);
 
     List<SearchResult> rerank(String query, List<SearchResult> candidates);
+
+    String rewriteQuery(String query);
 }
