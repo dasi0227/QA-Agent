@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.document.adapter;
 
-import com.dasi.qa.agent.types.model.response.document.SearchResult;
+import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 
 import java.util.List;
 

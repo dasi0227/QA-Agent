@@ -6,8 +6,8 @@ import com.dasi.qa.agent.domain.document.model.ChunkDraft;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.adapter.ISemanticAdapter;
-import com.dasi.qa.agent.types.model.request.document.SourceDocumentRequest;
-import com.dasi.qa.agent.types.model.response.document.SourceDocumentResponse;
+import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
+import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

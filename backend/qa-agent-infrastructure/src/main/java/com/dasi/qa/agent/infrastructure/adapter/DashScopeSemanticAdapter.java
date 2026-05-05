@@ -6,7 +6,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.dasi.qa.agent.domain.document.adapter.ISemanticAdapter;
 import com.dasi.qa.agent.infrastructure.properties.DashScopeProperties;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.model.response.document.SearchResult;
+import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import com.dasi.qa.agent.types.result.ResultCode;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.data.embedding.Embedding;

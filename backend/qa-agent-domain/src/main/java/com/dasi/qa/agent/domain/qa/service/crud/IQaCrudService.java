@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.domain.qa.service.crud;
 
-import com.dasi.qa.agent.types.model.request.qa.QaItemRequest;
-import com.dasi.qa.agent.types.model.request.qa.QaSetRequest;
-import com.dasi.qa.agent.types.model.response.qa.QaItemResponse;
-import com.dasi.qa.agent.types.model.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
+import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
+import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 
 import java.util.List;
 

@@ -6,9 +6,9 @@ import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.HybridRetrie
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.KeywordRetriever;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.RetrieveContext;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.SemanticRetriever;
-import com.dasi.qa.agent.types.enums.SearchStrategy;
-import com.dasi.qa.agent.types.model.request.document.SearchRequest;
-import com.dasi.qa.agent.types.model.response.document.SearchResult;
+import com.dasi.qa.agent.types.enumeration.SearchStrategy;
+import com.dasi.qa.agent.types.dto.request.document.SearchRequest;
+import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

@@ -13,12 +13,12 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.UserAccountEntity;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfileEntity;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserAccountMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
-import com.dasi.qa.agent.types.enums.AccountStatus;
+import com.dasi.qa.agent.types.enumeration.AccountStatus;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.model.request.identity.UserAccountRequest;
-import com.dasi.qa.agent.types.model.request.identity.UserProfileRequest;
-import com.dasi.qa.agent.types.model.response.identity.UserAccountResponse;
-import com.dasi.qa.agent.types.model.response.identity.UserProfileResponse;
+import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
+import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
+import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
+import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Repository;
 

@@ -21,11 +21,11 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetDocumentRefMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.model.request.qa.QaItemRequest;
-import com.dasi.qa.agent.types.model.request.qa.QaSetRequest;
-import com.dasi.qa.agent.types.model.response.BaseResponse;
-import com.dasi.qa.agent.types.model.response.qa.QaItemResponse;
-import com.dasi.qa.agent.types.model.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
+import com.dasi.qa.agent.types.dto.response.BaseResponse;
+import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
+import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Repository;
 

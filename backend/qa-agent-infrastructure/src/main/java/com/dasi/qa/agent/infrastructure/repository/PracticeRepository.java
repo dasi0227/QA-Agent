@@ -14,11 +14,11 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItemEnt
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.model.request.practice.PracticeSessionItemRequest;
-import com.dasi.qa.agent.types.model.request.practice.PracticeSessionRequest;
-import com.dasi.qa.agent.types.model.response.BaseResponse;
-import com.dasi.qa.agent.types.model.response.practice.PracticeSessionItemResponse;
-import com.dasi.qa.agent.types.model.response.practice.PracticeSessionResponse;
+import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
+import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
+import com.dasi.qa.agent.types.dto.response.BaseResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Repository;
 

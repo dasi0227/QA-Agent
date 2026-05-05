@@ -1,10 +1,10 @@
 package com.dasi.qa.agent.interfaces.controller;
 
 import com.dasi.qa.agent.domain.qa.service.crud.IQaCrudService;
-import com.dasi.qa.agent.types.model.request.qa.QaItemRequest;
-import com.dasi.qa.agent.types.model.request.qa.QaSetRequest;
-import com.dasi.qa.agent.types.model.response.qa.QaItemResponse;
-import com.dasi.qa.agent.types.model.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
+import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
+import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.result.Result;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;

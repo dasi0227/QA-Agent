@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.document.service.rag.search;
 
-import com.dasi.qa.agent.types.enums.AgentType;
-import com.dasi.qa.agent.types.model.response.document.SearchResult;
+import com.dasi.qa.agent.types.enumeration.AgentType;
+import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

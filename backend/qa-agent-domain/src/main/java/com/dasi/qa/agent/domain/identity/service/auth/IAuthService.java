@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.domain.identity.service.auth;
 
-import com.dasi.qa.agent.types.model.request.auth.LoginRequest;
-import com.dasi.qa.agent.types.model.request.auth.RefreshRequest;
-import com.dasi.qa.agent.types.model.request.auth.RegisterRequest;
-import com.dasi.qa.agent.types.model.response.auth.AuthResponse;
+import com.dasi.qa.agent.types.dto.request.auth.LoginRequest;
+import com.dasi.qa.agent.types.dto.request.auth.RefreshRequest;
+import com.dasi.qa.agent.types.dto.request.auth.RegisterRequest;
+import com.dasi.qa.agent.types.dto.response.auth.AuthResponse;
 
 public interface IAuthService {
 

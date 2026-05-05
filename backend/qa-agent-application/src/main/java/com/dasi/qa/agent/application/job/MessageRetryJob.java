@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJobEntity;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
-import com.dasi.qa.agent.types.enums.JobStatus;
+import com.dasi.qa.agent.types.enumeration.JobStatus;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import org.springframework.stereotype.Component;
 

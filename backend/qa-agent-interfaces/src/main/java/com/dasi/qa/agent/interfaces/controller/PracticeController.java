@@ -1,10 +1,10 @@
 package com.dasi.qa.agent.interfaces.controller;
 
 import com.dasi.qa.agent.domain.practice.service.crud.IPracticeCrudService;
-import com.dasi.qa.agent.types.model.request.practice.PracticeSessionItemRequest;
-import com.dasi.qa.agent.types.model.request.practice.PracticeSessionRequest;
-import com.dasi.qa.agent.types.model.response.practice.PracticeSessionItemResponse;
-import com.dasi.qa.agent.types.model.response.practice.PracticeSessionResponse;
+import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
+import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.Result;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
