@@ -117,7 +117,7 @@ export function ResultPage() {
             </GlassCard>
 
             <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-                <LinkButton to="/repository" variant="ghost">
+                <LinkButton to="/repository/qa-set" variant="ghost">
                     回仓库
                 </LinkButton>
                 <LinkButton to="/quiz" variant="primary">

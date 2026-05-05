@@ -1349,6 +1349,44 @@ button {
   text-transform: uppercase;
 }
 
+.sidebar__upload-area {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 6px;
+}
+
+.sidebar__upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 24px;
+  border-radius: 999px;
+  border: 1px solid var(--btn-secondary-border);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-ink);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease;
+  width: 100%;
+}
+
+.sidebar__upload-btn:hover:not(:disabled) {
+  background: var(--btn-secondary-bg-hover);
+  border-color: rgba(183, 133, 74, 0.24);
+  color: #6d4b21;
+}
+
+.sidebar__upload-btn:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+.sidebar__upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .tree {
   display: grid;
   gap: 10px;
@@ -1364,11 +1402,13 @@ button {
   color: var(--ink-soft);
   font-family: var(--font-sans);
   font-size: 13px;
+  min-width: 0;
 }
 
 .tree-item--entry {
   justify-content: flex-start;
   text-align: left;
+  min-width: 0;
 }
 
 .tree-item--entry .tree-item__label {

@@ -80,7 +80,7 @@ export function QuizPage() {
                                 <BaseButton variant="soft" type="button" onClick={() => questionSetsQuery.refetch()}>
                                     重试
                                 </BaseButton>
-                                <LinkButton to="/repository" variant="ghost">
+                                <LinkButton to="/repository/qa-set" variant="ghost">
                                     去仓库
                                 </LinkButton>
                             </div>
@@ -152,7 +152,7 @@ export function QuizPage() {
                                                 }}
                                                 onClick={() => {
                                                     if (isActiveCard) {
-                                                        navigate(`/repository/${item.id}`);
+                                                        navigate(`/repository/qa-set/${item.id}`);
                                                     } else {
                                                         setActiveSetByIndex(questionSets.findIndex((set) => set.id === item.id));
                                                     }

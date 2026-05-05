@@ -216,7 +216,7 @@ export function useProfileQuery() {
         queryKey: apiKeys.profile,
         queryFn: async () => {
             try {
-                return normalizeProfile(await apiRequest<unknown>("/user-profile/me"));
+                return normalizeProfile(await apiRequest<unknown>("/identity/profile/me"));
             } catch (error) {
                 if (error instanceof ApiError && error.code === "40400") {
                     return null;
@@ -232,13 +232,13 @@ export function useSaveProfileMutation() {
     return useMutation({
         mutationFn: async (profile: Profile) => {
             try {
-                return normalizeProfile(await apiRequest<unknown>("/user-profile/update", {
+                return normalizeProfile(await apiRequest<unknown>("/identity/profile/update", {
                     method: "POST",
                     body: toProfilePayload(profile),
                 }));
             } catch (error) {
                 if (error instanceof ApiError && error.code === "40400") {
-                    return normalizeProfile(await apiRequest<unknown>("/user-profile/create", {
+                    return normalizeProfile(await apiRequest<unknown>("/identity/profile/create", {
                         method: "POST",
                         body: toProfilePayload(profile),
                     }));
@@ -320,7 +320,7 @@ export function useDocumentsQuery(options: QueryControlOptions = {}) {
     return useQuery({
         queryKey: apiKeys.documents,
         enabled: options.enabled ?? true,
-        queryFn: async () => (await apiRequest<unknown[]>("/source-document/query", {
+        queryFn: async () => (await apiRequest<unknown[]>("/document/source/query", {
             method: "POST",
             body: {},
         })).map(normalizeDocument),
@@ -331,7 +331,7 @@ export function useDocumentQuery(documentId?: string) {
     return useQuery({
         queryKey: apiKeys.document(documentId ?? ""),
         enabled: Boolean(documentId),
-        queryFn: async () => normalizeDocument(await apiRequest<unknown>("/source-document/detail", {
+        queryFn: async () => normalizeDocument(await apiRequest<unknown>("/document/source/detail", {
             query: { id: documentId ?? "" },
         })),
     });
@@ -340,7 +340,7 @@ export function useDocumentQuery(documentId?: string) {
 export function useUpdateDocumentMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (document: DocumentRecord) => normalizeDocument(await apiRequest<unknown>("/source-document/update", {
+        mutationFn: async (document: DocumentRecord) => normalizeDocument(await apiRequest<unknown>("/document/source/update", {
             method: "POST",
             body: {
                 id: document.id,
@@ -366,7 +366,7 @@ export function useDeleteDocumentMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (documentId: string) => {
-            await apiRequest<void>("/source-document/delete", {
+            await apiRequest<void>("/document/source/delete", {
                 method: "POST",
                 body: { id: documentId },
             });
@@ -382,7 +382,7 @@ export function useQuestionSetsQuery(options: QueryControlOptions = {}) {
     return useQuery({
         queryKey: apiKeys.questionSets,
         enabled: options.enabled ?? true,
-        queryFn: async () => (await apiRequest<unknown[]>("/qa-set/query", {
+        queryFn: async () => (await apiRequest<unknown[]>("/qa/set/query", {
             method: "POST",
             body: {},
         })).map(normalizeQuestionSet),
@@ -393,7 +393,7 @@ export function useQuestionSetQuery(questionSetId?: string) {
     return useQuery({
         queryKey: apiKeys.questionSet(questionSetId ?? ""),
         enabled: Boolean(questionSetId),
-        queryFn: async () => normalizeQuestionSet(await apiRequest<unknown>("/qa-set/detail", {
+        queryFn: async () => normalizeQuestionSet(await apiRequest<unknown>("/qa/set/detail", {
             query: { id: questionSetId ?? "" },
         })),
     });
@@ -403,7 +403,7 @@ export function useQuestionSetItemsQuery(questionSetId?: string) {
     return useQuery({
         queryKey: apiKeys.questionSetItems(questionSetId ?? ""),
         enabled: Boolean(questionSetId),
-        queryFn: async () => (await apiRequest<unknown[]>("/qa-item/query", {
+        queryFn: async () => (await apiRequest<unknown[]>("/qa/item/query", {
             method: "POST",
             body: { qaSetId: questionSetId },
         })).map(normalizeQuestionItem),
@@ -414,7 +414,7 @@ export function useDeleteQuestionSetMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (questionSetId: string) => {
-            await apiRequest<void>("/qa-set/delete", {
+            await apiRequest<void>("/qa/set/delete", {
                 method: "POST",
                 body: { id: questionSetId },
             });
@@ -429,7 +429,7 @@ export function useDeleteQuestionSetMutation() {
 export function useUpdateQuestionSetMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: UpdateQuestionSetInput) => normalizeQuestionSet(await apiRequest<unknown>("/qa-set/update", {
+        mutationFn: async (input: UpdateQuestionSetInput) => normalizeQuestionSet(await apiRequest<unknown>("/qa/set/update", {
             method: "POST",
             body: toQuestionSetPayload(input),
         })),
@@ -443,7 +443,7 @@ export function useUpdateQuestionSetMutation() {
 export function useCreateQuestionItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: CreateQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa-item/create", {
+        mutationFn: async (input: CreateQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/create", {
             method: "POST",
             body: toQuestionItemPayload(input),
         })),
@@ -458,7 +458,7 @@ export function useCreateQuestionItemMutation() {
 export function useUpdateQuestionItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: UpdateQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa-item/update", {
+        mutationFn: async (input: UpdateQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/update", {
             method: "POST",
             body: toQuestionItemPayload(input),
         })),
@@ -474,7 +474,7 @@ export function useDeleteQuestionItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (input: DeleteQuestionItemInput) => {
-            await apiRequest<void>("/qa-item/delete", {
+            await apiRequest<void>("/qa/item/delete", {
                 method: "POST",
                 body: { id: input.questionItemId },
             });
@@ -494,13 +494,34 @@ export function useUploadAvatarMutation() {
         mutationFn: async (file: File) => {
             const formData = new FormData();
             formData.append("file", file);
-            return normalizeAuthUser(await apiRequest<unknown>("/user-account/avatar", {
+            return normalizeAuthUser(await apiRequest<unknown>("/identity/account/avatar", {
                 method: "POST",
                 body: formData,
             }));
         },
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.currentUser });
+        },
+    });
+}
+
+export function useUploadDocumentMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (file: File) => {
+            const rawContent = await file.text();
+            const fileType = file.name.split(".").pop()?.toLowerCase() || "txt";
+            return normalizeDocument(await apiRequest<unknown>("/document/source/upload", {
+                method: "POST",
+                body: {
+                    fileName: file.name,
+                    fileType,
+                    rawContent,
+                },
+            }));
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.documents });
         },
     });
 }
