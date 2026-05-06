@@ -38,7 +38,7 @@ public class MarkdownChunker {
 
         for (Node node : document.getChildren()) {
             if (node instanceof Heading heading) {
-                if (currentContent.length() > 0) {
+                if (!currentContent.isEmpty()) {
                     chunks.addAll(splitByLength(chunkIndex, buildTitlePath(headingStack),
                             currentContent.toString().trim(), headingStack));
                     chunkIndex = chunks.size();
@@ -55,13 +55,13 @@ public class MarkdownChunker {
                     || node instanceof IndentedCodeBlock) {
                 String text;
                 if (node instanceof FencedCodeBlock codeBlock) {
-                    text = "```\n" + codeBlock.getContentChars().toString() + "\n```";
+                    text = "```\n" + codeBlock.getContentChars() + "\n```";
                 } else if (node instanceof IndentedCodeBlock codeBlock) {
                     text = codeBlock.getContentChars().toString();
                 } else {
                     text = node.getChars().toString();
                 }
-                if (currentContent.length() > 0) {
+                if (!currentContent.isEmpty()) {
                     currentContent.append("\n\n");
                 }
                 currentContent.append(text);
@@ -69,7 +69,7 @@ public class MarkdownChunker {
             } else if (node instanceof Block block) {
                 String text = block.getChars().toString().trim();
                 if (!text.isEmpty()) {
-                    if (currentContent.length() > 0) {
+                    if (!currentContent.isEmpty()) {
                         currentContent.append("\n\n");
                     }
                     currentContent.append(text);
@@ -77,7 +77,7 @@ public class MarkdownChunker {
             }
         }
 
-        if (currentContent.length() > 0) {
+        if (!currentContent.isEmpty()) {
             chunks.addAll(splitByLength(chunkIndex, buildTitlePath(headingStack),
                     currentContent.toString().trim(), headingStack));
         }
@@ -97,7 +97,7 @@ public class MarkdownChunker {
                                            String content, List<String> moduleTags) {
         List<ChunkDraft> result = new ArrayList<>();
         if (content.length() <= MAX_CHUNK_LENGTH) {
-            result.add(new ChunkDraft(startIndex, titlePath, content,
+            result.add(new ChunkDraft("", startIndex, titlePath, content,
                     new ArrayList<>(moduleTags), ""));
             return result;
         }
@@ -111,19 +111,19 @@ public class MarkdownChunker {
             if (section.isEmpty()) {
                 continue;
             }
-            if (buf.length() + section.length() > MAX_CHUNK_LENGTH && buf.length() > 0) {
-                result.add(new ChunkDraft(idx++, titlePath, buf.toString().trim(),
+            if (buf.length() + section.length() > MAX_CHUNK_LENGTH && !buf.isEmpty()) {
+                result.add(new ChunkDraft("", idx++, titlePath, buf.toString().trim(),
                         new ArrayList<>(moduleTags), ""));
                 buf.setLength(0);
             }
-            if (buf.length() > 0) {
+            if (!buf.isEmpty()) {
                 buf.append("\n\n");
             }
             buf.append(section);
         }
 
-        if (buf.length() > 0) {
-            result.add(new ChunkDraft(idx, titlePath, buf.toString().trim(),
+        if (!buf.isEmpty()) {
+            result.add(new ChunkDraft("", idx, titlePath, buf.toString().trim(),
                     new ArrayList<>(moduleTags), ""));
         }
 
