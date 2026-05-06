@@ -136,8 +136,27 @@
 | POST | `/qa/set/query` | 是 | `id?`, `taskId?`, `title?`, `description?`, `moduleTagsJson?`, `questionCount?`, `practiceCount?`, `averageScore?`, `bestScore?` |
 | POST | `/qa/set/update` | 是 | 同上，`id` 必填 |
 | POST | `/qa/set/delete` | 是 | `id` |
+| POST | `/qa/set/create` | 是 | `title?`, `note?`, `documentIds`, `requestedQuestionCount?`, `allowGeneralKnowledge?`, `allowWebSearch?` |
+| GET | `/qa/set/task-status?taskId=...` | 是 | `taskId` |
+| GET | `/qa/set/task-messages?taskId=...` | 是 | `taskId` |
 
 说明：删除 `qa_set` 会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
+
+#### `/qa/set/create` SSE 事件示例
+
+```json
+{
+  "taskId": "uuid",
+  "stage": "PLANNER",
+  "status": "PROCESSING",
+  "message": "已分析资料结构，识别出 Redis、JVM 两个模块。",
+  "timestamp": 1717000000000,
+  "tokens": {
+    "current": 1200,
+    "total": 1200
+  }
+}
+```
 
 ### 题目
 
@@ -185,5 +204,6 @@
 | `40400` | not found |
 | `40900` | username already registered |
 | `40901` | email already registered |
+| `40902` | 用户未配置 LLM 接入信息 |
 | `42900` | verify code rate limited |
 | `50000` | internal error |

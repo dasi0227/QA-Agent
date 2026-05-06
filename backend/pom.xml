@@ -37,6 +37,7 @@
         <jackson-datatype-jsr310.version>2.19.1</jackson-datatype-jsr310.version>
         <aliyun-sdk-oss.version>3.17.4</aliyun-sdk-oss.version>
         <langchain4j.version>1.14.0</langchain4j.version>
+        <langchain4j-agentic.version>1.14.0-beta24</langchain4j-agentic.version>
         <langchain4j-community.version>1.14.0-beta24</langchain4j-community.version>
         <xxl-job.version>2.4.2</xxl-job.version>
     </properties>
@@ -98,6 +99,16 @@
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j</artifactId>
                 <version>${langchain4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-open-ai</artifactId>
+                <version>${langchain4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-agentic</artifactId>
+                <version>${langchain4j-agentic.version}</version>
             </dependency>
             <dependency>
                 <groupId>dev.langchain4j</groupId>

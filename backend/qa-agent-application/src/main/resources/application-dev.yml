@@ -39,6 +39,13 @@ qa-agent:
             minimum-idle: ${POSTGRES_MINIMUM_IDLE}
             maximum-pool-size: ${POSTGRES_MAXIMUM_POOL_SIZE}
             connection-timeout-ms: ${POSTGRES_CONNECTION_TIMEOUT_MS}
+    mybatis:
+        mysql-mapper-locations: classpath*:mapper/mysql/**/*.xml
+        postgres-mapper-locations: classpath*:mapper/postgres/**/*.xml
+        map-underscore-to-camel-case: true
+        cache-enabled: false
+        overflow: false
+        max-limit: 500
     redis:
         host: ${REDIS_HOST}
         port: ${REDIS_PORT}
@@ -49,13 +56,6 @@ qa-agent:
         issuer: ${JWT_ISSUER}
         access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES}
         refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS}
-    mybatis:
-        mysql-mapper-locations: classpath*:mapper/mysql/**/*.xml
-        postgres-mapper-locations: classpath*:mapper/postgres/**/*.xml
-        map-underscore-to-camel-case: true
-        cache-enabled: false
-        overflow: false
-        max-limit: 500
     thread-pool:
         core-pool-size: ${THREAD_POOL_CORE_POOL_SIZE}
         max-pool-size: ${THREAD_POOL_MAX_POOL_SIZE}
@@ -69,11 +69,6 @@ qa-agent:
         port: ${QA_AGENT_MAIL_PORT}
         username: ${QA_AGENT_MAIL_USERNAME}
         password: ${QA_AGENT_MAIL_PASSWORD}
-    dashscope:
-        api-key: ${DASHSCOPE_API_KEY}
-        embedding-model: ${DASHSCOPE_EMBEDDING_MODEL}
-        rerank-model: ${DASHSCOPE_RERANK_MODEL}
-        llm-model: ${DASHSCOPE_LLM_MODEL:qwen-turbo}
     kafka:
         topic-document-index: document.index
         topic-document-index-dlq: document.index.dlq
@@ -84,10 +79,24 @@ qa-agent:
         access-token: ${XXL_JOB_ACCESS_TOKEN:}
         log-path: /var/log/xxl-job
         log-retention-days: 30
+    avatar:
+        default-url: https://${ALIYUN_OSS_BUCKET_NAME}.${ALIYUN_OSS_ENDPOINT}/avatar/default.png
     oss:
         endpoint: ${ALIYUN_OSS_ENDPOINT}
         access-key-id: ${ALIYUN_OSS_ACCESS_KEY_ID}
         access-key-secret: ${ALIYUN_OSS_ACCESS_KEY_SECRET}
         bucket-name: ${ALIYUN_OSS_BUCKET_NAME}
-    avatar:
-        default-url: https://${ALIYUN_OSS_BUCKET_NAME}.${ALIYUN_OSS_ENDPOINT}/avatar/default.png
+    dashscope:
+        api-key: ${DASHSCOPE_API_KEY}
+        embedding-model: ${DASHSCOPE_EMBEDDING_MODEL}
+        rerank-model: ${DASHSCOPE_RERANK_MODEL}
+        llm-model: ${DASHSCOPE_LLM_MODEL:qwen-turbo}
+    llm:
+        supervisor:
+            base-url: ${SUPERVISOR_LLM_BASE_URL}
+            api-key: ${SUPERVISOR_LLM_API_KEY}
+            model: ${SUPERVISOR_LLM_MODEL}
+        web-search:
+            base-url: ${WEB_SEARCH_LLM_BASE_URL}
+            api-key: ${WEB_SEARCH_LLM_API_KEY}
+            model: ${WEB_SEARCH_LLM_MODEL}

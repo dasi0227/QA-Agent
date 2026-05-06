@@ -42,6 +42,12 @@ public class UserProfileEntity {
 
     private String stage;
 
+    private String llmBaseUrl;
+
+    private String llmApiKey;
+
+    private String llmModelName;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

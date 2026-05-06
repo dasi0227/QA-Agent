@@ -25,4 +25,7 @@ public class UserProfileRequest extends BaseRequest {
     private String grade;
     private String major;
     private String stage;
+    private String llmBaseUrl;
+    private String llmApiKey;
+    private String llmModelName;
 }

@@ -2,7 +2,7 @@
 
 ## 一、RAG 是什么
 
-RAG（Retrieval-Augmented Generation，检索增强生成）在本系统中是**统一的证据检索底座**。它把用户上传的 Markdown 资料结构化切分，为每个切片生成向量和全文索引，对外提供 `/source-document/search` 检索接口。
+RAG（Retrieval-Augmented Generation，检索增强生成）在本系统中是**统一的证据检索底座**。它把用户上传的 Markdown 资料结构化切分，为每个切片生成向量和全文索引，对外提供 `/document/source/search` 检索接口。
 
 它的核心职责：让下游 Agent（生成、反馈、评分）在调用 LLM 之前先检索资料证据，基于真实资料内容工作，而不是凭空编造。
 
@@ -10,14 +10,14 @@ RAG（Retrieval-Augmented Generation，检索增强生成）在本系统中是**
 
 1. 用户上传一份 Markdown 资料（如 Redis 学习笔记）
 2. 系统自动完成：切片 → 向量化 → 中文分词 → 索引（异步，秒级完成）
-3. 用户（或 Agent）调用 `/source-document/search`，输入查询文本，拿到按相关性排序的证据片段
+3. 用户（或 Agent）调用 `/document/source/search`，输入查询文本，拿到按相关性排序的证据片段
 4. 结果包含标题路径、正文、来源资料 ID、相似度分数，可追溯到具体资料的哪个章节
 
 ## 三、整体架构
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                   POST /source-document/upload             │
+│                   POST /document/source/upload             │
 │                      (DocumentController)                  │
 └──────────────────────────┬───────────────────────────────┘
                            │
@@ -76,9 +76,9 @@ RAG（Retrieval-Augmented Generation，检索增强生成）在本系统中是**
 
 ### 4.1 触发
 
-- `POST /source-document/upload`：Controller 创建资料后，调用 `mqUtil.send("document.indexing", "rag_xxx", payload)`
-- `POST /source-document/update`：同上
-- `POST /source-document/reindex`：手动触发
+- `POST /document/source/upload`：Controller 创建资料后，调用 `mqUtil.send("document.indexing", "rag_xxx", payload)`
+- `POST /document/source/update`：同上
+- `POST /document/source/reindex`：手动触发
 
 ### 4.2 消费
 
@@ -120,7 +120,7 @@ RAG（Retrieval-Augmented Generation，检索增强生成）在本系统中是**
 
 ### 5.1 入口
 
-`POST /source-document/search` → `IRagPipeline.execute(SearchRequest)`
+`POST /document/source/search` → `IRagPipeline.execute(SearchRequest)`
 
 ### 5.2 执行流程
 
@@ -259,7 +259,7 @@ application/job/
 
 ## 九、与下游 Agent 的关系
 
-RAG 是统一证据底座，各 Agent 通过 `/source-document/search` 调用：
+RAG 是统一证据底座，各 Agent 通过 `/document/source/search` 调用：
 
 | Agent | 阶段 | 调用参数 | 预期结果 |
 |-------|------|---------|---------|

@@ -1,13 +1,25 @@
 package com.dasi.qa.agent.interfaces.controller;
 
+import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
+import com.dasi.qa.agent.domain.agent.service.generate.agentic.IGenerationAgent;
 import com.dasi.qa.agent.domain.qa.service.crud.IQaCrudService;
+import com.dasi.qa.agent.domain.util.IContextUtil;
+import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
+import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.Result;
+import com.dasi.qa.agent.types.result.ResultCode;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -15,9 +27,21 @@ import java.util.List;
 public class QaController {
 
     private final IQaCrudService qaService;
+    private final IGenerationAgent generationAgent;
+    private final IAgentRepository agentRepository;
+    private final IContextUtil contextUtil;
+    private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
-    public QaController(IQaCrudService qaService) {
+    public QaController(IQaCrudService qaService,
+                        IGenerationAgent generationAgent,
+                        IAgentRepository agentRepository,
+                        IContextUtil contextUtil,
+                        @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
         this.qaService = qaService;
+        this.generationAgent = generationAgent;
+        this.agentRepository = agentRepository;
+        this.contextUtil = contextUtil;
+        this.applicationTaskExecutor = applicationTaskExecutor;
     }
 
     @GetMapping("/set/detail")
@@ -39,6 +63,42 @@ public class QaController {
     public Result<Void> qaSetDelete(@RequestBody QaSetRequest request) {
         qaService.deleteQaSet(request.getId());
         return Result.success();
+    }
+
+    @PostMapping("/set/create")
+    public SseEmitter qaSetCreate(@RequestBody CreateTaskRequest request) {
+        validateCreateTaskRequest(request);
+        String userId = contextUtil.getUserId();
+        if (userId == null || userId.isBlank()) {
+            throw new ApiException(ResultCode.UNAUTHORIZED);
+        }
+
+        SseEmitter emitter = new SseEmitter(120_000L);
+        emitter.onTimeout(emitter::complete);
+        emitter.onError(emitter::completeWithError);
+        applicationTaskExecutor.execute(() -> generationAgent.execute(userId, request, event -> {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name(event.stage())
+                        .data(event));
+                if ("COMPLETED".equals(event.status()) || "FAILED".equals(event.status())) {
+                    emitter.complete();
+                }
+            } catch (IOException exception) {
+                emitter.completeWithError(exception);
+            }
+        }));
+        return emitter;
+    }
+
+    @GetMapping("/set/task-status")
+    public Result<TaskStatusResponse> taskStatus(@RequestParam("taskId") String taskId) {
+        return Result.success(agentRepository.getTaskStatus(taskId, contextUtil.getUserId()));
+    }
+
+    @GetMapping("/set/task-messages")
+    public Result<List<TaskMessageResponse>> taskMessages(@RequestParam("taskId") String taskId) {
+        return Result.success(agentRepository.getTaskMessages(taskId, contextUtil.getUserId()));
     }
 
     @GetMapping("/item/detail")
@@ -65,5 +125,17 @@ public class QaController {
     public Result<Void> qaItemDelete(@RequestBody QaItemRequest request) {
         qaService.deleteQaItem(request.getId());
         return Result.success();
+    }
+
+    private void validateCreateTaskRequest(CreateTaskRequest request) {
+        if (request.getDocumentIds() == null || request.getDocumentIds().isEmpty()) {
+            throw new ApiException(ResultCode.BAD_REQUEST.getCode(), "请至少选择一份资料");
+        }
+        if (request.getRequestedQuestionCount() != null && request.getRequestedQuestionCount() > 100) {
+            throw new ApiException(ResultCode.BAD_REQUEST.getCode(), "单次最多生成 100 题");
+        }
+        if (request.getNote() != null && request.getNote().length() > 2000) {
+            throw new ApiException(ResultCode.BAD_REQUEST.getCode(), "备注过长，请控制在 2000 字符以内");
+        }
     }
 }
