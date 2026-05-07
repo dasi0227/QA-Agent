@@ -8,7 +8,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlanAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SearchAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SummarizeAgent;
-import com.dasi.qa.agent.domain.agent.service.generate.support.EventPublisher;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
@@ -24,11 +23,9 @@ import java.util.List;
 @AllArgsConstructor
 public class GenerateContext {
 
-    private final String taskId;
     private final ChatModel userModel;
     private final ChatMemoryProvider chatMemoryProvider;
     private final AgentListener listener;
-    private final EventPublisher eventPublisher;
     private final List<Object> creatorTools;
     private final List<Object> amendmentTools;
     private final DecideStep decideStep;

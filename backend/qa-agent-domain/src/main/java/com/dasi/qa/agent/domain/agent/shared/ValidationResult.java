@@ -1,6 +1,6 @@
-package com.dasi.qa.agent.domain.agent.model;
+package com.dasi.qa.agent.domain.agent.shared;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.VerdictType;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.VerdictType;
 import dev.langchain4j.model.output.structured.Description;
 
 public record ValidationResult(

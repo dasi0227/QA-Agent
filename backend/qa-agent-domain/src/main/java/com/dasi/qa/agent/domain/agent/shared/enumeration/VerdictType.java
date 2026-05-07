@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.model.enumeration;
+package com.dasi.qa.agent.domain.agent.shared.enumeration;
 
 public enum VerdictType {
     PASS,

@@ -1,10 +1,10 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.alibaba.fastjson2.JSON;
-import com.dasi.qa.agent.domain.agent.model.DraftItem;
-import com.dasi.qa.agent.domain.agent.model.RevisionItem;
-import com.dasi.qa.agent.domain.agent.model.ValidationResult;
-import com.dasi.qa.agent.domain.agent.model.enumeration.VerdictType;
+import com.dasi.qa.agent.domain.agent.shared.DraftItem;
+import com.dasi.qa.agent.domain.agent.shared.RevisionItem;
+import com.dasi.qa.agent.domain.agent.shared.ValidationResult;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.VerdictType;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;

@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.Difficulty;
-import com.dasi.qa.agent.domain.agent.model.DraftItem;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.Difficulty;
+import com.dasi.qa.agent.domain.agent.shared.DraftItem;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;

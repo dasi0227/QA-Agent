@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.document.service.rag.search;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.AgentType;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.AgentType;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import org.springframework.stereotype.Component;
 

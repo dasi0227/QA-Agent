@@ -11,7 +11,8 @@ import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
-import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
+import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
+import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,7 +20,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -72,19 +72,8 @@ public class QaController {
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);
 
-        Consumer<SseEvent> eventSink = event -> {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name(event.getStage())
-                        .data(event));
-                if ("COMPLETED".equals(event.getStatus()) || "FAILED".equals(event.getStatus())) {
-                    emitter.complete();
-                }
-            } catch (IOException exception) {
-                emitter.completeWithError(exception);
-            }
-        };
-        applicationTaskExecutor.execute(() -> generationAgent.execute(contextUtil.getUserId(), request, eventSink));
+        Consumer<SseEvent> sseEventHandler = new SseEventHandler(emitter);
+        applicationTaskExecutor.execute(() -> generationAgent.execute(contextUtil.getUserId(), request, sseEventHandler));
 
         return emitter;
     }

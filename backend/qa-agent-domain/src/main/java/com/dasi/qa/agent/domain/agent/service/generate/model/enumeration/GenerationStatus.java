@@ -9,6 +9,10 @@ public enum GenerationStatus {
     COMPLETED,
     FAILED;
 
+    public boolean isTerminal() {
+        return this == COMPLETED || this == FAILED;
+    }
+
     public static GenerationStatus fromValue(String value) {
         if (value == null || value.isBlank()) {
             throw new ApiException(ResultCode.INVALID_PARAM);

@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
-import com.dasi.qa.agent.domain.agent.service.generate.support.EventPublisher;
+import com.dasi.qa.agent.domain.agent.shared.sse.EventPublisher;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,4 +17,5 @@ public class SummarizeContext {
     private String userId;
     private CreateTaskRequest request;
     private EventPublisher publisher;
+
 }

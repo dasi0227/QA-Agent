@@ -1,8 +1,8 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
 import com.alibaba.fastjson2.JSON;
-import com.dasi.qa.agent.domain.agent.model.*;
-import com.dasi.qa.agent.domain.agent.model.enumeration.Difficulty;
+import com.dasi.qa.agent.domain.agent.shared.*;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.Difficulty;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateAbortedException;
@@ -11,13 +11,14 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
 import com.dasi.qa.agent.domain.agent.service.generate.support.*;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.RagSearchTool;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.WebSearchTool;
+import com.dasi.qa.agent.domain.agent.shared.sse.EventPublisher;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
-import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
+import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -43,28 +44,25 @@ public class GenerateAgent implements IGenerateAgent {
     private final IAgentRepository agentRepository;
     private final GenerateAgentFactory generateAgentFactory;
     private final ISearchService searchService;
-    private final UserLlmModelFactory userLlmModelFactory;
+    private final UserLlmModelProvider userLlmModelProvider;
     private final ChatMemoryProvider chatMemoryProvider;
-    private final EventPublisherFactory eventPublisherFactory;
     private final ChatModel webSearchModel;
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
     public GenerateAgent(IAgentRepository agentRepository,
-                         UserLlmModelFactory userLlmModelFactory,
+                         UserLlmModelProvider userLlmModelProvider,
                          GenerateAgentFactory generateAgentFactory,
                          ISearchService searchService,
                          ChatMemoryProvider chatMemoryProvider,
-                         EventPublisherFactory eventPublisherFactory,
                          @Qualifier("webSearchModel") ChatModel webSearchModel,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
         this.agentRepository = agentRepository;
-        this.userLlmModelFactory = userLlmModelFactory;
+        this.userLlmModelProvider = userLlmModelProvider;
         this.generateAgentFactory = generateAgentFactory;
         this.searchService = searchService;
         this.chatMemoryProvider = chatMemoryProvider;
-        this.eventPublisherFactory = eventPublisherFactory;
         this.webSearchModel = webSearchModel;
         this.supervisorChatModel = supervisorModel;
         this.applicationTaskExecutor = applicationTaskExecutor;
@@ -75,42 +73,48 @@ public class GenerateAgent implements IGenerateAgent {
      * 1. 创建任务并推送 PENDING 事件
      * 2. 读取用户 LLM 配置
      * 3. 构建并运行 Generate DAG
-     * 4. 成功则标记成功并推送 COMPLETED 事件，失败则捕获异常并推送 FAILED 事件
+     * 4. 按异常类型统一发布失败结果
      *
-     * @param userId    用户 id
-     * @param request   创建问答集请求
-     * @param eventSink 发送 SSE 事件函数
+     * @param userId    当前用户 ID
+     * @param request   创建问答集的请求参数
+     * @param sseEventHandler SSE 事件消费回调
      */
     @Override
-    public void execute(String userId, CreateTaskRequest request, Consumer<SseEvent> eventSink) {
-        // 随机生成任务ID
+    public void execute(String userId, CreateTaskRequest request, Consumer<SseEvent> sseEventHandler) {
+        // 生成本次任务唯一标识
         String taskId = UUID.randomUUID().toString();
 
-        // 生成可追踪的创建任务
+        // 写入任务主记录，确保后续状态可追踪
         agentRepository.createGenerationTask(taskId, userId, request);
 
-        // 由于存在并发处理，所以需要用 Atomic 工具类确保线程安全
+        // 跨阶段累计 token，用于并发场景下的线程安全统计
         AtomicInteger totalTokens = new AtomicInteger(0);
 
-        // 创建当前任务的事件发送器并发送第一条 PENDING 消息
-        EventPublisher eventPublisher = eventPublisherFactory.create(taskId, eventSink, totalTokens);
+        // 创建事件发布器
+        EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, sseEventHandler, totalTokens);
+
+        // 发送任务创建事件
         eventPublisher.publishEvent(GenerationStage.PENDING, GenerationStatus.PROCESSING, "生成任务已创建", 0);
 
         try {
-            // 拿到用户模型配置
-            ChatModel userModel = userLlmModelFactory.getUserLlmModel(userId);
+            // 读取并构建用户专属模型
+            ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
 
-            // 获取智能体会用到的工具
-            List<Object> creatorTools = getCreatorTools(userId, request);
-            List<Object> amendmentTools = getValidatorTools(userId, request);
+            // 准备可调用工具
+            RagSearchTool ragSearchTool = new RagSearchTool(searchService, userId, request.getDocumentIds());
+            WebSearchTool webSearchTool = new WebSearchTool(webSearchModel);
+            List<Object> createTools = Boolean.TRUE.equals(request.getAllowWebSearch())
+                    ? List.of(ragSearchTool, webSearchTool)
+                    : List.of(ragSearchTool);
+            List<Object> validateTools = List.of(ragSearchTool);
 
-            // 获取链路的监听器，负责处理每个智能体的输出
+            // 创建链路监听器：汇总阶段输出与 token 信息
             GenerateAgentListener listener = new GenerateAgentListener(taskId, eventPublisher, totalTokens, supervisorChatModel);
 
-            //
+            // 读取用户所选资料，作为规划阶段输入上下文
             String documentsSummary = agentRepository.getDocumentsSummary(request.getDocumentIds(), userId);
 
-            // 创建好智能体执行的上下文对象
+            // 组装各阶段执行上下文（Plan / Create / Validate / Summarize）
             PlanContext planContext = PlanContext.builder()
                     .taskId(taskId)
                     .request(request)
@@ -136,72 +140,44 @@ public class GenerateAgent implements IGenerateAgent {
                     .executor(applicationTaskExecutor)
                     .build();
 
-            // 汇总上下文，构造得到任务的上下文
+            // 汇总 DAG 运行上下文，并绑定各阶段执行回调
             GenerateContext generateContext = GenerateContext.builder()
-                    .taskId(taskId)
                     .userModel(userModel)
                     .chatMemoryProvider(chatMemoryProvider)
                     .listener(listener)
-                    .eventPublisher(eventPublisher)
-                    .creatorTools(creatorTools)
-                    .amendmentTools(amendmentTools)
+                    .creatorTools(createTools)
+                    .amendmentTools(validateTools)
                     .decideStep((scope, decideAgent) -> runDecide(scope, decideAgent, taskId))
-                    .abortStep((scope, abortAgent) -> runAbort(scope, abortAgent, eventPublisher))
+                    .abortStep((scope, abortAgent) -> abortAgent.abort(scope, eventPublisher))
                     .planStep((scope, planAgent) -> runPlan(scope, planAgent, planContext))
                     .createStep((scope, draftAgent, searchAgent) -> runCreate(scope, draftAgent, searchAgent, createContext))
                     .validateStep((scope, evaluateAgent, amendAgent) -> runValidate(scope, evaluateAgent, amendAgent, validateContext))
                     .summarizeStep((scope, summarizeAgent) -> runSummarizer(scope, summarizeAgent, summarizeContext))
                     .build();
 
-            // 创建 Generate Agent 的完整 DAG 结构
+            // 构建任务 DAG（Decide -> Plan -> Create (Search -> Draft) -> Validate（Evaluate -> Amend） -> Summarize）
             UntypedAgent generateAgent = generateAgentFactory.build(generateContext);
 
-            // 创建 Scope 的初始值
+            // 初始化 Scope 数据，供各阶段读取
             Map<String, Object> initialData = Map.of(
                     "taskId", taskId,
                     "userPrompt", safe(request.getUserPrompt())
             );
 
-            // 开始启动 DAG 执行智能体
+            // 启动 DAG 执行
             generateAgent.invoke(initialData);
-        } catch (GenerateAbortedException ignored) {
-        } catch (GenerateException exception) {
-            fail(taskId, eventPublisher, exception.getErrorType(), exception.getMessage());
-        } catch (Exception exception) {
-            fail(taskId, eventPublisher, ErrorType.fromException(exception), exception.getMessage());
         }
-    }
-
-    /**
-     * 构建 Creator 阶段的工具列表
-     * - 根据用户指定的笔记资料进行 RagSearch
-     * - 当用户允许联网搜索时进行 WebSearch
-     */
-    private List<Object> getCreatorTools(String userId, CreateTaskRequest request) {
-        List<Object> tools = new ArrayList<>();
-        tools.add(new RagSearchTool(searchService, userId, request.getDocumentIds()));
-        if (Boolean.TRUE.equals(request.getAllowWebSearch())) {
-            tools.add(new WebSearchTool(webSearchModel));
+        // 业务主动中止不再追加失败处理
+        catch (GenerateAbortedException ignored) {
         }
-        return tools;
-    }
-
-
-    /**
-     * 构建 Validator 阶段的工具列表
-     * - 根据用户指定的笔记资料进行 RagSearch
-     */
-    private List<Object> getValidatorTools(String userId, CreateTaskRequest request) {
-        return List.of(new RagSearchTool(searchService, userId, request.getDocumentIds()));
-    }
-
-    /**
-     *
-     */
-    private void fail(String taskId, EventPublisher publisher, ErrorType errorType, String message) {
-        String errorMessage = message == null || message.isBlank() ? errorType.name() : message;
-        log.error("QA generation task failed: taskId={}, errorType={}, message={}", taskId, errorType, errorMessage);
-        publisher.publishFailure(errorType, errorMessage);
+        // 已知业务异常：按类型发布失败事件
+        catch (GenerateException exception) {
+            eventPublisher.publishFailure(exception.getErrorType(), exception.getMessage());
+        }
+        // 未知异常：映射错误类型后发布失败事件
+        catch (Exception exception) {
+            eventPublisher.publishFailure(ErrorType.fromException(exception), exception.getMessage());
+        }
     }
 
     private void runDecide(AgenticScope scope, DecideAgent decideAgent, String taskId) {
@@ -209,10 +185,6 @@ public class GenerateAgent implements IGenerateAgent {
         Object userPrompt = scope.readState("userPrompt");
         DecideResult decideResult = decideAgent.decide(taskId, userPrompt == null ? "" : String.valueOf(userPrompt));
         scope.writeState("decideResult", decideResult);
-    }
-
-    private void runAbort(AgenticScope scope, AbortAgent abortAgent, EventPublisher eventPublisher) {
-        abortAgent.abort(scope, eventPublisher);
     }
 
     private void runPlan(AgenticScope scope, PlanAgent planAgent, PlanContext context) {
@@ -567,7 +539,6 @@ public class GenerateAgent implements IGenerateAgent {
         return value != null && !value.isBlank();
     }
 
-    @SuppressWarnings("unchecked")
     private List<String> readStrings(AgenticScope scope, String key) {
         Object value = scope.readState(key);
         return value instanceof List<?> list ? (List<String>) list : List.of();

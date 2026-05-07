@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.dasi.qa.agent.domain.agent.model.DecideResult;
+import com.dasi.qa.agent.domain.agent.shared.DecideResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.GenerateContext;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AbortAgent;

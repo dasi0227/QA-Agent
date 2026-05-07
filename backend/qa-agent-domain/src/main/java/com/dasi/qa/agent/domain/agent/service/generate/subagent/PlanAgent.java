@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
-import com.dasi.qa.agent.domain.agent.model.PlanResult;
+import com.dasi.qa.agent.domain.agent.shared.PlanResult;
 import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;

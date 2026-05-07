@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
-import com.dasi.qa.agent.domain.agent.model.DraftItem;
-import com.dasi.qa.agent.domain.agent.model.PlanItem;
+import com.dasi.qa.agent.domain.agent.shared.DraftItem;
+import com.dasi.qa.agent.domain.agent.shared.PlanItem;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import lombok.AllArgsConstructor;

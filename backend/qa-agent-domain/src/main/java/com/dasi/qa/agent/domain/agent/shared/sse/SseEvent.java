@@ -1,5 +1,7 @@
-package com.dasi.qa.agent.domain.agent.model.sse;
+package com.dasi.qa.agent.domain.agent.shared.sse;
 
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,8 +14,8 @@ import lombok.NoArgsConstructor;
 public class SseEvent {
 
     private String taskId;
-    private String stage;
-    private String status;
+    private GenerationStage stage;
+    private GenerationStatus status;
     private String message;
     private long timestamp;
     private int currentTokens;

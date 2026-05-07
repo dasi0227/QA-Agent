@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
-import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.shared.vo.UserLlmModelVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
 import dev.langchain4j.model.chat.ChatModel;
@@ -12,11 +12,11 @@ import org.springframework.util.StringUtils;
 import java.time.Duration;
 
 @Service
-public class UserLlmModelFactory {
+public class UserLlmModelProvider {
 
     private final IAgentRepository agentRepository;
 
-    public UserLlmModelFactory(IAgentRepository agentRepository) {
+    public UserLlmModelProvider(IAgentRepository agentRepository) {
         this.agentRepository = agentRepository;
     }
 

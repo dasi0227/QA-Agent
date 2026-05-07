@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.model;
+package com.dasi.qa.agent.domain.agent.shared;
 
 public record RevisionItem(
         int itemIndex,

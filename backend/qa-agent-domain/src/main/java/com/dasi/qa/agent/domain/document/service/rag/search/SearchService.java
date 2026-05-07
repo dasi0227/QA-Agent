@@ -3,7 +3,7 @@ package com.dasi.qa.agent.domain.document.service.rag.search;
 import com.dasi.qa.agent.domain.document.adapter.ISemanticAdapter;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.model.enumeration.SearchStrategy;
-import com.dasi.qa.agent.domain.agent.model.enumeration.AgentType;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.AgentType;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.HybridRetriever;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.KeywordRetriever;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.RetrieveContext;
