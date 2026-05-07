@@ -1,5 +1,9 @@
 package com.dasi.qa.agent.types.dto.request.qa;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,10 +19,14 @@ public class CreateTaskRequest {
 
     private String title;
 
-    private String note;
+    @NotBlank(message = "用户提示词不能为空")
+    private String userPrompt;
 
+    @NotEmpty(message = "请至少选择一份资料")
     private List<String> documentIds;
 
+    @Max(value = 100, message = "单次最多生成 100 题")
+    @Min(value = 10, message = "单次最多生成 10 题")
     private Integer requestedQuestionCount;
 
     private Boolean allowGeneralKnowledge;

@@ -165,21 +165,24 @@
 V3 GenerateAgent 当前 DAG：
 
 ```text
+DECIDE
+  DecideAgent
+
 PLANNER
-  PlannerAgent
+  PlanAgent
 
 CREATOR
   parallelBuilder
-    SearcherAgent -> DrafterAgent
+    SearchAgent -> DraftAgent
 
 VALIDATOR
-  EvaluatorAgent -> AmenderAgent -> EvaluatorAgent
+  EvaluateAgent -> AmendAgent -> EvaluateAgent
 
 SUMMARIZER
-  SummarizerAgent
+  SummarizeAgent
 ```
 
-对外 SSE `stage` 仍只暴露 `PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`、`COMPLETED`、`FAILED` 等任务阶段，不暴露 `EVALUATOR` 或 `AMENDER`。
+对外 SSE `stage` 暴露 `DECIDE`、`PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`、`COMPLETED`、`FAILED` 等任务阶段，不暴露 `EVALUATOR` 或 `AMENDER`。
 
 #### `/qa/set/task-status` 响应字段
 
@@ -189,7 +192,7 @@ SUMMARIZER
 | `userId` | 用户 ID |
 | `qaSetId` | 成功生成后的问答集 ID，失败或未完成时可为空 |
 | `status` | `PENDING` / `PROCESSING` / `COMPLETED` / `FAILED` |
-| `stage` | `PENDING` / `PLANNER` / `CREATOR` / `VALIDATOR` / `SUMMARIZER` / `COMPLETED` / `FAILED` |
+| `stage` | `PENDING` / `DECIDE` / `PLANNER` / `CREATOR` / `VALIDATOR` / `SUMMARIZER` / `COMPLETED` / `FAILED` |
 | `errorCode` | 失败错误类型 |
 | `errorMessage` | 失败原因 |
 | `requestedQuestionCount` | 请求题数 |

@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.agent.model.DraftItem;
 import com.dasi.qa.agent.domain.agent.model.PlanResult;
-import com.dasi.qa.agent.domain.agent.model.UserLlmConfig;
+import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskEntity;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskMessageEntity;
@@ -72,7 +72,7 @@ public class AgentRepository implements IAgentRepository {
         entity.setId(taskId);
         entity.setUserId(userId);
         entity.setTitle(title(request));
-        entity.setNote(request.getNote());
+        entity.setNote(request.getUserPrompt());
         entity.setDocumentIdsJson(JSON.toJSONString(request.getDocumentIds()));
         entity.setStatus(GenerationStatus.PENDING.name());
         entity.setStage(GenerationStage.PENDING.name());
@@ -165,12 +165,12 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public UserLlmConfig getUserLlmConfig(String userId) {
+    public UserLlmModelVO getUserLlmModel(String userId) {
         UserProfileEntity profile = userProfileMapper.selectById(userId);
         if (profile == null) {
             return null;
         }
-        return new UserLlmConfig(profile.getLlmBaseUrl(), profile.getLlmApiKey(), profile.getLlmModelName());
+        return new UserLlmModelVO(profile.getLlmBaseUrl(), profile.getLlmApiKey(), profile.getLlmModelName());
     }
 
     @Override

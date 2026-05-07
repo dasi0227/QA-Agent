@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
-import static com.dasi.qa.agent.types.constant.SystemConstant.DB_USER_ID;
+import static com.dasi.qa.agent.types.constant.StringConstant.DB_USER_ID;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;

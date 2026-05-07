@@ -1,19 +1,19 @@
 package com.dasi.qa.agent.interfaces.controller;
 
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.domain.agent.service.generate.agentic.IGenerationAgent;
+import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
 import com.dasi.qa.agent.domain.qa.service.crud.IQaCrudService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
-import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
-import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
-import com.dasi.qa.agent.types.exception.ApiException;
+import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
+import com.dasi.qa.agent.types.dto.sse.SseEvent;
 import com.dasi.qa.agent.types.result.Result;
-import com.dasi.qa.agent.types.result.ResultCode;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
@@ -21,19 +21,20 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Consumer;
 
 @RestController
 @RequestMapping("/qa")
 public class QaController {
 
     private final IQaCrudService qaService;
-    private final IGenerationAgent generationAgent;
+    private final IGenerateAgent generationAgent;
     private final IAgentRepository agentRepository;
     private final IContextUtil contextUtil;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
     public QaController(IQaCrudService qaService,
-                        IGenerationAgent generationAgent,
+                        IGenerateAgent generationAgent,
                         IAgentRepository agentRepository,
                         IContextUtil contextUtil,
                         @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
@@ -66,17 +67,12 @@ public class QaController {
     }
 
     @PostMapping("/set/create")
-    public SseEmitter qaSetCreate(@RequestBody CreateTaskRequest request) {
-        validateCreateTaskRequest(request);
-        String userId = contextUtil.getUserId();
-        if (userId == null || userId.isBlank()) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
-
-        SseEmitter emitter = new SseEmitter(120_000L);
+    public SseEmitter qaSetCreate(@RequestBody @Valid CreateTaskRequest request) {
+        SseEmitter emitter = new SseEmitter(120000L);
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);
-        applicationTaskExecutor.execute(() -> generationAgent.execute(userId, request, event -> {
+
+        Consumer<SseEvent> eventSink = event -> {
             try {
                 emitter.send(SseEmitter.event()
                         .name(event.stage())
@@ -87,7 +83,9 @@ public class QaController {
             } catch (IOException exception) {
                 emitter.completeWithError(exception);
             }
-        }));
+        };
+        applicationTaskExecutor.execute(() -> generationAgent.execute(contextUtil.getUserId(), request, eventSink));
+
         return emitter;
     }
 
@@ -127,15 +125,4 @@ public class QaController {
         return Result.success();
     }
 
-    private void validateCreateTaskRequest(CreateTaskRequest request) {
-        if (request.getDocumentIds() == null || request.getDocumentIds().isEmpty()) {
-            throw new ApiException(ResultCode.BAD_REQUEST.getCode(), "请至少选择一份资料");
-        }
-        if (request.getRequestedQuestionCount() != null && request.getRequestedQuestionCount() > 100) {
-            throw new ApiException(ResultCode.BAD_REQUEST.getCode(), "单次最多生成 100 题");
-        }
-        if (request.getNote() != null && request.getNote().length() > 2000) {
-            throw new ApiException(ResultCode.BAD_REQUEST.getCode(), "备注过长，请控制在 2000 字符以内");
-        }
-    }
 }

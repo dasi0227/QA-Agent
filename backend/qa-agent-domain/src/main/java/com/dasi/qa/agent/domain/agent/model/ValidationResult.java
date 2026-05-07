@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.domain.agent.model;
 
+import com.dasi.qa.agent.domain.agent.model.enumuration.Verdict;
 import dev.langchain4j.model.output.structured.Description;
 
 public record ValidationResult(

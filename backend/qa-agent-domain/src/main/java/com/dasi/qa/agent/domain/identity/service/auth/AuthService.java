@@ -7,7 +7,7 @@ import com.dasi.qa.agent.domain.util.IEmailUtil;
 import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.domain.util.IRedisUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import static com.dasi.qa.agent.types.constant.SystemConstant.VERIFY_CODE_FORMAT;
+import static com.dasi.qa.agent.types.constant.StringConstant.VERIFY_CODE_FORMAT;
 
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.enumeration.AccountStatus;

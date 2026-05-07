@@ -6,7 +6,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
 import com.dasi.qa.agent.domain.util.IMqUtil;
-import static com.dasi.qa.agent.types.constant.SystemConstant.INDEX_JOB_ID_PREFIX;
+import static com.dasi.qa.agent.types.constant.StringConstant.INDEX_JOB_ID_PREFIX;
 
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

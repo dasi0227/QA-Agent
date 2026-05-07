@@ -345,12 +345,13 @@
 
 当前 V3 落地链路形态：
 
-1. `PlannerAgent`
-2. `Creator`：`SearcherAgent -> DrafterAgent`，按模块并发
-3. `Validator`：`EvaluatorAgent -> AmenderAgent -> EvaluatorAgent`
-4. `SummarizerAgent`
+1. `DecideAgent`
+2. `PlanAgent`
+3. `Creator`：`SearchAgent -> DraftAgent`，按模块并发
+4. `Validator`：`EvaluateAgent -> AmendAgent -> EvaluateAgent`
+5. `SummarizeAgent`
 
-其中 `DrafterAgent` 只负责首轮起草，`EvaluatorAgent` 只负责审校判定，`AmenderAgent` 只负责最小必要修订。对外阶段仍保持 `PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`。
+其中 `DecideAgent` 负责入口判定，`DraftAgent` 只负责首轮起草，`EvaluateAgent` 只负责审校判定，`AmendAgent` 只负责最小必要修订。对外阶段包含 `DECIDE`、`PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`。
 
 #### 6.3.3 反馈 Agent
 

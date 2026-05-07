@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-import static com.dasi.qa.agent.types.constant.SystemConstant.INDEX_JOB_ID_PREFIX;
+import static com.dasi.qa.agent.types.constant.StringConstant.INDEX_JOB_ID_PREFIX;
 
 @RestController
 @RequestMapping("/document")

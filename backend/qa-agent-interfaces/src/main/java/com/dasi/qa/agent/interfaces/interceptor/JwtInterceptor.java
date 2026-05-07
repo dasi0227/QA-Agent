@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.interceptor;
 
-import static com.dasi.qa.agent.types.constant.SystemConstant.AUTH_BEARER_PREFIX;
+import static com.dasi.qa.agent.types.constant.StringConstant.AUTH_BEARER_PREFIX;
 
 import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;

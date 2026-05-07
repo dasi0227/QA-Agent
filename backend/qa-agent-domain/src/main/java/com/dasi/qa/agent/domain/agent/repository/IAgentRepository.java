@@ -2,7 +2,7 @@ package com.dasi.qa.agent.domain.agent.repository;
 
 import com.dasi.qa.agent.domain.agent.model.DraftItem;
 import com.dasi.qa.agent.domain.agent.model.PlanResult;
-import com.dasi.qa.agent.domain.agent.model.UserLlmConfig;
+import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
@@ -28,7 +28,7 @@ public interface IAgentRepository {
 
     List<TaskMessageResponse> getTaskMessages(String taskId, String userId);
 
-    UserLlmConfig getUserLlmConfig(String userId);
+    UserLlmModelVO getUserLlmModel(String userId);
 
     String getDocumentsSummary(List<String> documentIds, String userId);
 

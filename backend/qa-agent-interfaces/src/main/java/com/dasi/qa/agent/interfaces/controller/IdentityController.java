@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-import static com.dasi.qa.agent.types.constant.SystemConstant.AVATAR_ROOT_PATH;
+import static com.dasi.qa.agent.types.constant.StringConstant.AVATAR_ROOT_PATH;
 
 @RestController
 @RequestMapping("/identity")
