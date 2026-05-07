@@ -1,12 +1,12 @@
 package com.dasi.qa.agent.infrastructure.util;
 
+import com.dasi.qa.agent.types.enumeration.JobStatus;
 import lombok.extern.slf4j.Slf4j;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJobEntity;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
-import com.dasi.qa.agent.types.enumeration.JobStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 

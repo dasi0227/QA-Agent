@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.dasi.qa.agent.domain.agent.model.enumuration.Difficulty;
+import com.dasi.qa.agent.domain.agent.model.enumeration.Difficulty;
 import com.dasi.qa.agent.domain.agent.model.DraftItem;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
@@ -18,7 +18,7 @@ class ValidationCoordinatorTest {
     void shouldSkipAmenderWhenEvaluatorPassesAll() {
         AtomicInteger amendCalls = new AtomicInteger(0);
         EvaluateAgent evaluateAgent = (taskId, draftItemsJson, evidenceChunks) -> """
-                [{"itemIndex":0,"verdict":"PASS","reason":"ok","revisionSuggestion":""}]
+                [{"itemIndex":0,"verdictType":"PASS","reason":"ok","revisionSuggestion":""}]
                 """;
         AmendAgent amendAgent = (taskId, revisionItemsJson, evidenceChunks, previousQuestions, note) -> {
             amendCalls.incrementAndGet();
@@ -40,11 +40,11 @@ class ValidationCoordinatorTest {
         EvaluateAgent evaluateAgent = (taskId, draftItemsJson, evidenceChunks) -> {
             if (evaluateCalls.incrementAndGet() == 1) {
                 return """
-                        [{"itemIndex":0,"verdict":"REVISE","reason":"too broad","revisionSuggestion":"收窄问题"}]
+                        [{"itemIndex":0,"verdictType":"REVISE","reason":"too broad","revisionSuggestion":"收窄问题"}]
                         """;
             }
             return """
-                    [{"itemIndex":0,"verdict":"PASS","reason":"ok","revisionSuggestion":""}]
+                    [{"itemIndex":0,"verdictType":"PASS","reason":"ok","revisionSuggestion":""}]
                     """;
         };
         AmendAgent amendAgent = (taskId, revisionItemsJson, evidenceChunks, previousQuestions, note) -> {
@@ -75,7 +75,7 @@ class ValidationCoordinatorTest {
     @Test
     void shouldRejectRevisionWhenAmenderOutputSizeMismatch() {
         EvaluateAgent evaluateAgent = (taskId, draftItemsJson, evidenceChunks) -> """
-                [{"itemIndex":0,"verdict":"REVISE","reason":"too broad","revisionSuggestion":"收窄问题"}]
+                [{"itemIndex":0,"verdictType":"REVISE","reason":"too broad","revisionSuggestion":"收窄问题"}]
                 """;
         AmendAgent amendAgent = (taskId, revisionItemsJson, evidenceChunks, previousQuestions, note) -> "[]";
 

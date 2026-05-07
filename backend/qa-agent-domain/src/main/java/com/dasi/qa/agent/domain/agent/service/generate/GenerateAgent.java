@@ -2,7 +2,7 @@ package com.dasi.qa.agent.domain.agent.service.generate;
 
 import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.agent.model.*;
-import com.dasi.qa.agent.domain.agent.model.enumuration.Difficulty;
+import com.dasi.qa.agent.domain.agent.model.enumeration.Difficulty;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateAbortedException;
@@ -12,12 +12,12 @@ import com.dasi.qa.agent.domain.agent.service.generate.support.*;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.RagSearchTool;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.WebSearchTool;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
+import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
-import com.dasi.qa.agent.types.dto.sse.SseEvent;
-import com.dasi.qa.agent.types.enumeration.ErrorType;
-import com.dasi.qa.agent.types.enumeration.GenerationStage;
-import com.dasi.qa.agent.types.enumeration.GenerationStatus;
+import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -111,25 +111,25 @@ public class GenerateAgent implements IGenerateAgent {
             String documentsSummary = agentRepository.getDocumentsSummary(request.getDocumentIds(), userId);
 
             // 创建好智能体执行的上下文对象
-            PlannerStageContext plannerStageContext = PlannerStageContext.builder()
+            PlanContext planContext = PlanContext.builder()
                     .taskId(taskId)
                     .request(request)
                     .documentsSummary(documentsSummary)
                     .build();
 
-            ValidatorStageContext validatorStageContext = ValidatorStageContext.builder()
+            ValidateContext validateContext = ValidateContext.builder()
                     .taskId(taskId)
                     .request(request)
                     .build();
 
-            SummarizerStageContext summarizerStageContext = SummarizerStageContext.builder()
+            SummarizeContext summarizeContext = SummarizeContext.builder()
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
                     .publisher(eventPublisher)
                     .build();
 
-            CreatorStageContext creatorStageContext = CreatorStageContext.builder()
+            CreateContext createContext = CreateContext.builder()
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
@@ -147,10 +147,10 @@ public class GenerateAgent implements IGenerateAgent {
                     .amendmentTools(amendmentTools)
                     .decideStep((scope, decideAgent) -> runDecide(scope, decideAgent, taskId))
                     .abortStep((scope, abortAgent) -> runAbort(scope, abortAgent, eventPublisher))
-                    .planStep((scope, planAgent) -> runPlanner(scope, planAgent, plannerStageContext))
-                    .createStep((scope, draftAgent, searchAgent) -> runCreator(scope, draftAgent, searchAgent, creatorStageContext))
-                    .validateStep((scope, evaluateAgent, amendAgent) -> runValidator(scope, evaluateAgent, amendAgent, validatorStageContext))
-                    .summarizeStep((scope, summarizeAgent) -> runSummarizer(scope, summarizeAgent, summarizerStageContext))
+                    .planStep((scope, planAgent) -> runPlan(scope, planAgent, planContext))
+                    .createStep((scope, draftAgent, searchAgent) -> runCreate(scope, draftAgent, searchAgent, createContext))
+                    .validateStep((scope, evaluateAgent, amendAgent) -> runValidate(scope, evaluateAgent, amendAgent, validateContext))
+                    .summarizeStep((scope, summarizeAgent) -> runSummarizer(scope, summarizeAgent, summarizeContext))
                     .build();
 
             // 创建 Generate Agent 的完整 DAG 结构
@@ -164,15 +164,11 @@ public class GenerateAgent implements IGenerateAgent {
 
             // 开始启动 DAG 执行智能体
             generateAgent.invoke(initialData);
-        } catch (GenerateAbortedException exception) {
-            return;
+        } catch (GenerateAbortedException ignored) {
         } catch (GenerateException exception) {
             fail(taskId, eventPublisher, exception.getErrorType(), exception.getMessage());
         } catch (Exception exception) {
-            if (isAborted(exception)) {
-                return;
-            }
-            fail(taskId, eventPublisher, classifyError(exception), exception.getMessage());
+            fail(taskId, eventPublisher, ErrorType.fromException(exception), exception.getMessage());
         }
     }
 
@@ -199,8 +195,17 @@ public class GenerateAgent implements IGenerateAgent {
         return List.of(new RagSearchTool(searchService, userId, request.getDocumentIds()));
     }
 
+    /**
+     *
+     */
+    private void fail(String taskId, EventPublisher publisher, ErrorType errorType, String message) {
+        String errorMessage = message == null || message.isBlank() ? errorType.name() : message;
+        log.error("QA generation task failed: taskId={}, errorType={}, message={}", taskId, errorType, errorMessage);
+        publisher.publishFailure(errorType, errorMessage);
+    }
+
     private void runDecide(AgenticScope scope, DecideAgent decideAgent, String taskId) {
-        agentRepository.updateTaskStage(taskId, GenerationStatus.PROCESSING, GenerationStage.DECIDE);
+        agentRepository.updateTaskStage(taskId, GenerationStatus.PROCESSING, GenerationStage.DECIDING);
         Object userPrompt = scope.readState("userPrompt");
         DecideResult decideResult = decideAgent.decide(taskId, userPrompt == null ? "" : String.valueOf(userPrompt));
         scope.writeState("decideResult", decideResult);
@@ -210,8 +215,8 @@ public class GenerateAgent implements IGenerateAgent {
         abortAgent.abort(scope, eventPublisher);
     }
 
-    private void runPlanner(AgenticScope scope, PlanAgent planAgent, PlannerStageContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.PLANNER);
+    private void runPlan(AgenticScope scope, PlanAgent planAgent, PlanContext context) {
+        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.PLANNING);
         PlanResult planResult;
         try {
             planResult = planAgent.plan(context.getTaskId(), context.getDocumentsSummary(), "", "", "",
@@ -223,8 +228,8 @@ public class GenerateAgent implements IGenerateAgent {
         scope.writeState("planResult", normalizePlan(planResult, context.getRequest()));
     }
 
-    private void runCreator(AgenticScope scope, DraftAgent draftAgent, SearchAgent searchAgent, CreatorStageContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.CREATOR);
+    private void runCreate(AgenticScope scope, DraftAgent draftAgent, SearchAgent searchAgent, CreateContext context) {
+        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.CREATING);
         PlanResult planResult = readPlan(scope, context.getRequest());
         List<DraftItem> allDrafts = Collections.synchronizedList(new ArrayList<>());
         List<SearchResult> allEvidence = Collections.synchronizedList(new ArrayList<>());
@@ -314,9 +319,8 @@ public class GenerateAgent implements IGenerateAgent {
         }
     }
 
-    private void runValidator(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent,
-                              ValidatorStageContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.VALIDATOR);
+    private void runValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext context) {
+        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.VALIDATING);
         List<DraftItem> drafts = readDrafts(scope);
         List<SearchResult> evidence = readEvidence(scope);
         ValidationCoordinator.ValidationOutcome outcome = new ValidationCoordinator(MAX_MODULE_QUESTIONS_PER_BATCH)
@@ -331,8 +335,8 @@ public class GenerateAgent implements IGenerateAgent {
         scope.writeState("rejectedCount", outcome.rejectedCount());
     }
 
-    private void runSummarizer(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizerStageContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.SUMMARIZER);
+    private void runSummarizer(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext context) {
+        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.SUMMARIZING);
         PlanResult planResult = readPlan(scope, context.getRequest());
         List<DraftItem> passedDrafts = readPassedDrafts(scope);
         SummarizeAgent.SummaryResult summary = summarizeAgent.summarize(context.getTaskId(), context.getUserId(), context.getRequest(), planResult,
@@ -341,40 +345,6 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.markTaskCompleted(context.getTaskId(), summary.qaSetId());
         scope.writeState("qaSetId", summary.qaSetId());
         context.getPublisher().publishEvent(GenerationStage.COMPLETED, GenerationStatus.COMPLETED, summary.message(), 0);
-    }
-
-    private void fail(String taskId, EventPublisher publisher, ErrorType errorType, String message) {
-        String errorMessage = message == null || message.isBlank() ? errorType.name() : message;
-        log.error("QA generation task failed: taskId={}, errorType={}, message={}", taskId, errorType, errorMessage);
-        publisher.publishFailure(errorType, errorMessage);
-    }
-
-    private boolean isAborted(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null) {
-            if (current instanceof GenerateAbortedException) {
-                return true;
-            }
-            current = current.getCause();
-        }
-        return false;
-    }
-
-    private ErrorType classifyError(Exception exception) {
-        String message = exception.getMessage() == null ? "" : exception.getMessage().toLowerCase();
-        if (message.contains("401") || message.contains("unauthorized") || message.contains("api key")) {
-            return ErrorType.AUTH_FAILURE;
-        }
-        if (message.contains("rate limit") || message.contains("429")) {
-            return ErrorType.RATE_LIMITED;
-        }
-        if (message.contains("parse") || message.contains("json")) {
-            return ErrorType.INVALID_RESPONSE;
-        }
-        if (message.contains("timeout") || message.contains("connect")) {
-            return ErrorType.NETWORK_ERROR;
-        }
-        return ErrorType.UNKNOWN;
     }
 
     private PlanResult normalizePlan(PlanResult planResult, CreateTaskRequest request) {

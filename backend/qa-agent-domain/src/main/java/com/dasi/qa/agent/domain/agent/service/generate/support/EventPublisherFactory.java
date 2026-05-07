@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.types.dto.sse.SseEvent;
+import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.atomic.AtomicInteger;

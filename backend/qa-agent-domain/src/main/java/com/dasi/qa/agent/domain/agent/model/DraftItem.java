@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.model;
 
-import com.dasi.qa.agent.domain.agent.model.enumuration.Difficulty;
+import com.dasi.qa.agent.domain.agent.model.enumeration.Difficulty;
 import dev.langchain4j.model.output.structured.Description;
 
 import java.util.List;

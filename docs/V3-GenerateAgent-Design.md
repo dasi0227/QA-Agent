@@ -89,7 +89,7 @@ Validator 内部执行“修订后复审”循环：
 ```mermaid
 flowchart TD
     B["输入一批 DraftItem，最多 10 题"] --> E1["EvaluateAgent：只审校，不改题"]
-    E1 --> J1{"verdict"}
+    E1 --> J1{"verdictType"}
     J1 -->|PASS| OK["加入 passedDrafts"]
     J1 -->|REJECT| RJ["rejectedCount + 1"]
     J1 -->|REVISE| RI["组装 RevisionItem"]
@@ -98,7 +98,7 @@ flowchart TD
     A --> C{"输出数量等于 RevisionItem 数量?"}
     C -->|否| RJ2["修订失败，该批 REVISE 计入未通过，不 fallback"]
     C -->|是| E2["EvaluateAgent：二次审校"]
-    E2 --> J2{"二次 verdict"}
+    E2 --> J2{"二次 verdictType"}
     J2 -->|PASS| OK
     J2 -->|REJECT 或仍 REVISE| RJ
     OK --> CLEAN["清洗：空题、空答案、重复题、非法 sourceChunkIds"]
@@ -217,10 +217,8 @@ SSE 事件结构：
   "status": "PROCESSING",
   "message": "已完成本批题目审校和修订。",
   "timestamp": 1717000000000,
-  "tokens": {
-    "current": 1200,
-    "total": 2400
-  }
+  "currentTokens": 1200,
+  "totalTokens": 2400
 }
 ```
 

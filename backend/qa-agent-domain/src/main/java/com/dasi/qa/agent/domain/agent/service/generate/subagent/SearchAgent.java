@@ -1,11 +1,11 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import com.dasi.qa.agent.domain.agent.model.PlanItem;
+import com.dasi.qa.agent.domain.agent.model.enumeration.AgentType;
+import com.dasi.qa.agent.domain.document.model.enumeration.SearchStrategy;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
 import com.dasi.qa.agent.types.dto.request.document.SearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
-import com.dasi.qa.agent.types.enumeration.AgentType;
-import com.dasi.qa.agent.types.enumeration.SearchStrategy;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -27,12 +27,12 @@ public class SearchAgent {
         for (String topic : topics) {
             SearchRequest request = SearchRequest.builder()
                     .queryText(topic)
-                    .strategy(SearchStrategy.HYBRID)
+                    .strategy(SearchStrategy.HYBRID.name())
                     .userId(userId)
                     .filterDocumentIds(documentIds)
                     .filterModuleTags(List.of(planItem.moduleTag()))
                     .topK(8)
-                    .agentType(AgentType.GENERATION)
+                    .agentType(AgentType.GENERATION.name())
                     .build();
             results.addAll(searchService.execute(request));
         }

@@ -1,10 +1,10 @@
 package com.dasi.qa.agent.domain.agent.service.generate.tool;
 
+import com.dasi.qa.agent.domain.agent.model.enumeration.AgentType;
+import com.dasi.qa.agent.domain.document.model.enumeration.SearchStrategy;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
 import com.dasi.qa.agent.types.dto.request.document.SearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
-import com.dasi.qa.agent.types.enumeration.AgentType;
-import com.dasi.qa.agent.types.enumeration.SearchStrategy;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 
@@ -27,12 +27,12 @@ public class RagSearchTool {
                                      @P("限定模块标签") List<String> filterModuleTags) {
         SearchRequest request = SearchRequest.builder()
                 .queryText(queryText)
-                .strategy(SearchStrategy.HYBRID)
+                .strategy(SearchStrategy.HYBRID.name())
                 .userId(userId)
                 .filterDocumentIds(documentIds)
                 .filterModuleTags(filterModuleTags)
                 .topK(5)
-                .agentType(AgentType.GENERATION)
+                .agentType(AgentType.GENERATION.name())
                 .build();
         return searchService.execute(request);
     }

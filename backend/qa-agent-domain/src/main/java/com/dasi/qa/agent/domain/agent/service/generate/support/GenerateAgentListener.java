@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.alibaba.fastjson2.JSON;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateAbortedException;
-import com.dasi.qa.agent.types.enumeration.GenerationStage;
-import com.dasi.qa.agent.types.enumeration.GenerationStatus;
 import dev.langchain4j.agentic.observability.AgentInvocationError;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.observability.AgentResponse;
@@ -113,20 +113,20 @@ public class GenerateAgentListener implements AgentListener {
 
     private GenerationStage stageFromAgentName(String agentName) {
         if ("DECIDE".equals(agentName) || "DECIDE_GATE".equals(agentName)) {
-            return GenerationStage.DECIDE;
+            return GenerationStage.DECIDING;
         }
         if ("PLANNER".equals(agentName)) {
-            return GenerationStage.PLANNER;
+            return GenerationStage.PLANNING;
         }
         if ("DRAFTER".equals(agentName)) {
-            return GenerationStage.CREATOR;
+            return GenerationStage.CREATING;
         }
         if ("EVALUATOR".equals(agentName) || "AMENDER".equals(agentName) || "VALIDATOR".equals(agentName)) {
-            return GenerationStage.VALIDATOR;
+            return GenerationStage.VALIDATING;
         }
         if ("SUMMARIZER".equals(agentName)) {
-            return GenerationStage.SUMMARIZER;
+            return GenerationStage.SUMMARIZING;
         }
-        return GenerationStage.CREATOR;
+        return GenerationStage.CREATING;
     }
 }

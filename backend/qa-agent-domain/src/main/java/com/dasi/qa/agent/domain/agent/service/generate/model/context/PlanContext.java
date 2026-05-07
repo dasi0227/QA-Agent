@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlannerStageContext {
+public class PlanContext {
 
     private String taskId;
     private CreateTaskRequest request;

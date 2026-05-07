@@ -2,11 +2,12 @@ package com.dasi.qa.agent.domain.document.service.rag.search;
 
 import com.dasi.qa.agent.domain.document.adapter.ISemanticAdapter;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
+import com.dasi.qa.agent.domain.document.model.enumeration.SearchStrategy;
+import com.dasi.qa.agent.domain.agent.model.enumeration.AgentType;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.HybridRetriever;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.KeywordRetriever;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.RetrieveContext;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.SemanticRetriever;
-import com.dasi.qa.agent.types.enumeration.SearchStrategy;
 import com.dasi.qa.agent.types.dto.request.document.SearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import org.springframework.stereotype.Service;
@@ -37,9 +38,12 @@ public class SearchService implements ISearchService {
 
     @Override
     public List<SearchResult> execute(SearchRequest request) {
-        SearchStrategy strategy = request.getStrategy();
+        SearchStrategy strategy = SearchStrategy.fromValue(request.getStrategy());
         String queryText = semanticAdapter.rewriteQuery(request.getQueryText());
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;
+        AgentType agentType = request.getAgentType() == null || request.getAgentType().isBlank()
+                ? null
+                : AgentType.fromValue(request.getAgentType());
 
         float[] queryVector = null;
         if (strategy == SearchStrategy.SEMANTIC || strategy == SearchStrategy.HYBRID) {
@@ -72,12 +76,12 @@ public class SearchService implements ISearchService {
                     .moduleTags(row.getModuleTags())
                     .vectorScore(row.getVectorScore())
                     .keywordScore(row.getKeywordScore())
-                    .source(strategy)
+                    .source(strategy.name())
                     .build());
         }
 
         results = semanticAdapter.rerank(queryText, results);
-        results = evidenceClipper.clip(results, request.getAgentType());
+        results = evidenceClipper.clip(results, agentType);
 
         if (results.size() > topK) {
             results = results.subList(0, topK);

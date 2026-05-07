@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import com.dasi.qa.agent.domain.agent.model.DecideResult;
+import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateAbortedException;
 import com.dasi.qa.agent.domain.agent.service.generate.support.EventPublisher;
-import com.dasi.qa.agent.types.enumeration.ErrorType;
 import dev.langchain4j.agentic.scope.AgenticScope;
 
 public class AbortAgent {

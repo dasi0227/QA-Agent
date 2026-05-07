@@ -7,10 +7,10 @@ import com.dasi.qa.agent.domain.util.IEmailUtil;
 import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.domain.util.IRedisUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
+import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
 import static com.dasi.qa.agent.types.constant.StringConstant.VERIFY_CODE_FORMAT;
 
 import com.dasi.qa.agent.types.constant.RedisConstant;
-import com.dasi.qa.agent.types.enumeration.AccountStatus;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.dto.request.auth.RefreshRequest;

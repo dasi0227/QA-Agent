@@ -11,7 +11,7 @@ import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
-import com.dasi.qa.agent.types.dto.sse.SseEvent;
+import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -75,9 +75,9 @@ public class QaController {
         Consumer<SseEvent> eventSink = event -> {
             try {
                 emitter.send(SseEmitter.event()
-                        .name(event.stage())
+                        .name(event.getStage())
                         .data(event));
-                if ("COMPLETED".equals(event.status()) || "FAILED".equals(event.status())) {
+                if ("COMPLETED".equals(event.getStatus()) || "FAILED".equals(event.getStatus())) {
                     emitter.complete();
                 }
             } catch (IOException exception) {

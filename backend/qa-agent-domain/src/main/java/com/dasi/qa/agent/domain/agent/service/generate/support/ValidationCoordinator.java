@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.agent.model.DraftItem;
 import com.dasi.qa.agent.domain.agent.model.RevisionItem;
 import com.dasi.qa.agent.domain.agent.model.ValidationResult;
-import com.dasi.qa.agent.domain.agent.model.enumuration.Verdict;
+import com.dasi.qa.agent.domain.agent.model.enumeration.VerdictType;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
 import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
@@ -33,8 +33,8 @@ public class ValidationCoordinator {
 
         for (List<DraftItem> batch : batches(drafts, batchSize)) {
             List<ValidationResult> initialResults = evaluateOnce(taskId, evaluateAgent, batch, evidence);
-            passedDrafts.addAll(itemsByVerdict(batch, initialResults, Verdict.PASS));
-            rejectedCount += countByVerdict(initialResults, Verdict.REJECT);
+            passedDrafts.addAll(itemsByVerdict(batch, initialResults, VerdictType.PASS));
+            rejectedCount += countByVerdict(initialResults, VerdictType.REJECT);
             List<RevisionItem> revisionItems = revisionItems(batch, initialResults);
             if (!revisionItems.isEmpty()) {
                 ValidationOutcome outcome = runValidationLoop(taskId, request, evaluateAgent, amendAgent,
@@ -54,7 +54,7 @@ public class ValidationCoordinator {
                 revisionItems.stream().map(RevisionItem::draftItem).toList());
         AtomicReference<List<ValidationResult>> currentResults = new AtomicReference<>(
                 revisionItems.stream()
-                        .map(item -> new ValidationResult(item.itemIndex(), Verdict.REVISE,
+                        .map(item -> new ValidationResult(item.itemIndex(), VerdictType.REVISE,
                                 item.reason(), item.revisionSuggestion()))
                         .toList());
         AtomicReference<Boolean> amendmentFailed = new AtomicReference<>(false);
@@ -92,7 +92,7 @@ public class ValidationCoordinator {
         if (Boolean.TRUE.equals(amendmentFailed.get())) {
             return new ValidationOutcome(List.of(), revisionItems.size());
         }
-        List<DraftItem> passed = itemsByVerdict(currentItems.get(), currentResults.get(), Verdict.PASS);
+        List<DraftItem> passed = itemsByVerdict(currentItems.get(), currentResults.get(), VerdictType.PASS);
         int rejected = Math.max(0, currentItems.get().size() - passed.size());
         return new ValidationOutcome(passed, rejected);
     }
@@ -133,7 +133,7 @@ public class ValidationCoordinator {
         }
         for (ValidationResult result : results) {
             if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size()
-                    && result.verdict() == Verdict.REVISE) {
+                    && result.verdictType() == VerdictType.REVISE) {
                 items.add(new RevisionItem(result.itemIndex(), drafts.get(result.itemIndex()),
                         result.reason(), result.revisionSuggestion()));
             }
@@ -144,18 +144,18 @@ public class ValidationCoordinator {
     private List<ValidationResult> passAll(List<DraftItem> drafts) {
         List<ValidationResult> results = new ArrayList<>();
         for (int i = 0; i < drafts.size(); i++) {
-            results.add(new ValidationResult(i, Verdict.PASS, "fallback pass", ""));
+            results.add(new ValidationResult(i, VerdictType.PASS, "fallback pass", ""));
         }
         return results;
     }
 
-    private List<DraftItem> itemsByVerdict(List<DraftItem> drafts, List<ValidationResult> results, Verdict verdict) {
+    private List<DraftItem> itemsByVerdict(List<DraftItem> drafts, List<ValidationResult> results, VerdictType verdictType) {
         List<DraftItem> items = new ArrayList<>();
         if (results == null) {
             return items;
         }
         for (ValidationResult result : results) {
-            if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size() && result.verdict() == verdict) {
+            if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size() && result.verdictType() == verdictType) {
                 items.add(drafts.get(result.itemIndex()));
             }
         }
@@ -163,15 +163,15 @@ public class ValidationCoordinator {
     }
 
     private boolean noRevise(List<ValidationResult> results) {
-        return results == null || results.stream().noneMatch(result -> result.verdict() == Verdict.REVISE);
+        return results == null || results.stream().noneMatch(result -> result.verdictType() == VerdictType.REVISE);
     }
 
-    private int countByVerdict(List<ValidationResult> results, Verdict verdict) {
+    private int countByVerdict(List<ValidationResult> results, VerdictType verdictType) {
         if (results == null) {
             return 0;
         }
         return (int) results.stream()
-                .filter(result -> result.verdict() == verdict)
+                .filter(result -> result.verdictType() == verdictType)
                 .count();
     }
 

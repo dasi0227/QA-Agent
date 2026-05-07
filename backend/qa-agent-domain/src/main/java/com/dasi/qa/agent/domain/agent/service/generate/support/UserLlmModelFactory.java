@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
+import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
-import com.dasi.qa.agent.types.enumeration.ErrorType;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.springframework.stereotype.Service;

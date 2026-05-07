@@ -155,10 +155,8 @@
   "status": "PROCESSING",
   "message": "已完成本批题目审校和修订。",
   "timestamp": 1717000000000,
-  "tokens": {
-    "current": 1200,
-    "total": 2400
-  }
+  "currentTokens": 1200,
+  "totalTokens": 2400
 }
 ```
 

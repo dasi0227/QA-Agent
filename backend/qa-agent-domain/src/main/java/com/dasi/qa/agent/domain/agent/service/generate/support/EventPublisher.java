@@ -1,10 +1,10 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
+import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.types.dto.sse.SseEvent;
-import com.dasi.qa.agent.types.enumeration.ErrorType;
-import com.dasi.qa.agent.types.enumeration.GenerationStage;
-import com.dasi.qa.agent.types.enumeration.GenerationStatus;
+import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,8 +29,15 @@ public class EventPublisher {
     }
 
     public void publishEvent(GenerationStage stage, GenerationStatus status, String message, int currentTokens) {
-        SseEvent event = SseEvent.of(taskId, stage.name(), status.name(), message,
-                System.currentTimeMillis(), currentTokens, totalTokens.get());
+        SseEvent event = SseEvent.builder()
+                .taskId(taskId)
+                .stage(stage.name())
+                .status(status.name())
+                .message(message)
+                .timestamp(System.currentTimeMillis())
+                .currentTokens(currentTokens)
+                .totalTokens(totalTokens.get())
+                .build();
         log.info("[task={}] [stage={}] {}", taskId, stage, message);
         agentRepository.appendTaskMessage(taskId, stage, message);
         eventSink.accept(event);

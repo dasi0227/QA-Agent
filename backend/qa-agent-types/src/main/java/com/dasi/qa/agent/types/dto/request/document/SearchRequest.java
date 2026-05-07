@@ -1,7 +1,4 @@
 package com.dasi.qa.agent.types.dto.request.document;
-
-import com.dasi.qa.agent.types.enumeration.AgentType;
-import com.dasi.qa.agent.types.enumeration.SearchStrategy;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +14,7 @@ public class SearchRequest {
 
     private String queryText;
 
-    private SearchStrategy strategy;
+    private String strategy;
 
     private String userId;
 
@@ -30,5 +27,5 @@ public class SearchRequest {
     @Builder.Default
     private int topK = 10;
 
-    private AgentType agentType;
+    private String agentType;
 }

@@ -1,6 +1,4 @@
 package com.dasi.qa.agent.types.dto.response.document;
-
-import com.dasi.qa.agent.types.enumeration.SearchStrategy;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,5 +30,5 @@ public class SearchResult {
 
     private float keywordScore;
 
-    private SearchStrategy source;
+    private String source;
 }

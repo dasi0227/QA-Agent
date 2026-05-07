@@ -12,7 +12,7 @@ import java.util.concurrent.Executor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreatorStageContext {
+public class CreateContext {
 
     private String taskId;
     private String userId;
