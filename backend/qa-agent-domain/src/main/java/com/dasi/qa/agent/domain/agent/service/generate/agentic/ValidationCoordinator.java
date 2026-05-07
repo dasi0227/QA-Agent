@@ -1,0 +1,212 @@
+package com.dasi.qa.agent.domain.agent.service.generate.agentic;
+
+import com.alibaba.fastjson2.JSON;
+import com.dasi.qa.agent.domain.agent.model.DraftItem;
+import com.dasi.qa.agent.domain.agent.model.RevisionItem;
+import com.dasi.qa.agent.domain.agent.model.ValidationResult;
+import com.dasi.qa.agent.domain.agent.model.Verdict;
+import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmenderAgent;
+import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluatorAgent;
+import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
+import com.dasi.qa.agent.types.dto.response.document.SearchResult;
+import dev.langchain4j.agentic.AgenticServices;
+import dev.langchain4j.agentic.UntypedAgent;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+@Slf4j
+class ValidationCoordinator {
+
+    private final int batchSize;
+
+    ValidationCoordinator(int batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    ValidationOutcome run(String taskId, CreateTaskRequest request, EvaluatorAgent evaluatorAgent,
+                          AmenderAgent amenderAgent, List<DraftItem> drafts, List<SearchResult> evidence) {
+        List<DraftItem> passedDrafts = new ArrayList<>();
+        int rejectedCount = 0;
+
+        for (List<DraftItem> batch : batches(drafts, batchSize)) {
+            List<ValidationResult> initialResults = evaluateOnce(taskId, evaluatorAgent, batch, evidence);
+            passedDrafts.addAll(itemsByVerdict(batch, initialResults, Verdict.PASS));
+            rejectedCount += countByVerdict(initialResults, Verdict.REJECT);
+            List<RevisionItem> revisionItems = revisionItems(batch, initialResults);
+            if (!revisionItems.isEmpty()) {
+                ValidationOutcome outcome = runValidationLoop(taskId, request, evaluatorAgent, amenderAgent,
+                        revisionItems, evidence);
+                passedDrafts.addAll(outcome.passedDrafts());
+                rejectedCount += outcome.rejectedCount();
+            }
+        }
+
+        return new ValidationOutcome(passedDrafts, rejectedCount);
+    }
+
+    private ValidationOutcome runValidationLoop(String taskId, CreateTaskRequest request, EvaluatorAgent evaluatorAgent,
+                                                AmenderAgent amenderAgent, List<RevisionItem> revisionItems,
+                                                List<SearchResult> evidence) {
+        AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(
+                revisionItems.stream().map(RevisionItem::draftItem).toList());
+        AtomicReference<List<ValidationResult>> currentResults = new AtomicReference<>(
+                revisionItems.stream()
+                        .map(item -> new ValidationResult(item.itemIndex(), Verdict.REVISE,
+                                item.reason(), item.revisionSuggestion()))
+                        .toList());
+        AtomicReference<Boolean> amendmentFailed = new AtomicReference<>(false);
+
+        UntypedAgent validationLoop = AgenticServices.loopBuilder()
+                .name("VALIDATION_LOOP")
+                .description("Evaluator 返回 REVISE 时交给 Amender 修订后再次审校")
+                .maxIterations(2)
+                .testExitAtLoopEnd(true)
+                .exitCondition((loopScope, iteration) -> iteration >= 1 || noRevise(currentResults.get()))
+                .subAgents(
+                        AgenticServices.agentAction(loopScope -> {
+                            List<DraftItem> amended = amendRevisions(taskId, amenderAgent, request,
+                                    revisionItems, evidence);
+                            if (amended.size() != revisionItems.size()) {
+                                amendmentFailed.set(true);
+                                throw new IllegalStateException("AmenderAgent output size mismatch");
+                            }
+                            currentItems.set(amended);
+                        }),
+                        AgenticServices.agentAction(loopScope -> currentResults.set(evaluateOnce(
+                                taskId, evaluatorAgent, currentItems.get(), evidence)))
+                )
+                .output(loopScope -> currentItems.get())
+                .build();
+
+        try {
+            validationLoop.invoke(java.util.Map.of("taskId", taskId));
+        } catch (Exception exception) {
+            amendmentFailed.set(true);
+            log.warn("Validation loop failed, revised items rejected: count={}, message={}",
+                    revisionItems.size(), exception.getMessage());
+        }
+
+        if (Boolean.TRUE.equals(amendmentFailed.get())) {
+            return new ValidationOutcome(List.of(), revisionItems.size());
+        }
+        List<DraftItem> passed = itemsByVerdict(currentItems.get(), currentResults.get(), Verdict.PASS);
+        int rejected = Math.max(0, currentItems.get().size() - passed.size());
+        return new ValidationOutcome(passed, rejected);
+    }
+
+    private List<DraftItem> amendRevisions(String taskId, AmenderAgent amenderAgent, CreateTaskRequest request,
+                                           List<RevisionItem> revisionItems, List<SearchResult> evidence) {
+        if (revisionItems.isEmpty()) {
+            return List.of();
+        }
+        String response = amenderAgent.amend(
+                taskId,
+                JSON.toJSONString(revisionItems),
+                JSON.toJSONString(evidence),
+                previousQuestions(revisionItems.stream().map(RevisionItem::draftItem).toList()),
+                generationNote(request)
+        );
+        List<DraftItem> parsed = JSON.parseArray(extractJsonArray(response), DraftItem.class);
+        return parsed == null ? List.of() : parsed;
+    }
+
+    private List<ValidationResult> evaluateOnce(String taskId, EvaluatorAgent evaluatorAgent,
+                                                List<DraftItem> drafts, List<SearchResult> evidence) {
+        try {
+            String response = evaluatorAgent.evaluate(taskId,
+                    JSON.toJSONString(drafts), JSON.toJSONString(evidence));
+            List<ValidationResult> parsed = JSON.parseArray(extractJsonArray(response), ValidationResult.class);
+            return parsed == null || parsed.isEmpty() ? passAll(drafts) : parsed;
+        } catch (Exception exception) {
+            log.warn("EvaluatorAgent failed, fallback pass used: message={}", exception.getMessage());
+            return passAll(drafts);
+        }
+    }
+
+    private List<RevisionItem> revisionItems(List<DraftItem> drafts, List<ValidationResult> results) {
+        List<RevisionItem> items = new ArrayList<>();
+        if (results == null) {
+            return items;
+        }
+        for (ValidationResult result : results) {
+            if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size()
+                    && result.verdict() == Verdict.REVISE) {
+                items.add(new RevisionItem(result.itemIndex(), drafts.get(result.itemIndex()),
+                        result.reason(), result.revisionSuggestion()));
+            }
+        }
+        return items;
+    }
+
+    private List<ValidationResult> passAll(List<DraftItem> drafts) {
+        List<ValidationResult> results = new ArrayList<>();
+        for (int i = 0; i < drafts.size(); i++) {
+            results.add(new ValidationResult(i, Verdict.PASS, "fallback pass", ""));
+        }
+        return results;
+    }
+
+    private List<DraftItem> itemsByVerdict(List<DraftItem> drafts, List<ValidationResult> results, Verdict verdict) {
+        List<DraftItem> items = new ArrayList<>();
+        if (results == null) {
+            return items;
+        }
+        for (ValidationResult result : results) {
+            if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size() && result.verdict() == verdict) {
+                items.add(drafts.get(result.itemIndex()));
+            }
+        }
+        return items;
+    }
+
+    private boolean noRevise(List<ValidationResult> results) {
+        return results == null || results.stream().noneMatch(result -> result.verdict() == Verdict.REVISE);
+    }
+
+    private int countByVerdict(List<ValidationResult> results, Verdict verdict) {
+        if (results == null) {
+            return 0;
+        }
+        return (int) results.stream()
+                .filter(result -> result.verdict() == verdict)
+                .count();
+    }
+
+    private List<List<DraftItem>> batches(List<DraftItem> drafts, int batchSize) {
+        List<List<DraftItem>> batches = new ArrayList<>();
+        for (int i = 0; i < drafts.size(); i += batchSize) {
+            batches.add(drafts.subList(i, Math.min(i + batchSize, drafts.size())));
+        }
+        return batches;
+    }
+
+    private String previousQuestions(List<DraftItem> previous) {
+        return JSON.toJSONString(previous.stream()
+                .filter(item -> item != null && item.question() != null)
+                .map(DraftItem::question)
+                .toList());
+    }
+
+    private String generationNote(CreateTaskRequest request) {
+        String note = request.getNote() == null ? "" : request.getNote();
+        if (!Boolean.TRUE.equals(request.getAllowGeneralKnowledge())) {
+            note += "\n禁止使用资料外事实；证据不足时写 conflictTip。";
+        }
+        return note;
+    }
+
+    private String extractJsonArray(String text) {
+        int start = text.indexOf('[');
+        int end = text.lastIndexOf(']');
+        if (start >= 0 && end > start) {
+            return text.substring(start, end + 1);
+        }
+        return text;
+    }
+
+    record ValidationOutcome(List<DraftItem> passedDrafts, int rejectedCount) {
+    }
+}

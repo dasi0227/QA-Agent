@@ -1,8 +1,9 @@
 package com.dasi.qa.agent.domain.agent.service.generate.agentic;
 
+import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmenderAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.DrafterAgent;
+import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluatorAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlannerAgent;
-import com.dasi.qa.agent.domain.agent.service.generate.subagent.ValidatorAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
@@ -16,7 +17,8 @@ public record QaGenerationDagContext(
         ChatModel userModel,
         ChatMemoryProvider chatMemoryProvider,
         AgentListener listener,
-        List<Object> tools,
+        List<Object> creatorTools,
+        List<Object> amendmentTools,
         Executor creatorExecutor,
         PlannerStep plannerStep,
         CreatorStep creatorStep,
@@ -41,7 +43,7 @@ public record QaGenerationDagContext(
     @FunctionalInterface
     public interface ValidatorStep {
 
-        void run(AgenticScope scope, DrafterAgent drafterAgent, ValidatorAgent validatorAgent);
+        void run(AgenticScope scope, EvaluatorAgent evaluatorAgent, AmenderAgent amenderAgent);
 
     }
 

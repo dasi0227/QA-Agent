@@ -27,12 +27,13 @@ class AgentConfigurationTest {
                 new AgentListener() {
                 },
                 List.of(),
+                List.of(),
                 Runnable::run,
                 (scope, plannerAgent) -> scope.writeState("planResult", plannerAgent.plan(
                         "task-1", "documents", "", "", "", "", 1)),
                 (scope, drafterAgent, executor) -> scope.writeState("allDrafts", drafterAgent.draft(
                         "task-1", "Redis", "[]", "", "", "", "{}", 1, "[]", "")),
-                (scope, drafterAgent, validatorAgent) -> scope.writeState("passedDrafts", validatorAgent.validate(
+                (scope, evaluatorAgent, amenderAgent) -> scope.writeState("passedDrafts", evaluatorAgent.evaluate(
                         "task-1", "[]", "[]")),
                 scope -> scope.writeState("qaSetId", "set-1")
         ));

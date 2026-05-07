@@ -55,10 +55,12 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/identity/profile/me` | 是 | — | 返回当前登录用户的画像 |
-| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?` | 条件查询 |
+| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` | 条件查询 |
 | POST | `/identity/profile/create` | 是 | 同上 | 创建当前用户画像 |
 | POST | `/identity/profile/update` | 是 | 同上 | 更新当前用户画像 |
 | POST | `/identity/profile/delete` | 是 | `id?` | 删除当前用户画像 |
+
+说明：V3 GenerateAgent 不使用系统默认用户模型。`/qa/set/create` 会从当前用户 `Profile` 的 `llmBaseUrl`、`llmApiKey`、`llmModelName` 读取模型配置；缺失时返回 `40902` 并将生成任务置为失败。
 
 ## Document
 
@@ -142,21 +144,68 @@
 
 说明：删除 `qa_set` 会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
 
+说明：`/qa/set/create` 返回 `text/event-stream`，不包裹 `Result<T>`。请求线程只完成参数校验、用户识别、`SseEmitter` 创建和异步任务提交，实际 GenerateAgent DAG 在线程池中执行。
+
 #### `/qa/set/create` SSE 事件示例
 
 ```json
 {
   "taskId": "uuid",
-  "stage": "PLANNER",
+  "stage": "VALIDATOR",
   "status": "PROCESSING",
-  "message": "已分析资料结构，识别出 Redis、JVM 两个模块。",
+  "message": "已完成本批题目审校和修订。",
   "timestamp": 1717000000000,
   "tokens": {
     "current": 1200,
-    "total": 1200
+    "total": 2400
   }
 }
 ```
+
+V3 GenerateAgent 当前 DAG：
+
+```text
+PLANNER
+  PlannerAgent
+
+CREATOR
+  parallelBuilder
+    SearcherAgent -> DrafterAgent
+
+VALIDATOR
+  EvaluatorAgent -> AmenderAgent -> EvaluatorAgent
+
+SUMMARIZER
+  SummarizerAgent
+```
+
+对外 SSE `stage` 仍只暴露 `PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`、`COMPLETED`、`FAILED` 等任务阶段，不暴露 `EVALUATOR` 或 `AMENDER`。
+
+#### `/qa/set/task-status` 响应字段
+
+| 字段 | 说明 |
+| --- | --- |
+| `taskId` | 生成任务 ID |
+| `userId` | 用户 ID |
+| `qaSetId` | 成功生成后的问答集 ID，失败或未完成时可为空 |
+| `status` | `PENDING` / `PROCESSING` / `COMPLETED` / `FAILED` |
+| `stage` | `PENDING` / `PLANNER` / `CREATOR` / `VALIDATOR` / `SUMMARIZER` / `COMPLETED` / `FAILED` |
+| `errorCode` | 失败错误类型 |
+| `errorMessage` | 失败原因 |
+| `requestedQuestionCount` | 请求题数 |
+| `createdAt` | 创建时间 |
+| `startedAt` | 开始时间 |
+| `completedAt` | 完成时间 |
+
+#### `/qa/set/task-messages` 响应字段
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 消息 ID |
+| `taskId` | 生成任务 ID |
+| `stage` | 阶段 |
+| `message` | 阶段消息 |
+| `createdAt` | 创建时间 |
 
 ### 题目
 

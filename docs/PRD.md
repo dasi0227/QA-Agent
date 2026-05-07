@@ -246,6 +246,9 @@
 9. 年级
 10. 专业
 11. 当前准备阶段
+12. 用户自配 LLM `base_url`
+13. 用户自配 LLM `api_key`
+14. 用户自配 LLM `model_name`
 
 #### 6.1.4 设计要求
 
@@ -336,16 +339,18 @@
 2. 规划题集结构
 3. 检索证据
 4. 起草题目
-5. 校验输出
-6. 形成最终问答集
+5. 审校输出
+6. 按审校意见修订可修复题目
+7. 形成最终问答集
 
-推荐链路形态：
+当前 V3 落地链路形态：
 
-1. `plan`
-2. `search`
-3. `draft`
-4. `validate`
-5. `finalize`
+1. `PlannerAgent`
+2. `Creator`：`SearcherAgent -> DrafterAgent`，按模块并发
+3. `Validator`：`EvaluatorAgent -> AmenderAgent -> EvaluatorAgent`
+4. `SummarizerAgent`
+
+其中 `DrafterAgent` 只负责首轮起草，`EvaluatorAgent` 只负责审校判定，`AmenderAgent` 只负责最小必要修订。对外阶段仍保持 `PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`。
 
 #### 6.3.3 反馈 Agent
 

@@ -127,13 +127,17 @@
 10. `grade`
 11. `major`
 12. `stage`
-13. `created_at`
-14. `updated_at`
+13. `llm_base_url`
+14. `llm_api_key`
+15. `llm_model_name`
+16. `created_at`
+17. `updated_at`
 
 说明：
 
 1. 一个用户只允许一份全局 `Profile`。
 2. 不保留 `note`。
+3. `llm_base_url`、`llm_api_key`、`llm_model_name` 是用户自配 LLM 接入信息，V3 GenerateAgent 必须从这里读取；缺失时任务失败并返回 `LLM_NOT_CONFIGURED`。
 
 ### 4.3 `source_document`
 

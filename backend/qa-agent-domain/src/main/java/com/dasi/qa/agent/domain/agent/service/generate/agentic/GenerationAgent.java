@@ -7,14 +7,13 @@ import com.dasi.qa.agent.domain.agent.model.DraftItem;
 import com.dasi.qa.agent.domain.agent.model.PlanItem;
 import com.dasi.qa.agent.domain.agent.model.PlanResult;
 import com.dasi.qa.agent.domain.agent.model.UserLlmConfig;
-import com.dasi.qa.agent.domain.agent.model.ValidationResult;
-import com.dasi.qa.agent.domain.agent.model.Verdict;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
+import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmenderAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.DrafterAgent;
+import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluatorAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlannerAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SearcherAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SummarizerAgent;
-import com.dasi.qa.agent.domain.agent.service.generate.subagent.ValidatorAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.InterviewExperienceSearchTool;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.RagSearchTool;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
@@ -56,7 +55,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @Service
@@ -120,18 +118,20 @@ public class GenerationAgent implements IGenerationAgent {
             runGuardrails(request, publisher, totalTokens);
             String documentsSummary = agentRepository.getDocumentsSummary(request.getDocumentIds(), userId);
             QaGenerationAgentListener listener = new QaGenerationAgentListener(taskId, publisher, totalTokens);
-            List<Object> tools = generationTools(userId, request);
+            List<Object> creatorTools = creatorTools(userId, request);
+            List<Object> amendmentTools = amendmentTools(userId, request);
 
             UntypedAgent dag = dagFactory.build(new QaGenerationDagContext(
                     taskId,
                     userModel,
                     chatMemoryProvider,
                     listener,
-                    tools,
+                    creatorTools,
+                    amendmentTools,
                     applicationTaskExecutor,
                     (scope, plannerAgent) -> runPlanner(scope, plannerAgent, taskId, request, documentsSummary),
                     (scope, drafterAgent, executor) -> runCreator(scope, drafterAgent, executor, taskId, userId, request),
-                    (scope, drafterAgent, validatorAgent) -> runValidator(scope, drafterAgent, validatorAgent, taskId, request),
+                    (scope, evaluatorAgent, amenderAgent) -> runValidator(scope, evaluatorAgent, amenderAgent, taskId, request),
                     scope -> runSummarizer(scope, taskId, userId, request, publisher)
             ));
 
@@ -146,13 +146,17 @@ public class GenerationAgent implements IGenerationAgent {
         }
     }
 
-    private List<Object> generationTools(String userId, CreateTaskRequest request) {
+    private List<Object> creatorTools(String userId, CreateTaskRequest request) {
         List<Object> tools = new ArrayList<>();
         tools.add(new RagSearchTool(searchService, userId, request.getDocumentIds()));
         if (Boolean.TRUE.equals(request.getAllowWebSearch())) {
             tools.add(new InterviewExperienceSearchTool(webSearchChatModel));
         }
         return tools;
+    }
+
+    private List<Object> amendmentTools(String userId, CreateTaskRequest request) {
+        return List.of(new RagSearchTool(searchService, userId, request.getDocumentIds()));
     }
 
     private void runGuardrails(CreateTaskRequest request, TaskEventPublisher publisher, AtomicInteger totalTokens) {
@@ -262,90 +266,21 @@ public class GenerationAgent implements IGenerationAgent {
         }
     }
 
-    private void runValidator(AgenticScope scope, DrafterAgent drafterAgent, ValidatorAgent validatorAgent,
+    private void runValidator(AgenticScope scope, EvaluatorAgent evaluatorAgent, AmenderAgent amenderAgent,
                               String taskId, CreateTaskRequest request) {
         agentRepository.updateTaskStage(taskId, GenerationStatus.PROCESSING, GenerationStage.VALIDATOR);
         List<DraftItem> drafts = readDrafts(scope);
         List<SearchResult> evidence = readEvidence(scope);
-        List<DraftItem> passedDrafts = new ArrayList<>();
-        AtomicInteger rejectedCount = new AtomicInteger(0);
+        ValidationCoordinator.ValidationOutcome outcome = new ValidationCoordinator(MAX_MODULE_QUESTIONS_PER_BATCH)
+                .run(taskId, request, evaluatorAgent, amenderAgent, drafts, evidence);
 
-        for (List<DraftItem> batch : batches(drafts, MAX_MODULE_QUESTIONS_PER_BATCH)) {
-            List<ValidationResult> initialResults = validateOnce(taskId, validatorAgent, batch, evidence);
-            passedDrafts.addAll(itemsByVerdict(batch, initialResults, Verdict.PASS));
-            rejectedCount.addAndGet(countByVerdict(initialResults, Verdict.REJECT));
-            List<DraftItem> reviseItems = itemsByVerdict(batch, initialResults, Verdict.REVISE);
-            if (!reviseItems.isEmpty()) {
-                ValidationLoopOutcome outcome = runValidationLoop(taskId, request, drafterAgent, validatorAgent,
-                        reviseItems, evidence, initialResults);
-                passedDrafts.addAll(outcome.passedDrafts());
-                rejectedCount.addAndGet(outcome.rejectedCount());
-            }
-        }
-
-        List<DraftItem> finalDrafts = cleanDrafts(filterSourceChunkIds(deduplicate(passedDrafts), evidence),
+        List<DraftItem> finalDrafts = cleanDrafts(filterSourceChunkIds(deduplicate(outcome.passedDrafts()), evidence),
                 request, evidence);
         if (finalDrafts.isEmpty()) {
-            throw new GenerationException(ErrorType.ALL_REJECTED, "Validator 未通过任何题目");
+            throw new GenerationException(ErrorType.ALL_REJECTED, "Evaluator 未通过任何题目");
         }
         scope.writeState("passedDrafts", finalDrafts);
-        scope.writeState("rejectedCount", rejectedCount.get());
-    }
-
-    private ValidationLoopOutcome runValidationLoop(String taskId, CreateTaskRequest request, DrafterAgent drafterAgent,
-                                                    ValidatorAgent validatorAgent, List<DraftItem> reviseItems,
-                                                    List<SearchResult> evidence, List<ValidationResult> previousResults) {
-        AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(reviseItems);
-        AtomicReference<List<ValidationResult>> currentResults = new AtomicReference<>(previousResults);
-
-        UntypedAgent validationLoop = AgenticServices.loopBuilder()
-                .name("VALIDATION_LOOP")
-                .description("Validator 返回 REVISE 时回退 Drafter 重试")
-                .maxIterations(2)
-                .testExitAtLoopEnd(true)
-                .exitCondition((loopScope, iteration) -> iteration >= 1 || noRevise(currentResults.get()))
-                .subAgents(
-                        AgenticServices.agentAction(loopScope -> currentItems.set(redraftRevisions(
-                                taskId, drafterAgent, request, currentItems.get(), currentResults.get(), evidence))),
-                        AgenticServices.agentAction(loopScope -> currentResults.set(validateOnce(
-                                taskId, validatorAgent, currentItems.get(), evidence)))
-                )
-                .output(loopScope -> currentItems.get())
-                .build();
-        validationLoop.invoke(Map.of("taskId", taskId));
-        List<DraftItem> passed = itemsByVerdict(currentItems.get(), currentResults.get(), Verdict.PASS);
-        int rejected = Math.max(0, currentItems.get().size() - passed.size());
-        return new ValidationLoopOutcome(passed, rejected);
-    }
-
-    private List<DraftItem> redraftRevisions(String taskId, DrafterAgent drafterAgent, CreateTaskRequest request,
-                                             List<DraftItem> reviseItems, List<ValidationResult> results,
-                                             List<SearchResult> evidence) {
-        if (reviseItems.isEmpty()) {
-            return List.of();
-        }
-        String moduleTag = reviseItems.get(0).moduleTag();
-        String revisionNote = "请按以下审校意见修订，不要新增无关题目："
-                + JSON.toJSONString(revisionSuggestions(results));
-        PlanItem planItem = new PlanItem(moduleTag, reviseItems.size(),
-                new DifficultyDistribution(0, reviseItems.size(), 0),
-                reviseItems.stream().map(DraftItem::question).toList(),
-                List.of("REVISE", revisionNote));
-        return draftBatch(taskId, drafterAgent, request, planItem, evidence,
-                previousQuestions(reviseItems), reviseItems.size(), revisionNote);
-    }
-
-    private List<ValidationResult> validateOnce(String taskId, ValidatorAgent validatorAgent,
-                                                List<DraftItem> drafts, List<SearchResult> evidence) {
-        try {
-            String response = validatorAgent.validate(taskId,
-                    JSON.toJSONString(drafts), JSON.toJSONString(evidence));
-            List<ValidationResult> parsed = JSON.parseArray(extractJsonArray(response), ValidationResult.class);
-            return parsed == null || parsed.isEmpty() ? passAll(drafts) : parsed;
-        } catch (Exception exception) {
-            log.warn("ValidatorAgent failed, fallback pass used: message={}", exception.getMessage());
-            return passAll(drafts);
-        }
+        scope.writeState("rejectedCount", outcome.rejectedCount());
     }
 
     private void runSummarizer(AgenticScope scope, String taskId, String userId,
@@ -434,48 +369,6 @@ public class GenerationAgent implements IGenerationAgent {
             return distribution;
         }
         return new DifficultyDistribution(distribution.easy(), Math.max(0, questionCount - distribution.easy() - distribution.hard()), distribution.hard());
-    }
-
-    private List<ValidationResult> passAll(List<DraftItem> drafts) {
-        List<ValidationResult> results = new ArrayList<>();
-        for (int i = 0; i < drafts.size(); i++) {
-            results.add(new ValidationResult(i, Verdict.PASS, "fallback pass", ""));
-        }
-        return results;
-    }
-
-    private List<DraftItem> itemsByVerdict(List<DraftItem> drafts, List<ValidationResult> results, Verdict verdict) {
-        List<DraftItem> items = new ArrayList<>();
-        for (ValidationResult result : results) {
-            if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size() && result.verdict() == verdict) {
-                items.add(drafts.get(result.itemIndex()));
-            }
-        }
-        return items;
-    }
-
-    private boolean noRevise(List<ValidationResult> results) {
-        return results == null || results.stream().noneMatch(result -> result.verdict() == Verdict.REVISE);
-    }
-
-    private List<String> revisionSuggestions(List<ValidationResult> results) {
-        if (results == null) {
-            return List.of();
-        }
-        return results.stream()
-                .filter(result -> result.verdict() == Verdict.REVISE)
-                .map(ValidationResult::revisionSuggestion)
-                .filter(value -> value != null && !value.isBlank())
-                .toList();
-    }
-
-    private int countByVerdict(List<ValidationResult> results, Verdict verdict) {
-        if (results == null) {
-            return 0;
-        }
-        return (int) results.stream()
-                .filter(result -> result.verdict() == verdict)
-                .count();
     }
 
     private List<DraftItem> deduplicate(List<DraftItem> items) {
@@ -589,14 +482,6 @@ public class GenerationAgent implements IGenerationAgent {
                 .filter(item -> item.moduleTag() != null && !item.moduleTag().isBlank())
                 .filter(item -> item.questionCount() > 0)
                 .toList();
-    }
-
-    private List<List<DraftItem>> batches(List<DraftItem> drafts, int batchSize) {
-        List<List<DraftItem>> batches = new ArrayList<>();
-        for (int i = 0; i < drafts.size(); i += batchSize) {
-            batches.add(drafts.subList(i, Math.min(i + batchSize, drafts.size())));
-        }
-        return batches;
     }
 
     @SuppressWarnings("unchecked")
@@ -766,7 +651,7 @@ public class GenerationAgent implements IGenerationAgent {
             if ("DRAFTER".equals(agentName)) {
                 return GenerationStage.CREATOR;
             }
-            if ("VALIDATOR".equals(agentName)) {
+            if ("EVALUATOR".equals(agentName) || "AMENDER".equals(agentName) || "VALIDATOR".equals(agentName)) {
                 return GenerationStage.VALIDATOR;
             }
             if ("SUMMARIZER".equals(agentName)) {
