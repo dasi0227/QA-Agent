@@ -10,9 +10,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlanContext {
+public class DecideContext {
 
     private String taskId;
-    private String userId;
     private CreateTaskRequest request;
 }

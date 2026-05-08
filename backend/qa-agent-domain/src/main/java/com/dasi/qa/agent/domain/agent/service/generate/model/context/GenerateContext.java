@@ -25,9 +25,9 @@ public class GenerateContext {
 
     private final ChatModel userModel;
     private final ChatMemoryProvider chatMemoryProvider;
-    private final AgentListener listener;
-    private final List<Object> creatorTools;
-    private final List<Object> amendmentTools;
+    private final AgentListener agentListener;
+    private final List<Object> createTools;
+    private final List<Object> validateTools;
     private final DecideStep decideStep;
     private final AbortStep abortStep;
     private final PlanStep planStep;

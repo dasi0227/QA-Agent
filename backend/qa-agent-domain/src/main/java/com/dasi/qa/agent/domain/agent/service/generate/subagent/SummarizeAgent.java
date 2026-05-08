@@ -1,63 +1,57 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
-import com.dasi.qa.agent.domain.agent.shared.DraftItem;
-import com.dasi.qa.agent.domain.agent.shared.enumeration.Difficulty;
-import com.dasi.qa.agent.domain.agent.shared.PlanResult;
-import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
-import org.springframework.stereotype.Component;
+import dev.langchain4j.agentic.Agent;
+import dev.langchain4j.service.MemoryId;
+import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+public interface SummarizeAgent {
 
-@Component
-public class SummarizeAgent {
+    @SystemMessage(fromResource = "prompt/generation-summarize.txt")
+    @UserMessage("""
+            用户要求：
+            {{userPrompt}}
 
-    private final IAgentRepository agentRepository;
+            题集标题：
+            {{title}}
 
-    public SummarizeAgent(IAgentRepository agentRepository) {
-        this.agentRepository = agentRepository;
-    }
+            规划结果：
+            {{planResult}}
 
-    public SummaryResult summarize(String taskId, String userId, CreateTaskRequest request,
-                                   PlanResult planResult, List<DraftItem> draftItems, int rejectedCount,
-                                   List<String> failedModules, int totalTokens) {
-        String qaSetId = agentRepository.saveGeneratedQaSet(taskId, userId, request, planResult, draftItems);
-        Map<String, Long> moduleCounts = draftItems.stream()
-                .collect(Collectors.groupingBy(item -> safe(item.moduleTag(), "General"),
-                        LinkedHashMap::new, Collectors.counting()));
-        Map<String, Long> difficultyCounts = Arrays.stream(Difficulty.values())
-                .collect(Collectors.toMap(Enum::name,
-                        difficulty -> draftItems.stream()
-                                .filter(item -> item.difficulty() == difficulty)
-                                .count(),
-                        (left, right) -> left,
-                        LinkedHashMap::new));
-        int plannedCount = plannedCount(planResult, request);
-        String message = "问答集已生成，共 " + draftItems.size() + " 题（计划 " + plannedCount
-                + " 题，未通过或丢弃 " + rejectedCount + " 题）。模块分布：" + moduleCounts
-                + "。难度分布：" + difficultyCounts + "。Creator 失败模块 "
-                + (failedModules == null ? 0 : failedModules.size()) + " 个，累计消耗 "
-                + totalTokens + " tokens。";
-        return new SummaryResult(qaSetId, message);
-    }
+            计划题数：
+            {{plannedCount}}
 
-    private int plannedCount(PlanResult planResult, CreateTaskRequest request) {
-        if (planResult != null && planResult.planItems() != null && !planResult.planItems().isEmpty()) {
-            return planResult.planItems().stream()
-                    .mapToInt(item -> Math.max(0, item.questionCount()))
-                    .sum();
-        }
-        return request.getRequestedQuestionCount() == null ? 0 : request.getRequestedQuestionCount();
-    }
+            实际通过题数：
+            {{passedCount}}
 
-    private String safe(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
-    }
+            未通过题数：
+            {{rejectedCount}}
 
-    public record SummaryResult(String qaSetId, String message) {
-    }
+            Creator 失败模块：
+            {{failedModules}}
+
+            模块分布：
+            {{moduleCounts}}
+
+            难度分布：
+            {{difficultyCounts}}
+
+            累计 token：
+            {{totalTokens}}
+
+            请直接输出最终完成说明文本。
+            """)
+    @Agent(name = "SUMMARIZER", description = "根据生成结果和统计信息生成最终完成说明")
+    String summarize(@MemoryId @V("taskId") String taskId,
+                     @V("userPrompt") String userPrompt,
+                     @V("title") String title,
+                     @V("planResult") String planResult,
+                     @V("plannedCount") int plannedCount,
+                     @V("passedCount") int passedCount,
+                     @V("rejectedCount") int rejectedCount,
+                     @V("failedModules") String failedModules,
+                     @V("moduleCounts") String moduleCounts,
+                     @V("difficultyCounts") String difficultyCounts,
+                     @V("totalTokens") int totalTokens);
 }
