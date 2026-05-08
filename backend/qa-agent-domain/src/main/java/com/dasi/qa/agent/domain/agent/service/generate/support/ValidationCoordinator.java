@@ -51,7 +51,7 @@ public class ValidationCoordinator {
                                                 AmendAgent amendAgent, List<RevisionItem> revisionItems,
                                                 List<SearchResult> evidence) {
         AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(
-                revisionItems.stream().map(RevisionItem::draftItem).toList());
+                revisionItems.stream().map(RevisionItem::getDraftItem).toList());
         AtomicReference<List<ValidationResult>> currentResults = new AtomicReference<>(List.of());
         AtomicReference<Boolean> amendmentFailed = new AtomicReference<>(false);
 
@@ -105,7 +105,7 @@ public class ValidationCoordinator {
                 taskId,
                 JSON.toJSONString(revisionItems),
                 JSON.toJSONString(evidence),
-                previousQuestions(revisionItems.stream().map(RevisionItem::draftItem).toList()),
+                previousQuestions(revisionItems.stream().map(RevisionItem::getDraftItem).toList()),
                 generationNote(request)
         );
         List<DraftItem> parsed = JSON.parseArray(extractJsonArray(response), DraftItem.class);
@@ -131,10 +131,10 @@ public class ValidationCoordinator {
             return items;
         }
         for (ValidationResult result : results) {
-            if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size()
-                    && result.verdictType() == VerdictType.REVISE) {
-                items.add(new RevisionItem(result.itemIndex(), drafts.get(result.itemIndex()),
-                        result.reason(), result.revisionSuggestion()));
+            if (result.getItemIndex() >= 0 && result.getItemIndex() < drafts.size()
+                    && result.getVerdictType() == VerdictType.REVISE) {
+                items.add(new RevisionItem(result.getItemIndex(), drafts.get(result.getItemIndex()),
+                        result.getReason(), result.getRevisionSuggestion()));
             }
         }
         return items;
@@ -154,15 +154,15 @@ public class ValidationCoordinator {
             return items;
         }
         for (ValidationResult result : results) {
-            if (result.itemIndex() >= 0 && result.itemIndex() < drafts.size() && result.verdictType() == verdictType) {
-                items.add(drafts.get(result.itemIndex()));
+            if (result.getItemIndex() >= 0 && result.getItemIndex() < drafts.size() && result.getVerdictType() == verdictType) {
+                items.add(drafts.get(result.getItemIndex()));
             }
         }
         return items;
     }
 
     private boolean noRevise(List<ValidationResult> results) {
-        return results == null || results.stream().noneMatch(result -> result.verdictType() == VerdictType.REVISE);
+        return results == null || results.stream().noneMatch(result -> result.getVerdictType() == VerdictType.REVISE);
     }
 
     private int countByVerdict(List<ValidationResult> results, VerdictType verdictType) {
@@ -170,7 +170,7 @@ public class ValidationCoordinator {
             return 0;
         }
         return (int) results.stream()
-                .filter(result -> result.verdictType() == verdictType)
+                .filter(result -> result.getVerdictType() == verdictType)
                 .count();
     }
 
@@ -184,8 +184,8 @@ public class ValidationCoordinator {
 
     private String previousQuestions(List<DraftItem> previous) {
         return JSON.toJSONString(previous.stream()
-                .filter(item -> item != null && item.question() != null)
-                .map(DraftItem::question)
+                .filter(item -> item != null && item.getQuestion() != null)
+                .map(DraftItem::getQuestion)
                 .toList());
     }
 

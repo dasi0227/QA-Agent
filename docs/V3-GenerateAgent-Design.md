@@ -106,7 +106,7 @@ flowchart TD
     RJ2 --> CLEAN
 ```
 
-当前实现不再保留 `QaGenDag`、`QaGenModule`、`ValidationLoop` 这类纯标记接口。DAG 边界由 `GenerateContext` 的 `DecideStep`、`AbortStep`、`PlanStep`、`CreateStep`、`ValidateStep`、`SummarizeStep` 表达，运行时由每次请求动态构建的 LangChain4j agent 和 Java step 组合完成。
+当前实现不再保留 `QaGenDag`、`QaGenModule`、`ValidationLoop` 这类纯标记接口。DAG 边界由 `GenerateContext` 的 `DecideStep`、`AbortStep`、`PlanStep`、`WriteStep`、`ValidateStep`、`SummarizeStep` 表达；`GenerateAgentFactory` 负责创建 LangChain4j agent，并先组装好对应 `AgenticScopeAction`，再放入各层 `subAgents(...)`。
 
 ## 4. Agent 职责
 

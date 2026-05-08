@@ -1,24 +1,24 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
 import com.alibaba.fastjson2.JSON;
-import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
-import com.dasi.qa.agent.domain.agent.shared.enumeration.Difficulty;
-import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateAbortedException;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
 import com.dasi.qa.agent.domain.agent.service.generate.support.*;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.RagSearchTool;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.WebSearchTool;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.Difficulty;
+import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.shared.sse.EventPublisher;
+import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
-import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -111,7 +111,7 @@ public class GenerateAgent implements IGenerateAgent {
                     : List.of(ragSearchTool);
             List<Object> validateTools = List.of(ragSearchTool);
 
-            // 创建链路监听器：汇总阶段输出与 token 信息
+            // 创建链路监听器，负责汇总阶段输出与 token 信息
             GenerateAgentListener agentListener = new GenerateAgentListener(taskId, eventPublisher, totalTokens, supervisorChatModel);
 
             // 组装各阶段执行上下文
@@ -152,7 +152,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .ragEvidenceProvider(ragEvidenceProvider)
                     .build();
 
-            // 汇总 DAG 运行上下文，并绑定各阶段执行回调
+            // 汇总 DAG 运行上下文，并传入各阶段执行回调
             GenerateContext generateContext = GenerateContext.builder()
                     .userModel(userModel)
                     .chatMemoryProvider(chatMemoryProvider)
@@ -167,7 +167,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .summarizeStep((scope, summarizeAgent) -> runSummarize(scope, summarizeAgent, summarizeContext))
                     .build();
 
-            // 构建任务 DAG（Decide -> Route -> Create(Plan -> Write -> Validate -> Summarize)）
+            // 构建任务 DAG
             UntypedAgent generateAgent = generateAgentFactory.build(generateContext);
 
             // 初始化 Scope 数据，供各阶段读取
@@ -200,7 +200,7 @@ public class GenerateAgent implements IGenerateAgent {
 
     private void runAbort(AgenticScope scope, AbortAgent abortAgent, AbortContext context) {
         DecideResult decideResult = readDecideResult(scope);
-        String reason = hasText(decideResult.reason()) ? decideResult.reason() : "用户要求与生成问答集无关";
+        String reason = hasText(decideResult.getReason()) ? decideResult.getReason() : "用户要求与生成问答集无关";
         String message;
         try {
             message = abortAgent.abort(context.getTaskId(), safe(context.getRequest().getUserPrompt()), reason);
@@ -256,9 +256,9 @@ public class GenerateAgent implements IGenerateAgent {
                             .previousDrafts(allDrafts)
                             .build()));
                 } catch (Exception exception) {
-                    failedModules.add(planItem.moduleTag() + ": " + safe(exception.getMessage()));
+                    failedModules.add(planItem.getModuleTag() + ": " + safe(exception.getMessage()));
                     log.warn("Write module failed: taskId={}, module={}, message={}",
-                            context.getTaskId(), planItem.moduleTag(), exception.getMessage());
+                            context.getTaskId(), planItem.getModuleTag(), exception.getMessage());
                 }
             }));
         }
@@ -281,7 +281,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private List<DraftItem> draftModule(DraftAgent draftAgent, DraftModuleContext context) {
-        int remaining = Math.max(0, context.getPlanItem().questionCount());
+        int remaining = Math.max(0, context.getPlanItem().getQuestionCount());
         List<DraftItem> moduleDrafts = new ArrayList<>();
         while (remaining > 0) {
             int batchCount = Math.min(MAX_MODULE_QUESTIONS_PER_BATCH, remaining);
@@ -304,12 +304,12 @@ public class GenerateAgent implements IGenerateAgent {
         try {
             String response = draftAgent.draft(
                     context.getTaskId(),
-                    context.getPlanItem().moduleTag(),
+                    context.getPlanItem().getModuleTag(),
                     JSON.toJSONString(context.getEvidence()),
                     "",
                     "",
                     answerStyle(context.getRequest()),
-                    JSON.toJSONString(context.getPlanItem().difficultyDistribution()),
+                    JSON.toJSONString(context.getPlanItem().getDifficultyDistribution()),
                     context.getBatchCount(),
                     context.getPreviousQuestions(),
                     generationNote(context.getRequest(), context.getExtraNote())
@@ -318,11 +318,11 @@ public class GenerateAgent implements IGenerateAgent {
             return parsed == null ? List.of() : parsed;
         } catch (Exception exception) {
             log.warn("DraftAgent failed, fallback drafts used: module={}, message={}",
-                    context.getPlanItem().moduleTag(), exception.getMessage());
-            return fallbackDrafts(new PlanItem(context.getPlanItem().moduleTag(), context.getBatchCount(),
-                    context.getPlanItem().difficultyDistribution(),
-                    context.getPlanItem().focusTopics(),
-                    context.getPlanItem().suggestedQuestionTypes()), context.getEvidence());
+                    context.getPlanItem().getModuleTag(), exception.getMessage());
+            return fallbackDrafts(new PlanItem(context.getPlanItem().getModuleTag(), context.getBatchCount(),
+                    context.getPlanItem().getDifficultyDistribution(),
+                    context.getPlanItem().getFocusTopics(),
+                    context.getPlanItem().getSuggestedQuestionTypes()), context.getEvidence());
         }
     }
 
@@ -386,26 +386,26 @@ public class GenerateAgent implements IGenerateAgent {
 
     private PlanResult normalizePlan(PlanResult planResult, CreateQaSetRequest request) {
         List<PlanItem> items = safePlanItems(planResult, request);
-        int total = items.stream().mapToInt(item -> Math.max(0, item.questionCount())).sum();
+        int total = items.stream().mapToInt(item -> Math.max(0, item.getQuestionCount())).sum();
         int target = questionCount(request);
         if (total != target && !items.isEmpty()) {
             PlanItem first = items.get(0);
-            int fixedCount = Math.max(1, first.questionCount() + target - total);
+            int fixedCount = Math.max(1, first.getQuestionCount() + target - total);
             List<PlanItem> fixedItems = new ArrayList<>(items);
-            fixedItems.set(0, new PlanItem(first.moduleTag(), fixedCount,
-                    normalizeDistribution(first.difficultyDistribution(), fixedCount),
-                    first.focusTopics(), first.suggestedQuestionTypes()));
+            fixedItems.set(0, new PlanItem(first.getModuleTag(), fixedCount,
+                    normalizeDistribution(first.getDifficultyDistribution(), fixedCount),
+                    first.getFocusTopics(), first.getSuggestedQuestionTypes()));
             items = fixedItems;
         }
         return new PlanResult(
-                planResult == null || planResult.title() == null || planResult.title().isBlank()
-                        ? title(request) : planResult.title(),
-                planResult == null || planResult.description() == null ? "" : planResult.description(),
+                planResult == null || planResult.getTitle() == null || planResult.getTitle().isBlank()
+                        ? title(request) : planResult.getTitle(),
+                planResult == null || planResult.getDescription() == null ? "" : planResult.getDescription(),
                 items.stream()
-                        .map(item -> new PlanItem(item.moduleTag(), item.questionCount(),
-                                normalizeDistribution(item.difficultyDistribution(), item.questionCount()),
-                                item.focusTopics() == null ? List.of() : item.focusTopics(),
-                                item.suggestedQuestionTypes() == null ? List.of() : item.suggestedQuestionTypes()))
+                        .map(item -> new PlanItem(item.getModuleTag(), item.getQuestionCount(),
+                                normalizeDistribution(item.getDifficultyDistribution(), item.getQuestionCount()),
+                                item.getFocusTopics() == null ? List.of() : item.getFocusTopics(),
+                                item.getSuggestedQuestionTypes() == null ? List.of() : item.getSuggestedQuestionTypes()))
                         .toList()
         );
     }
@@ -414,18 +414,18 @@ public class GenerateAgent implements IGenerateAgent {
         if (distribution == null) {
             return new DifficultyDistribution(0, questionCount, 0);
         }
-        int total = distribution.easy() + distribution.medium() + distribution.hard();
+        int total = distribution.getEasy() + distribution.getMedium() + distribution.getHard();
         if (total == questionCount) {
             return distribution;
         }
-        return new DifficultyDistribution(distribution.easy(), Math.max(0, questionCount - distribution.easy() - distribution.hard()), distribution.hard());
+        return new DifficultyDistribution(distribution.getEasy(), Math.max(0, questionCount - distribution.getEasy() - distribution.getHard()), distribution.getHard());
     }
 
     private List<DraftItem> deduplicate(List<DraftItem> items) {
         Map<String, DraftItem> map = new LinkedHashMap<>();
         for (DraftItem item : items) {
-            if (item != null && item.question() != null && !item.question().isBlank()) {
-                map.putIfAbsent(item.question(), item);
+            if (item != null && item.getQuestion() != null && !item.getQuestion().isBlank()) {
+                map.putIfAbsent(item.getQuestion(), item);
             }
         }
         return new ArrayList<>(map.values());
@@ -449,8 +449,8 @@ public class GenerateAgent implements IGenerateAgent {
             }
         }
         return drafts.stream()
-                .map(item -> new DraftItem(item.question(), item.knowledgeNote(), item.answer(), item.moduleTag(),
-                        item.difficulty(), item.conflictTip(), filterSourceChunkIds(item.sourceChunkIds(), validChunkIds)))
+                .map(item -> new DraftItem(item.getQuestion(), item.getKnowledgeNote(), item.getAnswer(), item.getModuleTag(),
+                        item.getDifficulty(), item.getConflictTip(), filterSourceChunkIds(item.getSourceChunkIds(), validChunkIds)))
                 .toList();
     }
 
@@ -470,14 +470,14 @@ public class GenerateAgent implements IGenerateAgent {
         boolean hasEvidence = evidence != null && !evidence.isEmpty();
         return drafts.stream()
                 .filter(item -> item != null)
-                .filter(item -> hasText(item.question()) && hasText(item.answer()))
+                .filter(item -> hasText(item.getQuestion()) && hasText(item.getAnswer()))
                 .map(item -> sanitizeDraftItem(item, strictEvidence, hasEvidence))
                 .toList();
     }
 
     private DraftItem sanitizeDraftItem(DraftItem item, boolean strictEvidence, boolean hasEvidence) {
-        List<String> sourceChunkIds = item.sourceChunkIds() == null ? List.of() : item.sourceChunkIds();
-        String conflictTip = safe(item.conflictTip());
+        List<String> sourceChunkIds = item.getSourceChunkIds() == null ? List.of() : item.getSourceChunkIds();
+        String conflictTip = safe(item.getConflictTip());
         if (strictEvidence && sourceChunkIds.isEmpty()) {
             conflictTip = conflictTip.isBlank() ? "资料证据不足，答案仅保留为低置信度基础题" : conflictTip;
         }
@@ -485,11 +485,11 @@ public class GenerateAgent implements IGenerateAgent {
             conflictTip = "未检索到可用资料证据";
         }
         return new DraftItem(
-                item.question().trim(),
-                safe(item.knowledgeNote()).trim(),
-                item.answer().trim(),
-                hasText(item.moduleTag()) ? item.moduleTag().trim() : "General",
-                item.difficulty() == null ? Difficulty.MEDIUM : item.difficulty(),
+                item.getQuestion().trim(),
+                safe(item.getKnowledgeNote()).trim(),
+                item.getAnswer().trim(),
+                hasText(item.getModuleTag()) ? item.getModuleTag().trim() : "General",
+                item.getDifficulty() == null ? Difficulty.MEDIUM : item.getDifficulty(),
                 conflictTip,
                 sourceChunkIds
         );
@@ -498,14 +498,14 @@ public class GenerateAgent implements IGenerateAgent {
     private List<DraftItem> fallbackDrafts(PlanItem planItem, List<SearchResult> evidence) {
         List<String> chunkIds = evidence.stream().map(SearchResult::getChunkId).filter(id -> id != null).limit(3).toList();
         String evidenceText = evidence.isEmpty() ? "" : evidence.get(0).getContent();
-        int count = Math.max(1, planItem.questionCount());
+        int count = Math.max(1, planItem.getQuestionCount());
         List<DraftItem> drafts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             drafts.add(new DraftItem(
-                    planItem.moduleTag() + " 的核心问题 " + (i + 1),
+                    planItem.getModuleTag() + " 的核心问题 " + (i + 1),
                     evidenceText,
                     evidenceText,
-                    planItem.moduleTag(),
+                    planItem.getModuleTag(),
                     Difficulty.MEDIUM,
                     evidence.isEmpty() ? "资料证据不足" : "",
                     chunkIds
@@ -525,12 +525,12 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private List<PlanItem> safePlanItems(PlanResult planResult, CreateQaSetRequest request) {
-        if (planResult == null || planResult.planItems() == null || planResult.planItems().isEmpty()) {
-            return fallbackPlan(request).planItems();
+        if (planResult == null || planResult.getPlanItems() == null || planResult.getPlanItems().isEmpty()) {
+            return fallbackPlan(request).getPlanItems();
         }
-        return planResult.planItems().stream()
-                .filter(item -> item.moduleTag() != null && !item.moduleTag().isBlank())
-                .filter(item -> item.questionCount() > 0)
+        return planResult.getPlanItems().stream()
+                .filter(item -> item.getModuleTag() != null && !item.getModuleTag().isBlank())
+                .filter(item -> item.getQuestionCount() > 0)
                 .toList();
     }
 
@@ -561,8 +561,8 @@ public class GenerateAgent implements IGenerateAgent {
 
     private String previousQuestions(List<DraftItem> previous) {
         return JSON.toJSONString(previous.stream()
-                .filter(item -> item != null && item.question() != null)
-                .map(DraftItem::question)
+                .filter(item -> item != null && item.getQuestion() != null)
+                .map(DraftItem::getQuestion)
                 .toList());
     }
 
@@ -597,9 +597,9 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private int plannedCount(PlanResult planResult, CreateQaSetRequest request) {
-        if (planResult != null && planResult.planItems() != null && !planResult.planItems().isEmpty()) {
-            return planResult.planItems().stream()
-                    .mapToInt(item -> Math.max(0, item.questionCount()))
+        if (planResult != null && planResult.getPlanItems() != null && !planResult.getPlanItems().isEmpty()) {
+            return planResult.getPlanItems().stream()
+                    .mapToInt(item -> Math.max(0, item.getQuestionCount()))
                     .sum();
         }
         return request.getRequestedQuestionCount() == null ? 0 : request.getRequestedQuestionCount();
@@ -633,7 +633,7 @@ public class GenerateAgent implements IGenerateAgent {
     private Map<String, Long> moduleCounts(List<DraftItem> draftItems) {
         Map<String, Long> moduleCounts = new LinkedHashMap<>();
         for (DraftItem item : draftItems) {
-            String moduleTag = hasText(item.moduleTag()) ? item.moduleTag().trim() : "General";
+            String moduleTag = hasText(item.getModuleTag()) ? item.getModuleTag().trim() : "General";
             moduleCounts.merge(moduleTag, 1L, Long::sum);
         }
         return moduleCounts;
@@ -643,7 +643,7 @@ public class GenerateAgent implements IGenerateAgent {
         Map<String, Long> difficultyCounts = new LinkedHashMap<>();
         for (Difficulty difficulty : Difficulty.values()) {
             long count = draftItems.stream()
-                    .filter(item -> item.difficulty() == difficulty)
+                    .filter(item -> item.getDifficulty() == difficulty)
                     .count();
             difficultyCounts.put(difficulty.name(), count);
         }

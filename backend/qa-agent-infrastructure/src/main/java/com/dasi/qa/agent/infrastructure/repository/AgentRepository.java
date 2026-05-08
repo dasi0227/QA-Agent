@@ -200,8 +200,8 @@ public class AgentRepository implements IAgentRepository {
         qaSet.setId(qaSetId);
         qaSet.setUserId(userId);
         qaSet.setTaskId(taskId);
-        qaSet.setTitle(planResult.title() == null || planResult.title().isBlank() ? title(request) : planResult.title());
-        qaSet.setDescription(planResult.description());
+        qaSet.setTitle(planResult.getTitle() == null || planResult.getTitle().isBlank() ? title(request) : planResult.getTitle());
+        qaSet.setDescription(planResult.getDescription());
         qaSet.setModuleTagsJson(JSON.toJSONString(moduleTags(draftItems)));
         qaSet.setQuestionCount(draftItems.size());
         qaSet.setPracticeCount(0);
@@ -213,14 +213,14 @@ public class AgentRepository implements IAgentRepository {
             item.setId(UUID.randomUUID().toString());
             item.setQaSetId(qaSetId);
             item.setUserId(userId);
-            item.setQuestion(draftItem.question());
-            item.setKnowledgeNote(draftItem.knowledgeNote());
-            item.setAnswer(draftItem.answer());
-            item.setModuleTag(draftItem.moduleTag());
-            item.setDifficulty(draftItem.difficulty() == null ? null : draftItem.difficulty().name());
-            item.setConflictTip(draftItem.conflictTip());
-            item.setSourceChunkIdsJson(JSON.toJSONString(draftItem.sourceChunkIds() == null
-                    ? List.of() : draftItem.sourceChunkIds()));
+            item.setQuestion(draftItem.getQuestion());
+            item.setKnowledgeNote(draftItem.getKnowledgeNote());
+            item.setAnswer(draftItem.getAnswer());
+            item.setModuleTag(draftItem.getModuleTag());
+            item.setDifficulty(draftItem.getDifficulty() == null ? null : draftItem.getDifficulty().name());
+            item.setConflictTip(draftItem.getConflictTip());
+            item.setSourceChunkIdsJson(JSON.toJSONString(draftItem.getSourceChunkIds() == null
+                    ? List.of() : draftItem.getSourceChunkIds()));
             item.setSortOrder(sortOrder++);
             qaItemMapper.insert(item);
         }
@@ -253,8 +253,8 @@ public class AgentRepository implements IAgentRepository {
     private List<String> moduleTags(List<DraftItem> draftItems) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (DraftItem draftItem : draftItems) {
-            if (draftItem.moduleTag() != null && !draftItem.moduleTag().isBlank()) {
-                tags.add(draftItem.moduleTag());
+            if (draftItem.getModuleTag() != null && !draftItem.getModuleTag().isBlank()) {
+                tags.add(draftItem.getModuleTag());
             }
         }
         return new ArrayList<>(tags);
