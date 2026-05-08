@@ -4,7 +4,7 @@ import com.dasi.qa.agent.domain.agent.shared.enumeration.Difficulty;
 import com.dasi.qa.agent.domain.agent.shared.DraftItem;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
-import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -100,8 +100,8 @@ class ValidationCoordinatorTest {
         assertEquals(0, outcome.rejectedCount());
     }
 
-    private CreateTaskRequest request() {
-        CreateTaskRequest request = new CreateTaskRequest();
+    private CreateQaSetRequest request() {
+        CreateQaSetRequest request = new CreateQaSetRequest();
         request.setAllowGeneralKnowledge(false);
         request.setUserPrompt("只基于资料");
         return request;

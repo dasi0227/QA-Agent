@@ -8,7 +8,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.DecideAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.DraftAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlanAgent;
-import com.dasi.qa.agent.domain.agent.service.generate.subagent.SearchAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SummarizeAgent;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
@@ -23,12 +22,6 @@ import java.util.List;
  */
 @Component
 public class GenerateAgentFactory {
-
-    private final SearchAgent searchAgent;
-
-    public GenerateAgentFactory(SearchAgent searchAgent) {
-        this.searchAgent = searchAgent;
-    }
 
     public UntypedAgent build(GenerateContext context) {
         DecideAgent decideAgent = decideAgent(context);
@@ -48,7 +41,7 @@ public class GenerateAgentFactory {
                         AgenticServices.agentAction(scope -> decideStep.run(scope, decideAgent)),
                         decideGate,
                         AgenticServices.agentAction(scope -> context.getPlanStep().run(scope, planAgent)),
-                        AgenticServices.agentAction(scope -> context.getCreateStep().run(scope, draftAgent, searchAgent)),
+                        AgenticServices.agentAction(scope -> context.getDraftStep().run(scope, draftAgent)),
                         AgenticServices.agentAction(scope -> context.getValidateStep().run(scope, evaluateAgent, amendAgent)),
                         AgenticServices.agentAction(scope -> context.getSummarizeStep().run(scope, summarizeAgent))
                 )
@@ -105,7 +98,7 @@ public class GenerateAgentFactory {
                 .chatModel(context.getUserModel())
                 .chatMemoryProvider(context.getChatMemoryProvider())
                 .listener(context.getAgentListener());
-        addTools(builder, context.getCreateTools());
+        addTools(builder, context.getDraftTools());
         return builder.build();
     }
 
@@ -116,7 +109,7 @@ public class GenerateAgentFactory {
                 .chatModel(context.getUserModel())
                 .chatMemoryProvider(context.getChatMemoryProvider())
                 .listener(context.getAgentListener());
-        addTools(builder, context.getCreateTools());
+        addTools(builder, context.getDraftTools());
         return builder.build();
     }
 

@@ -7,7 +7,7 @@ import com.dasi.qa.agent.domain.agent.shared.ValidationResult;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.VerdictType;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
-import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
@@ -26,7 +26,7 @@ public class ValidationCoordinator {
         this.batchSize = batchSize;
     }
 
-    public ValidationOutcome run(String taskId, CreateTaskRequest request, EvaluateAgent evaluateAgent,
+    public ValidationOutcome run(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
                                  AmendAgent amendAgent, List<DraftItem> drafts, List<SearchResult> evidence) {
         List<DraftItem> passedDrafts = new ArrayList<>();
         int rejectedCount = 0;
@@ -47,7 +47,7 @@ public class ValidationCoordinator {
         return new ValidationOutcome(passedDrafts, rejectedCount);
     }
 
-    private ValidationOutcome runValidationLoop(String taskId, CreateTaskRequest request, EvaluateAgent evaluateAgent,
+    private ValidationOutcome runValidationLoop(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
                                                 AmendAgent amendAgent, List<RevisionItem> revisionItems,
                                                 List<SearchResult> evidence) {
         AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(
@@ -97,7 +97,7 @@ public class ValidationCoordinator {
         return new ValidationOutcome(passed, rejected);
     }
 
-    private List<DraftItem> amendRevisions(String taskId, AmendAgent amendAgent, CreateTaskRequest request,
+    private List<DraftItem> amendRevisions(String taskId, AmendAgent amendAgent, CreateQaSetRequest request,
                                            List<RevisionItem> revisionItems, List<SearchResult> evidence) {
         if (revisionItems.isEmpty()) {
             return List.of();
@@ -190,7 +190,7 @@ public class ValidationCoordinator {
                 .toList());
     }
 
-    private String generationNote(CreateTaskRequest request) {
+    private String generationNote(CreateQaSetRequest request) {
         String note = request.getUserPrompt() == null ? "" : request.getUserPrompt();
         if (!Boolean.TRUE.equals(request.getAllowGeneralKnowledge())) {
             note += "\n禁止使用资料外事实；证据不足时写 conflictTip。";

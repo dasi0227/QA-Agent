@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateTaskRequest {
+public class CreateQaSetRequest {
 
     private String title;
 

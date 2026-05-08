@@ -4,7 +4,7 @@ import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
 import com.dasi.qa.agent.domain.qa.service.crud.IQaCrudService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
@@ -67,7 +67,7 @@ public class QaController {
     }
 
     @PostMapping("/set/create")
-    public SseEmitter qaSetCreate(@RequestBody @Valid CreateTaskRequest request) {
+    public SseEmitter qaSetCreate(@RequestBody @Valid CreateQaSetRequest request) {
         SseEmitter emitter = new SseEmitter(120000L);
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);

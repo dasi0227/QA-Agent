@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.service.generate.subagent;
+package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.dasi.qa.agent.domain.agent.shared.PlanItem;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.AgentType;
@@ -12,11 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class SearchAgent {
+public class RagEvidenceProvider {
 
     private final ISearchService searchService;
 
-    public SearchAgent(ISearchService searchService) {
+    public RagEvidenceProvider(ISearchService searchService) {
         this.searchService = searchService;
     }
 

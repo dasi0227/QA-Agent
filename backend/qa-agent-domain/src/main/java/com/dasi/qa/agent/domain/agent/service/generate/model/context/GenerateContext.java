@@ -6,7 +6,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.DecideAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.DraftAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlanAgent;
-import com.dasi.qa.agent.domain.agent.service.generate.subagent.SearchAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SummarizeAgent;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -26,12 +25,12 @@ public class GenerateContext {
     private final ChatModel userModel;
     private final ChatMemoryProvider chatMemoryProvider;
     private final AgentListener agentListener;
-    private final List<Object> createTools;
+    private final List<Object> draftTools;
     private final List<Object> validateTools;
     private final DecideStep decideStep;
     private final AbortStep abortStep;
     private final PlanStep planStep;
-    private final CreateStep createStep;
+    private final DraftStep draftStep;
     private final ValidateStep validateStep;
     private final SummarizeStep summarizeStep;
 
@@ -51,8 +50,8 @@ public class GenerateContext {
     }
 
     @FunctionalInterface
-    public interface CreateStep {
-        void run(AgenticScope scope, DraftAgent draftAgent, SearchAgent searchAgent);
+    public interface DraftStep {
+        void run(AgenticScope scope, DraftAgent draftAgent);
     }
 
     @FunctionalInterface

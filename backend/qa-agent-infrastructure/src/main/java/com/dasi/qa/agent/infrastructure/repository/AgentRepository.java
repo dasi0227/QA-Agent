@@ -23,7 +23,7 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetDocumentRef
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
-import com.dasi.qa.agent.types.dto.request.qa.CreateTaskRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -66,7 +66,7 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void createGenerationTask(String taskId, String userId, CreateTaskRequest request) {
+    public void createGenerationTask(String taskId, String userId, CreateQaSetRequest request) {
         LocalDateTime now = LocalDateTime.now();
         QaGenerationTaskEntity entity = new QaGenerationTaskEntity();
         entity.setId(taskId);
@@ -193,7 +193,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
-    public String saveGeneratedQaSet(String taskId, String userId, CreateTaskRequest request,
+    public String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
                                      PlanResult planResult, List<DraftItem> draftItems) {
         String qaSetId = UUID.randomUUID().toString();
         QaSetEntity qaSet = new QaSetEntity();
@@ -260,11 +260,11 @@ public class AgentRepository implements IAgentRepository {
         return new ArrayList<>(tags);
     }
 
-    private String title(CreateTaskRequest request) {
+    private String title(CreateQaSetRequest request) {
         return request.getTitle() == null || request.getTitle().isBlank() ? "生成问答集" : request.getTitle();
     }
 
-    private int questionCount(CreateTaskRequest request) {
+    private int questionCount(CreateQaSetRequest request) {
         return request.getRequestedQuestionCount() == null ? 0 : request.getRequestedQuestionCount();
     }
 
