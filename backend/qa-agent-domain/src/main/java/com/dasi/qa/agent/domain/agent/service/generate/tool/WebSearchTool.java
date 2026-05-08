@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate.tool;
 
 import com.alibaba.fastjson2.JSON;
-import com.dasi.qa.agent.domain.agent.shared.InterviewInsights;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.InterviewInsights;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.data.message.SystemMessage;

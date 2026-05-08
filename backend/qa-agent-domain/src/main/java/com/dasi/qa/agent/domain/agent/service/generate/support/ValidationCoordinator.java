@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.alibaba.fastjson2.JSON;
-import com.dasi.qa.agent.domain.agent.shared.DraftItem;
-import com.dasi.qa.agent.domain.agent.shared.RevisionItem;
-import com.dasi.qa.agent.domain.agent.shared.ValidationResult;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.RevisionItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.ValidationResult;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.VerdictType;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
@@ -52,31 +52,30 @@ public class ValidationCoordinator {
                                                 List<SearchResult> evidence) {
         AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(
                 revisionItems.stream().map(RevisionItem::draftItem).toList());
-        AtomicReference<List<ValidationResult>> currentResults = new AtomicReference<>(
-                revisionItems.stream()
-                        .map(item -> new ValidationResult(item.itemIndex(), VerdictType.REVISE,
-                                item.reason(), item.revisionSuggestion()))
-                        .toList());
+        AtomicReference<List<ValidationResult>> currentResults = new AtomicReference<>(List.of());
         AtomicReference<Boolean> amendmentFailed = new AtomicReference<>(false);
 
         UntypedAgent validationLoop = AgenticServices.loopBuilder()
                 .name("VALIDATION_LOOP")
-                .description("Evaluator 返回 REVISE 时交给 Amender 修订后再次审校")
+                .description("按 evaluate 结果决定是否执行 amend")
                 .maxIterations(2)
-                .testExitAtLoopEnd(true)
-                .exitCondition((loopScope, iteration) -> iteration >= 1 || noRevise(currentResults.get()))
+                .exitCondition((loopScope, iteration) -> iteration >= 2 || noRevise(currentResults.get()))
                 .subAgents(
+                        AgenticServices.agentAction(loopScope -> currentResults.set(evaluateOnce(
+                                taskId, evaluateAgent, currentItems.get(), evidence))),
                         AgenticServices.agentAction(loopScope -> {
+                            if (noRevise(currentResults.get())) {
+                                return;
+                            }
+                            List<RevisionItem> currentRevisionItems = revisionItems(currentItems.get(), currentResults.get());
                             List<DraftItem> amended = amendRevisions(taskId, amendAgent, request,
-                                    revisionItems, evidence);
-                            if (amended.size() != revisionItems.size()) {
+                                    currentRevisionItems, evidence);
+                            if (amended.size() != currentRevisionItems.size()) {
                                 amendmentFailed.set(true);
                                 throw new IllegalStateException("AmendAgent output size mismatch");
                             }
                             currentItems.set(amended);
-                        }),
-                        AgenticServices.agentAction(loopScope -> currentResults.set(evaluateOnce(
-                                taskId, evaluateAgent, currentItems.get(), evidence)))
+                        })
                 )
                 .output(loopScope -> currentItems.get())
                 .build();

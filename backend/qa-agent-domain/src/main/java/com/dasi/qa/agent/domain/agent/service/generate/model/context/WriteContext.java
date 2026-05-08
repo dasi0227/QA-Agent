@@ -13,7 +13,7 @@ import java.util.concurrent.Executor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DraftContext {
+public class WriteContext {
 
     private String taskId;
     private String userId;

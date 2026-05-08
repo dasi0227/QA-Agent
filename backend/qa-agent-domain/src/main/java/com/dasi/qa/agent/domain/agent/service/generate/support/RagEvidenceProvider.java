@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.dasi.qa.agent.domain.agent.shared.PlanItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanItem;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.AgentType;
 import com.dasi.qa.agent.domain.document.model.enumeration.SearchStrategy;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;

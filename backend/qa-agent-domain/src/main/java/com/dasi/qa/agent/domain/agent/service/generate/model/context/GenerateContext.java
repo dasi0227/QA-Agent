@@ -25,12 +25,12 @@ public class GenerateContext {
     private final ChatModel userModel;
     private final ChatMemoryProvider chatMemoryProvider;
     private final AgentListener agentListener;
-    private final List<Object> draftTools;
+    private final List<Object> writeTools;
     private final List<Object> validateTools;
     private final DecideStep decideStep;
     private final AbortStep abortStep;
     private final PlanStep planStep;
-    private final DraftStep draftStep;
+    private final WriteStep writeStep;
     private final ValidateStep validateStep;
     private final SummarizeStep summarizeStep;
 
@@ -50,7 +50,7 @@ public class GenerateContext {
     }
 
     @FunctionalInterface
-    public interface DraftStep {
+    public interface WriteStep {
         void run(AgenticScope scope, DraftAgent draftAgent);
     }
 

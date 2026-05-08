@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.shared;
+package com.dasi.qa.agent.domain.agent.service.generate.model.result;
 
 import dev.langchain4j.model.output.structured.Description;
 

@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
 import com.alibaba.fastjson2.JSON;
-import com.dasi.qa.agent.domain.agent.shared.*;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.Difficulty;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
@@ -106,7 +106,7 @@ public class GenerateAgent implements IGenerateAgent {
             // 准备可调用工具
             RagSearchTool ragSearchTool = new RagSearchTool(searchService, userId, request.getDocumentIds());
             WebSearchTool webSearchTool = new WebSearchTool(webSearchModel);
-            List<Object> draftTools = Boolean.TRUE.equals(request.getAllowWebSearch())
+            List<Object> writeTools = Boolean.TRUE.equals(request.getAllowWebSearch())
                     ? List.of(ragSearchTool, webSearchTool)
                     : List.of(ragSearchTool);
             List<Object> validateTools = List.of(ragSearchTool);
@@ -144,7 +144,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .publisher(eventPublisher)
                     .build();
 
-            DraftContext draftContext = DraftContext.builder()
+            WriteContext writeContext = WriteContext.builder()
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
@@ -157,17 +157,17 @@ public class GenerateAgent implements IGenerateAgent {
                     .userModel(userModel)
                     .chatMemoryProvider(chatMemoryProvider)
                     .agentListener(agentListener)
-                    .draftTools(draftTools)
+                    .writeTools(writeTools)
                     .validateTools(validateTools)
                     .decideStep((scope, decideAgent) -> runDecide(scope, decideAgent, decideContext))
                     .abortStep((scope, abortAgent) -> runAbort(scope, abortAgent, abortContext))
                     .planStep((scope, planAgent) -> runPlan(scope, planAgent, planContext))
-                    .draftStep((scope, draftAgent) -> runDraft(scope, draftAgent, draftContext))
+                    .writeStep((scope, draftAgent) -> runWrite(scope, draftAgent, writeContext))
                     .validateStep((scope, evaluateAgent, amendAgent) -> runValidate(scope, evaluateAgent, amendAgent, validateContext))
                     .summarizeStep((scope, summarizeAgent) -> runSummarize(scope, summarizeAgent, summarizeContext))
                     .build();
 
-            // 构建任务 DAG（Decide -> Plan -> Draft1 [Draft2...] -> Validate（Evaluate -> Amend） -> Summarize）
+            // 构建任务 DAG（Decide -> Route -> Create(Plan -> Write -> Validate -> Summarize)）
             UntypedAgent generateAgent = generateAgentFactory.build(generateContext);
 
             // 初始化 Scope 数据，供各阶段读取
@@ -234,7 +234,7 @@ public class GenerateAgent implements IGenerateAgent {
         scope.writeState("planResult", normalizePlan(planResult, context.getRequest()));
     }
 
-    private void runDraft(AgenticScope scope, DraftAgent draftAgent, DraftContext context) {
+    private void runWrite(AgenticScope scope, DraftAgent draftAgent, WriteContext context) {
         agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.CREATING);
         PlanResult planResult = readPlan(scope, context.getRequest());
         List<DraftItem> allDrafts = Collections.synchronizedList(new ArrayList<>());
@@ -257,26 +257,26 @@ public class GenerateAgent implements IGenerateAgent {
                             .build()));
                 } catch (Exception exception) {
                     failedModules.add(planItem.moduleTag() + ": " + safe(exception.getMessage()));
-                    log.warn("Creator module failed: taskId={}, module={}, message={}",
+                    log.warn("Write module failed: taskId={}, module={}, message={}",
                             context.getTaskId(), planItem.moduleTag(), exception.getMessage());
                 }
             }));
         }
 
-        UntypedAgent creator = AgenticServices.parallelBuilder()
-                .name("CREATOR")
-                .description("按模块并发执行 RagEvidenceProvider 到 DraftAgent")
+        UntypedAgent writer = AgenticServices.parallelBuilder()
+                .name("WRITE")
+                .description("按模块并发执行 draft 分支")
                 .executor(context.getExecutor())
                 .subAgents(moduleAgents)
                 .output(moduleScope -> allDrafts)
                 .build();
-        creator.invoke(Map.of("taskId", context.getTaskId()));
+        writer.invoke(Map.of("taskId", context.getTaskId()));
 
         List<DraftItem> deduplicated = deduplicate(allDrafts);
         scope.writeState("allDrafts", deduplicated);
         scope.writeState("allEvidence", deduplicateEvidence(allEvidence));
         if (!failedModules.isEmpty()) {
-            scope.writeState("creatorFailedModules", List.copyOf(failedModules));
+            scope.writeState("writeFailedModules", List.copyOf(failedModules));
         }
     }
 
@@ -347,7 +347,7 @@ public class GenerateAgent implements IGenerateAgent {
         PlanResult planResult = readPlan(scope, context.getRequest());
         List<DraftItem> passedDrafts = readPassedDrafts(scope);
         int rejectedCount = readInt(scope, "rejectedCount");
-        List<String> failedModules = readStrings(scope, "creatorFailedModules");
+        List<String> failedModules = readStrings(scope, "writeFailedModules");
         String qaSetId = agentRepository.saveGeneratedQaSet(
                 context.getTaskId(),
                 context.getUserId(),
@@ -654,7 +654,7 @@ public class GenerateAgent implements IGenerateAgent {
                                           int rejectedCount, List<String> failedModules, int totalTokens) {
         String message = "问答集已生成，共 " + draftItems.size() + " 题（计划 " + plannedCount(planResult, request)
                 + " 题，未通过或丢弃 " + rejectedCount + " 题）。模块分布：" + moduleCounts(draftItems)
-                + "。难度分布：" + difficultyCounts(draftItems) + "。Creator 失败模块 "
+                + "。难度分布：" + difficultyCounts(draftItems) + "。Write 失败模块 "
                 + (failedModules == null ? 0 : failedModules.size()) + " 个，累计消耗 "
                 + totalTokens + " tokens。";
         return message;

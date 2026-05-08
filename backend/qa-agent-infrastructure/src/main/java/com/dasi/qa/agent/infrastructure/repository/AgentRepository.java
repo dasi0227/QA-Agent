@@ -2,8 +2,8 @@ package com.dasi.qa.agent.infrastructure.repository;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.dasi.qa.agent.domain.agent.shared.DraftItem;
-import com.dasi.qa.agent.domain.agent.shared.PlanResult;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
