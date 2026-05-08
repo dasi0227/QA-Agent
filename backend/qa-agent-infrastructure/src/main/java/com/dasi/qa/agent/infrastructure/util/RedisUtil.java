@@ -4,11 +4,11 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.util.IRedisUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
-@Component("redisKeyUtil")
+@Service
 public class RedisUtil implements IRedisUtil {
 
     private final StringRedisTemplate stringRedisTemplate;

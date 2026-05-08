@@ -5,14 +5,14 @@ import com.dasi.qa.agent.infrastructure.properties.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
-@Component
+@Service
 public class JwtUtil implements IJwtUtil {
 
     private static final String TOKEN_TYPE = "tokenType";

@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserLlmModelVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskEntity;
@@ -74,8 +74,8 @@ public class AgentRepository implements IAgentRepository {
         entity.setTitle(title(request));
         entity.setNote(request.getUserPrompt());
         entity.setDocumentIdsJson(JSON.toJSONString(request.getDocumentIds()));
-        entity.setStatus(GenerationStatus.PENDING.name());
-        entity.setStage(GenerationStage.PENDING.name());
+        entity.setStatus(GenerateStatus.PENDING.name());
+        entity.setStage(GeneratePhase.INIT.getGenerateStage());
         entity.setAllowGeneralKnowledge(Boolean.TRUE.equals(request.getAllowGeneralKnowledge()));
         entity.setAllowWebSearch(Boolean.TRUE.equals(request.getAllowWebSearch()));
         entity.setRequestedQuestionCount(questionCount(request));
@@ -85,10 +85,10 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void updateTaskStage(String taskId, GenerationStatus status, GenerationStage stage) {
+    public void updateTaskStatus(String taskId, GenerateStatus status, GeneratePhase phase) {
         QaGenerationTaskEntity entity = requireTask(taskId);
         entity.setStatus(status.name());
-        entity.setStage(stage.name());
+        entity.setStage(phase.getGenerateStage());
         if (entity.getStartedAt() == null) {
             entity.setStartedAt(LocalDateTime.now());
         }
@@ -99,8 +99,8 @@ public class AgentRepository implements IAgentRepository {
     public void markTaskCompleted(String taskId, String qaSetId) {
         QaGenerationTaskEntity entity = requireTask(taskId);
         entity.setQaSetId(qaSetId);
-        entity.setStatus(GenerationStatus.COMPLETED.name());
-        entity.setStage(GenerationStage.COMPLETED.name());
+        entity.setStatus(GenerateStatus.SOLVED.name());
+        entity.setStage(GeneratePhase.COMPLETE.getGenerateStage());
         entity.setCompletedAt(LocalDateTime.now());
         taskMapper.updateById(entity);
     }
@@ -108,8 +108,8 @@ public class AgentRepository implements IAgentRepository {
     @Override
     public void markTaskFailed(String taskId, ErrorType errorType, String errorMessage) {
         QaGenerationTaskEntity entity = requireTask(taskId);
-        entity.setStatus(GenerationStatus.FAILED.name());
-        entity.setStage(GenerationStage.FAILED.name());
+        entity.setStatus(GenerateStatus.UNSOLVED.name());
+        entity.setStage(GeneratePhase.FAIL.getGenerateStage());
         entity.setErrorCode(errorType.name());
         entity.setErrorMessage(errorMessage);
         entity.setCompletedAt(LocalDateTime.now());
@@ -117,11 +117,11 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void appendTaskMessage(String taskId, GenerationStage stage, String message) {
+    public void appendTaskMessage(String taskId, GeneratePhase phase, String message) {
         QaGenerationTaskMessageEntity entity = new QaGenerationTaskMessageEntity();
         entity.setId(UUID.randomUUID().toString());
         entity.setTaskId(taskId);
-        entity.setStage(stage.name());
+        entity.setStage(phase.getGenerateStage());
         entity.setMessage(message);
         entity.setCreatedAt(LocalDateTime.now());
         taskMessageMapper.insert(entity);

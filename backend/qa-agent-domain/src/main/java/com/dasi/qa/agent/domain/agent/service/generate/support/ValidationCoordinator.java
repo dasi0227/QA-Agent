@@ -132,7 +132,7 @@ public class ValidationCoordinator {
         }
         for (ValidationResult result : results) {
             if (result.getItemIndex() >= 0 && result.getItemIndex() < drafts.size()
-                    && result.getVerdictType() == VerdictType.REVISE) {
+                    && result.getVerdictType() == VerdictType.AMEND) {
                 items.add(new RevisionItem(result.getItemIndex(), drafts.get(result.getItemIndex()),
                         result.getReason(), result.getRevisionSuggestion()));
             }
@@ -162,7 +162,7 @@ public class ValidationCoordinator {
     }
 
     private boolean noRevise(List<ValidationResult> results) {
-        return results == null || results.stream().noneMatch(result -> result.getVerdictType() == VerdictType.REVISE);
+        return results == null || results.stream().noneMatch(result -> result.getVerdictType() == VerdictType.AMEND);
     }
 
     private int countByVerdict(List<ValidationResult> results, VerdictType verdictType) {

@@ -16,6 +16,6 @@ public class SummarizeContext {
     private String taskId;
     private String userId;
     private CreateQaSetRequest request;
-    private EventPublisher publisher;
+    private EventPublisher eventPublisher;
 
 }

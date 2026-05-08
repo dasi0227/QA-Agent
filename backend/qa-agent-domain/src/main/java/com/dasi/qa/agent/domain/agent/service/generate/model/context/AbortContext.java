@@ -15,5 +15,5 @@ public class AbortContext {
 
     private String taskId;
     private CreateQaSetRequest request;
-    private EventPublisher publisher;
+    private EventPublisher eventPublisher;
 }

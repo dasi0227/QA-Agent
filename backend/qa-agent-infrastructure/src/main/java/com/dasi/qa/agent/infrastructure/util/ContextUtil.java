@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.infrastructure.util;
 
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class ContextUtil implements IContextUtil {
 
     private static final ThreadLocal<String> USER_ID_HOLDER = new ThreadLocal<>();

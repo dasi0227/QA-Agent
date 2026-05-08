@@ -15,12 +15,12 @@ public class SseEventHandler implements Consumer<SseEvent> {
     }
 
     @Override
-    public void accept(SseEvent event) {
+    public void accept(SseEvent sseEvent) {
         try {
             emitter.send(SseEmitter.event()
-                    .name(event.getStage().name())
-                    .data(event));
-            if (event.getStatus().isTerminal()) {
+                    .name(sseEvent.getPhase().getGenerateStage())
+                    .data(sseEvent));
+            if (sseEvent.getStatus().isTerminated()) {
                 emitter.complete();
             }
         } catch (IOException exception) {

@@ -9,11 +9,12 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJobEntity;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Component
+@Service
 @Slf4j
 public class MqUtil implements IMqUtil {
 

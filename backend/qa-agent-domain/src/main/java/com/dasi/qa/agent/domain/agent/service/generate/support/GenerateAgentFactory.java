@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DecideResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.GenerateContext;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AbortAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.DecideAgent;
@@ -94,8 +95,8 @@ public class GenerateAgentFactory {
 
         // 4. 组装并返回顶层 DAG
         return AgenticServices.sequenceBuilder()
-                .name("GenerateAgent")
-                .description("先执行请求判定，再根据路由结果进入终止分支或完整生成链路。")
+                .name(GeneratePhase.GENERATE.getAgentName())
+                .description(GeneratePhase.GENERATE.getAgentDesc())
                 .subAgents(
                         decideAction,
                         routeAgent
@@ -106,8 +107,8 @@ public class GenerateAgentFactory {
 
     private UntypedAgent makeRouteAgent(GenerateContext context, AgenticServices.AgenticScopeAction abortAction, UntypedAgent createAgent) {
         return AgenticServices.conditionalBuilder()
-                .name("RouteAgent")
-                .description("读取判定结果并路由到终止分支或继续执行生成分支。")
+                .name(GeneratePhase.ROUTE.getAgentName())
+                .description(GeneratePhase.ROUTE.getAgentDesc())
                 .subAgents(scope -> DecideResult.fromScope(scope).isValid(), createAgent)
                 .subAgents(scope -> !DecideResult.fromScope(scope).isValid(), abortAction)
                 .listener(context.getAgentListener())
@@ -119,8 +120,8 @@ public class GenerateAgentFactory {
                                          AgenticServices.AgenticScopeAction validateAction,
                                          AgenticServices.AgenticScopeAction summarizeAction) {
         return AgenticServices.sequenceBuilder()
-                .name("CreateAgent")
-                .description("顺序执行规划、起草、校验修订与总结，生成最终可落库问答集。")
+                .name(GeneratePhase.CREATE.getAgentName())
+                .description(GeneratePhase.CREATE.getAgentDesc())
                 .subAgents(
                         planAction,
                         writeAction,
@@ -133,8 +134,8 @@ public class GenerateAgentFactory {
 
     public DecideAgent makeDecideAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener) {
         return AgenticServices.agentBuilder(DecideAgent.class)
-                .name("DecideAgent")
-                .description("识别用户请求是否满足问答集生成场景并给出判定结果。")
+                .name(GeneratePhase.DECIDE.getAgentName())
+                .description(GeneratePhase.DECIDE.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .listener(agentListener)
@@ -143,8 +144,8 @@ public class GenerateAgentFactory {
 
     public AbortAgent makeAbortAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener) {
         return AgenticServices.agentBuilder(AbortAgent.class)
-                .name("AbortAgent")
-                .description("根据拒绝原因生成终止消息并结束当前生成任务。")
+                .name(GeneratePhase.ABORT.getAgentName())
+                .description(GeneratePhase.ABORT.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .listener(agentListener)
@@ -153,8 +154,8 @@ public class GenerateAgentFactory {
 
     public PlanAgent makePlanAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener, List<Object> writeTools) {
         AgentBuilder<PlanAgent, ?> builder = AgenticServices.agentBuilder(PlanAgent.class)
-                .name("PlanAgent")
-                .description("分析资料摘要并输出模块化题量与难度分配计划。")
+                .name(GeneratePhase.PLAN.getAgentName())
+                .description(GeneratePhase.PLAN.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .listener(agentListener);
@@ -164,8 +165,8 @@ public class GenerateAgentFactory {
 
     public DraftAgent makeDraftAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener, List<Object> writeTools) {
         AgentBuilder<DraftAgent, ?> builder = AgenticServices.agentBuilder(DraftAgent.class)
-                .name("DraftAgent")
-                .description("基于检索证据按模块起草结构化问答题目。")
+                .name(GeneratePhase.DRAFT.getAgentName())
+                .description(GeneratePhase.DRAFT.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .listener(agentListener);
@@ -175,8 +176,8 @@ public class GenerateAgentFactory {
 
     public EvaluateAgent makeEvaluateAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener) {
         return AgenticServices.agentBuilder(EvaluateAgent.class)
-                .name("EvaluateAgent")
-                .description("审校题目准确性、完整性与证据边界并输出判定。")
+                .name(GeneratePhase.EVALUATE.getAgentName())
+                .description(GeneratePhase.EVALUATE.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .listener(agentListener)
@@ -185,8 +186,8 @@ public class GenerateAgentFactory {
 
     public AmendAgent makeAmendAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener, List<Object> validateTools) {
         AgentBuilder<AmendAgent, ?> builder = AgenticServices.agentBuilder(AmendAgent.class)
-                .name("AmendAgent")
-                .description("按审校建议进行最小必要修订并保持题目结构稳定。")
+                .name(GeneratePhase.AMEND.getAgentName())
+                .description(GeneratePhase.AMEND.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .listener(agentListener);
@@ -196,8 +197,8 @@ public class GenerateAgentFactory {
 
     public SummarizeAgent makeSummarizeAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener) {
         return AgenticServices.agentBuilder(SummarizeAgent.class)
-                .name("SummarizeAgent")
-                .description("汇总生成结果与统计信息并输出最终完成说明。")
+                .name(GeneratePhase.SUMMARIZE.getAgentName())
+                .description(GeneratePhase.SUMMARIZE.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .listener(agentListener)

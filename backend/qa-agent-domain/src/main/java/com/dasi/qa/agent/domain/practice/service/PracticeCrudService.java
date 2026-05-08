@@ -31,7 +31,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_DETAIL_KEY, @contextUtil.getUserId(), #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public PracticeSessionResponse detailPracticeSession(String id) {
         return repository.detailPracticeSession(id, currentUserId());
@@ -40,7 +40,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_QUERY_KEY, @contextUtil.getUserId(), #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request) {
         String userId = currentUserId();
@@ -73,7 +73,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_DETAIL_KEY, @contextUtil.getUserId(), #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public PracticeSessionItemResponse detailPracticeSessionItem(String id) {
         return repository.detailPracticeSessionItem(id, currentUserId());
@@ -82,7 +82,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_QUERY_KEY, @contextUtil.getUserId(), #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request) {
         String userId = currentUserId();

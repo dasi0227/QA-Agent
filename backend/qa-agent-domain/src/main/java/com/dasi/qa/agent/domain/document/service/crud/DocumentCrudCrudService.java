@@ -35,7 +35,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_DETAIL_KEY, @contextUtil.getUserId(), #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public SourceDocumentResponse detailSourceDocument(String id) {
         return repository.detailSourceDocument(id, currentUserId());
@@ -44,7 +44,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_QUERY_KEY, @contextUtil.getUserId(), #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request) {
         String userId = currentUserId();
@@ -78,7 +78,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_DETAIL_KEY, @contextUtil.getUserId(), #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public DocumentChunkResponse detailDocumentChunk(String id) {
         return repository.detailDocumentChunk(id, currentUserId());
@@ -87,7 +87,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_QUERY_KEY, @contextUtil.getUserId(), #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request) {
         String userId = currentUserId();

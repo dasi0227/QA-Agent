@@ -3,9 +3,8 @@ package com.dasi.qa.agent.domain.agent.service.generate;
 import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
-import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateAbortedException;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
@@ -17,6 +16,7 @@ import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.shared.sse.EventPublisher;
 import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
+import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import dev.langchain4j.agentic.AgenticServices;
@@ -41,6 +41,7 @@ public class GenerateAgent implements IGenerateAgent {
     private static final int DEFAULT_QUESTION_COUNT = 10;
     private static final int MAX_MODULE_QUESTIONS_PER_BATCH = 10;
 
+    private final IPromptUtil promptUtil;
     private final IAgentRepository agentRepository;
     private final GenerateAgentFactory generateAgentFactory;
     private final ISearchService searchService;
@@ -51,7 +52,8 @@ public class GenerateAgent implements IGenerateAgent {
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
-    public GenerateAgent(IAgentRepository agentRepository,
+    public GenerateAgent(IPromptUtil promptUtil,
+                         IAgentRepository agentRepository,
                          UserLlmModelProvider userLlmModelProvider,
                          GenerateAgentFactory generateAgentFactory,
                          ISearchService searchService,
@@ -60,6 +62,7 @@ public class GenerateAgent implements IGenerateAgent {
                          @Qualifier("webSearchModel") ChatModel webSearchModel,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
+        this.promptUtil = promptUtil;
         this.agentRepository = agentRepository;
         this.userLlmModelProvider = userLlmModelProvider;
         this.generateAgentFactory = generateAgentFactory;
@@ -97,7 +100,7 @@ public class GenerateAgent implements IGenerateAgent {
         EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, sseEventHandler, totalTokens);
 
         // 发送任务创建事件
-        eventPublisher.publishEvent(GenerationStage.PENDING, GenerationStatus.PROCESSING, "生成任务已创建", 0);
+        eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建", 0);
 
         try {
             // 读取并构建用户专属模型
@@ -105,14 +108,14 @@ public class GenerateAgent implements IGenerateAgent {
 
             // 准备可调用工具
             RagSearchTool ragSearchTool = new RagSearchTool(searchService, userId, request.getDocumentIds());
-            WebSearchTool webSearchTool = new WebSearchTool(webSearchModel);
+            WebSearchTool webSearchTool = new WebSearchTool(webSearchModel, promptUtil);
             List<Object> writeTools = Boolean.TRUE.equals(request.getAllowWebSearch())
                     ? List.of(ragSearchTool, webSearchTool)
                     : List.of(ragSearchTool);
             List<Object> validateTools = List.of(ragSearchTool);
 
             // 创建链路监听器，负责汇总阶段输出与 token 信息
-            GenerateAgentListener agentListener = new GenerateAgentListener(taskId, eventPublisher, totalTokens, supervisorChatModel);
+            GenerateAgentListener agentListener = new GenerateAgentListener(taskId, promptUtil, eventPublisher, totalTokens, supervisorChatModel);
 
             // 组装各阶段执行上下文
             PlanContext planContext = PlanContext.builder()
@@ -134,14 +137,14 @@ public class GenerateAgent implements IGenerateAgent {
             AbortContext abortContext = AbortContext.builder()
                     .taskId(taskId)
                     .request(request)
-                    .publisher(eventPublisher)
+                    .eventPublisher(eventPublisher)
                     .build();
 
             SummarizeContext summarizeContext = SummarizeContext.builder()
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
-                    .publisher(eventPublisher)
+                    .eventPublisher(eventPublisher)
                     .build();
 
             WriteContext writeContext = WriteContext.builder()
@@ -179,9 +182,6 @@ public class GenerateAgent implements IGenerateAgent {
             // 启动 DAG 执行
             generateAgent.invoke(initialData);
         }
-        // 业务主动中止不再追加失败处理
-        catch (GenerateAbortedException ignored) {
-        }
         // 已知业务异常：按类型发布失败事件
         catch (GenerateException exception) {
             eventPublisher.publishFailure(exception.getErrorType(), exception.getMessage());
@@ -193,7 +193,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private void runDecide(AgenticScope scope, DecideAgent decideAgent, DecideContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.DECIDING);
+        agentRepository.updateTaskStatus(context.getTaskId(), GenerateStatus.PROCESSING, GeneratePhase.DECIDE);
         DecideResult decideResult = decideAgent.decide(context.getTaskId(), safe(context.getRequest().getUserPrompt()));
         scope.writeState("decideResult", decideResult);
     }
@@ -211,12 +211,11 @@ public class GenerateAgent implements IGenerateAgent {
         if (!hasText(message)) {
             message = reason;
         }
-        context.getPublisher().publishFailure(ErrorType.CONTENT_FILTERED, message);
-        throw new GenerateAbortedException(ErrorType.CONTENT_FILTERED, message);
+        context.getEventPublisher().publishFailure(ErrorType.CONTENT_FILTERED, message);
     }
 
     private void runPlan(AgenticScope scope, PlanAgent planAgent, PlanContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.PLANNING);
+        agentRepository.updateTaskStatus(context.getTaskId(), GenerateStatus.PROCESSING, GeneratePhase.PLAN);
         PlanResult planResult;
         // 读取用户所选资料，作为规划阶段输入上下文
         String documentsSummary = agentRepository.getDocumentsSummary(
@@ -235,7 +234,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private void runWrite(AgenticScope scope, DraftAgent draftAgent, WriteContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.CREATING);
+        agentRepository.updateTaskStatus(context.getTaskId(), GenerateStatus.PROCESSING, GeneratePhase.CREATE);
         PlanResult planResult = readPlan(scope, context.getRequest());
         List<DraftItem> allDrafts = Collections.synchronizedList(new ArrayList<>());
         List<SearchResult> allEvidence = Collections.synchronizedList(new ArrayList<>());
@@ -327,7 +326,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private void runValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.VALIDATING);
+        agentRepository.updateTaskStatus(context.getTaskId(), GenerateStatus.PROCESSING, GeneratePhase.VALIDATE);
         List<DraftItem> drafts = readDrafts(scope);
         List<SearchResult> evidence = readEvidence(scope);
         ValidationCoordinator.ValidationOutcome outcome = new ValidationCoordinator(MAX_MODULE_QUESTIONS_PER_BATCH)
@@ -343,7 +342,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private void runSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext context) {
-        agentRepository.updateTaskStage(context.getTaskId(), GenerationStatus.PROCESSING, GenerationStage.SUMMARIZING);
+        agentRepository.updateTaskStatus(context.getTaskId(), GenerateStatus.PROCESSING, GeneratePhase.SUMMARIZE);
         PlanResult planResult = readPlan(scope, context.getRequest());
         List<DraftItem> passedDrafts = readPassedDrafts(scope);
         int rejectedCount = readInt(scope, "rejectedCount");
@@ -368,20 +367,20 @@ public class GenerateAgent implements IGenerateAgent {
                     JSON.toJSONString(failedModules),
                     JSON.toJSONString(moduleCounts(passedDrafts)),
                     JSON.toJSONString(difficultyCounts(passedDrafts)),
-                    context.getPublisher().totalTokens()
+                    context.getEventPublisher().totalTokens()
             );
         } catch (Exception exception) {
             log.warn("SummarizeAgent failed, fallback summary used: message={}", exception.getMessage());
             summaryMessage = fallbackSummaryMessage(planResult, context.getRequest(), passedDrafts, rejectedCount,
-                    failedModules, context.getPublisher().totalTokens());
+                    failedModules, context.getEventPublisher().totalTokens());
         }
         if (!hasText(summaryMessage)) {
             summaryMessage = fallbackSummaryMessage(planResult, context.getRequest(), passedDrafts, rejectedCount,
-                    failedModules, context.getPublisher().totalTokens());
+                    failedModules, context.getEventPublisher().totalTokens());
         }
         agentRepository.markTaskCompleted(context.getTaskId(), qaSetId);
         scope.writeState("qaSetId", qaSetId);
-        context.getPublisher().publishEvent(GenerationStage.COMPLETED, GenerationStatus.COMPLETED, summaryMessage, 0);
+        context.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
     }
 
     private PlanResult normalizePlan(PlanResult planResult, CreateQaSetRequest request) {

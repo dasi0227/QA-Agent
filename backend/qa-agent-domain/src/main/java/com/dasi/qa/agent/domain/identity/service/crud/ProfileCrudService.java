@@ -35,7 +35,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_DETAIL_KEY, 'self', #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_DETAIL_KEY, 'self', #id)"
     )
     public UserAccountResponse detailUserAccount(String id) {
         return repository.detailUserAccount(id, id);
@@ -44,7 +44,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_QUERY_KEY, 'self', #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_QUERY_KEY, 'self', #request)"
     )
     public List<UserAccountResponse> queryUserAccount(UserAccountRequest request) {
         return repository.queryUserAccount(request, request.getId());
@@ -89,7 +89,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_DETAIL_KEY, @contextUtil.getUserId(), #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public UserProfileResponse detailUserProfile(String id) {
         return repository.detailUserProfile(currentUserId(), currentUserId());
@@ -98,7 +98,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_QUERY_KEY, @contextUtil.getUserId(), #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request) {
         String userId = currentUserId();

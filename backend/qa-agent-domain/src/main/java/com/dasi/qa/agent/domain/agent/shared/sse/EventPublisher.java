@@ -1,8 +1,8 @@
 package com.dasi.qa.agent.domain.agent.shared.sse;
 
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStage;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerationStatus;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,25 +27,25 @@ public class EventPublisher {
         this.totalTokens = totalTokens;
     }
 
-    public void publishEvent(GenerationStage stage, GenerationStatus status, String message, int currentTokens) {
-        SseEvent event = SseEvent.builder()
+    public void publishEvent(GeneratePhase phase, GenerateStatus status, String message, int currentTokens) {
+        SseEvent sseEvent = SseEvent.builder()
                 .taskId(taskId)
-                .stage(stage)
+                .phase(phase)
                 .status(status)
                 .message(message)
                 .timestamp(System.currentTimeMillis())
                 .currentTokens(currentTokens)
                 .totalTokens(totalTokens.get())
                 .build();
-        log.info("[task={}] [stage={}] {}", taskId, stage, message);
-        agentRepository.appendTaskMessage(taskId, stage, message);
-        eventSink.accept(event);
+        log.info("[task={}] [phase={}] {}", taskId, phase, message);
+        agentRepository.appendTaskMessage(taskId, phase, message);
+        eventSink.accept(sseEvent);
     }
 
     public void publishFailure(ErrorType errorType, String message) {
         String errorMessage = message == null || message.isBlank() ? errorType.name() : message;
         agentRepository.markTaskFailed(taskId, errorType, errorMessage);
-        publishEvent(GenerationStage.FAILED, GenerationStatus.FAILED, errorMessage, 0);
+        publishEvent(GeneratePhase.FAIL, GenerateStatus.UNSOLVED, errorMessage, 0);
     }
 
 

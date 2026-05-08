@@ -6,10 +6,11 @@ import com.dasi.qa.agent.infrastructure.properties.AliOssProperties;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 
-@Component
+@Service
 public class OssUtil implements IOssUtil {
 
     private final OSS ossClient;

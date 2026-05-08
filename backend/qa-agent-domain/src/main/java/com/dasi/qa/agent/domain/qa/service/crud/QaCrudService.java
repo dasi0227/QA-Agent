@@ -30,7 +30,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_SET_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_DETAIL_KEY, @contextUtil.getUserId(), #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public QaSetResponse detailQaSet(String id) {
         return repository.detailQaSet(id, currentUserId());
@@ -39,7 +39,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_SET_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_QUERY_KEY, @contextUtil.getUserId(), #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<QaSetResponse> queryQaSet(QaSetRequest request) {
         String userId = currentUserId();
@@ -62,7 +62,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_ITEM_CACHE,
-        key = "@redisKeyUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_DETAIL_KEY, @contextUtil.getUserId(), #id)"
+        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_DETAIL_KEY, @contextUtil.getUserId(), #id)"
     )
     public QaItemResponse detailQaItem(String id) {
         return repository.detailQaItem(id, currentUserId());
@@ -71,7 +71,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     @Cacheable(
         cacheNames = RedisConstant.QA_ITEM_CACHE,
-        key = "@redisKeyUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_QUERY_KEY, @contextUtil.getUserId(), #request)"
+        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_QUERY_KEY, @contextUtil.getUserId(), #request)"
     )
     public List<QaItemResponse> queryQaItem(QaItemRequest request) {
         String userId = currentUserId();

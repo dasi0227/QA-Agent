@@ -1,18 +1,17 @@
 package com.dasi.qa.agent.infrastructure.util;
 
-import lombok.extern.slf4j.Slf4j;
-
-import com.dasi.qa.agent.infrastructure.properties.MailProperties;
 import com.dasi.qa.agent.domain.util.IEmailUtil;
+import com.dasi.qa.agent.infrastructure.properties.MailProperties;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 
-@Component
+@Service
 @Slf4j
 public class EmailUtil implements IEmailUtil {
 
