@@ -137,7 +137,6 @@ public class GenerateAgent implements IGenerateAgent {
             ValidateContext validateContext = ValidateContext.builder()
                     .taskId(taskId)
                     .request(request)
-                    .allow(allow)
                     .build();
 
             DecideContext decideContext = DecideContext.builder()
@@ -167,7 +166,6 @@ public class GenerateAgent implements IGenerateAgent {
                     .ragEvidenceProvider(ragEvidenceProvider)
                     .userProfileJson(userProfileJson)
                     .answerStyle(answerStyle)
-                    .allow(allow)
                     .build();
 
             // 汇总 DAG 运行上下文，并传入各阶段执行回调
@@ -208,7 +206,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * DecideAgent 负责判断用户需求是否符合 Generate 工作流，防止恶意/无关/错误需求进入 DAG
+     * DecideAgent 负责判断用户需求是否符合问答集生成场景，输出 valid 判定结果写入 scope。
      */
     private void doDecide(AgenticScope scope, DecideAgent decideAgent, DecideContext decideContext) {
         // 1. 更新状态
@@ -224,7 +222,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * AbortAgent 负责生成自然语言文本让用户理解非法原因
+     * AbortAgent 负责根据判定原因生成用户可读的终止说明，并以 CANCELED 状态发布失败事件。
      */
     private void doAbort(AgenticScope scope, AbortAgent abortAgent, AbortContext abortContext) {
         // 1. 更新状态
@@ -248,7 +246,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * PlanAgent 负责根据用户资料指定执行计划
+     * PlanAgent 负责分析资料目录结构并规划模块化题集方案，输出 planResult 写入 scope。
      */
     private void doPlan(AgenticScope scope, PlanAgent planAgent, PlanContext planContext) {
         // 1. 更新状态
@@ -280,7 +278,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * WriteAgent 负责根据 PlanAgent 的计划区分模块编写 QA
+     * WriteAgent 负责按模块并行执行 RAG 检索与 DraftAgent 出题，输出 draftResult 写入 scope。
      */
     private void doWrite(AgenticScope scope, DraftAgent draftAgent, WriteContext writeContext) {
         // 1. 更新状态
@@ -301,6 +299,7 @@ public class GenerateAgent implements IGenerateAgent {
         // 3. 解析计划，根据模块划分
         List<DraftItem> draftItems = Collections.synchronizedList(new ArrayList<>());
         List<Object> moduleAgents = new ArrayList<>();
+        agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.DRAFT);
         for (PlanItem planItem : planItems) {
             // 4. 创建每个模块的 DraftAgent
             AgenticServices.AgenticScopeAction agentAction = AgenticServices.agentAction(moduleScope -> {
@@ -314,7 +313,6 @@ public class GenerateAgent implements IGenerateAgent {
                             .planItem(planItem)
                             .evidence(JSON.toJSONString(evidence))
                             .userProfileJson(writeContext.getUserProfileJson())
-                            .strictEvidence(!Boolean.TRUE.equals(writeContext.getAllow().getAllowGeneralKnowledge()))
                             .build();
                     // 4.3 汇总每个模块单独出的题
                     draftItems.addAll(doDraft(draftAgent, draftContext));
@@ -348,7 +346,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * DraftAgent 在指定模块编写 QA
+     * DraftAgent 负责按模块证据分批起草结构化问答题目。
      */
     private List<DraftItem> doDraft(DraftAgent draftAgent, DraftContext draftContext) {
         // 当前模块题数
@@ -380,22 +378,28 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * ValidateAgent 负责
+     * ValidateAgent 负责审校 draftResult 中的题目并修订可修复项，输出 validatedResult 写入 scope。
      */
     private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext context) {
+        // 更新状态
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.VALIDATE);
-        List<DraftItem> drafts = readDrafts(scope);
-        boolean strictEvidence = !Boolean.TRUE.equals(context.getAllow().getAllowGeneralKnowledge());
-        ValidationCoordinator.ValidationOutcome outcome = new ValidationCoordinator(MAX_MODULE_QUESTIONS_PER_BATCH)
-                .run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, drafts, strictEvidence);
 
-        List<DraftItem> finalDrafts = cleanDrafts(outcome.passedDrafts(), strictEvidence);
+        // 读取初次生成的问答集合
+        List<DraftItem> drafts = (List<DraftItem>) scope.readState("draftResult");
+
+        ValidationCoordinator.ValidationOutcome outcome = new ValidationCoordinator(MAX_MODULE_QUESTIONS_PER_BATCH)
+                .run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, drafts);
+
+        List<DraftItem> finalDrafts = cleanDrafts(outcome.passedDrafts());
         if (finalDrafts.isEmpty()) {
             throw new GenerateException(ErrorType.ALL_REJECTED, "Evaluator 未通过任何题目");
         }
         scope.writeState("validatedResult", finalDrafts);
     }
 
+    /**
+     * SummarizeAgent 负责落库最终问答集并生成完成说明，输出 qaSetId 写入 scope。
+     */
     private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext context) {
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.SUMMARIZE);
         PlanResult planResult = readPlan(scope, context.getRequest());
@@ -442,28 +446,23 @@ public class GenerateAgent implements IGenerateAgent {
         context.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
     }
 
-    private List<DraftItem> cleanDrafts(List<DraftItem> drafts, boolean strictEvidence) {
+    private List<DraftItem> cleanDrafts(List<DraftItem> drafts) {
         return drafts.stream()
                 .filter(item -> item != null)
                 .filter(item -> StringUtils.hasText(item.getQuestion()) && StringUtils.hasText(item.getAnswer()))
-                .map(item -> sanitizeDraftItem(item, strictEvidence))
+                .map(this::sanitizeDraftItem)
                 .toList();
     }
 
-    private DraftItem sanitizeDraftItem(DraftItem item, boolean strictEvidence) {
-        String conflictTip = safe(item.getConflictTip());
-        String evidence = safe(item.getEvidence());
-        if (strictEvidence && !StringUtils.hasText(evidence)) {
-            conflictTip = conflictTip.isBlank() ? "资料证据不足，答案仅保留为低置信度基础题" : conflictTip;
-        }
+    private DraftItem sanitizeDraftItem(DraftItem item) {
         return new DraftItem(
                 item.getQuestion().trim(),
                 item.getAnswer().trim(),
                 safe(item.getKnowledgeNote()).trim(),
                 StringUtils.hasText(item.getTag()) ? item.getTag().trim() : "General",
                 StringUtils.hasText(item.getDifficulty()) ? item.getDifficulty().trim() : "MEDIUM",
-                conflictTip,
-                evidence
+                safe(item.getConflictTip()),
+                safe(item.getEvidence())
         );
     }
 
