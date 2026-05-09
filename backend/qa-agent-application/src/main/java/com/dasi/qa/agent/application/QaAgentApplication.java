@@ -27,7 +27,7 @@ public class QaAgentApplication implements ApplicationListener<ApplicationReadyE
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        log.info("【事件】应用启动，已清理旧缓存");
+        log.info("【启动】已清理旧缓存");
         cacheManager.getCacheNames().forEach(name -> Objects.requireNonNull(cacheManager.getCache(name)).clear());
     }
 

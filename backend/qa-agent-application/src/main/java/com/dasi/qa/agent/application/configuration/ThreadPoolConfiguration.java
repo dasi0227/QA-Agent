@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.util.concurrent.ThreadPoolExecutor;
+
 @Configuration
 @EnableConfigurationProperties(ThreadPoolProperties.class)
 public class ThreadPoolConfiguration {
@@ -20,6 +22,7 @@ public class ThreadPoolConfiguration {
         executor.setThreadNamePrefix(properties.getThreadNamePrefix());
         executor.setWaitForTasksToCompleteOnShutdown(properties.getWaitForTasksToCompleteOnShutdown());
         executor.setAwaitTerminationSeconds(properties.getAwaitTerminationSeconds());
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;
     }
