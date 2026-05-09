@@ -41,7 +41,7 @@ import java.util.function.Consumer;
 @Slf4j
 public class GenerateAgent implements IGenerateAgent {
 
-    private static final int MAX_MODULE_QUESTIONS_PER_BATCH = 10;
+    private static final int BATCH_SIZE = 10;
 
     private final IPromptUtil promptUtil;
     private final IAgentRepository agentRepository;
@@ -189,7 +189,7 @@ public class GenerateAgent implements IGenerateAgent {
             // 初始化 Scope 数据，供各阶段读取
             Map<String, Object> initialData = Map.of(
                     "taskId", taskId,
-                    "userPrompt", safe(request.getUserPrompt())
+                    "userPrompt", request.getUserPrompt()
             );
 
             // 启动 DAG 执行
@@ -285,7 +285,7 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.WRITE);
 
         // 2. 拿到计划结果
-        PlanResult planResult = readPlan(scope, writeContext.getRequest());
+        PlanResult planResult = readPlanResult(scope, writeContext.getRequest());
         List<PlanItem> planItems;
         if (planResult == null || planResult.getPlanItems() == null || planResult.getPlanItems().isEmpty()) {
             planItems = fallbackPlan(writeContext.getRequest()).getPlanItems();
@@ -354,9 +354,11 @@ public class GenerateAgent implements IGenerateAgent {
         List<DraftItem> draftItems = new ArrayList<>();
         while (remaining > 0) {
             // 当前批次题数
-            int batchCount = Math.min(MAX_MODULE_QUESTIONS_PER_BATCH, remaining);
-            String previousQuestions = previousQuestions(draftItems);
-            List<DraftItem> draftItemsBatch;
+            int batchCount = Math.min(BATCH_SIZE, remaining);
+            String previousQuestions = JSON.toJSONString(draftItems.stream()
+                    .filter(item -> item != null && item.getQuestion() != null)
+                    .map(DraftItem::getQuestion)
+                    .toList());
             try {
                 String response = draftAgent.draft(
                         draftContext.getTaskId(),
@@ -370,7 +372,7 @@ public class GenerateAgent implements IGenerateAgent {
                 draftItems.addAll(JSON.parseArray(extractJsonArray(response), DraftItem.class));
             } catch (Exception exception) {
                 log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}, error={}", draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
-                draftItems.addAll(fallbackDrafts(draftContext.getPlanItem(), draftContext.getEvidence()));
+                draftItems.addAll(fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence()));
             }
             remaining -= batchCount;
         }
@@ -384,17 +386,15 @@ public class GenerateAgent implements IGenerateAgent {
         // 更新状态
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.VALIDATE);
 
-        // 读取初次生成的问答集合
-        List<DraftItem> drafts = (List<DraftItem>) scope.readState("draftResult");
+        // 初次生成的问答集合
+        List<DraftItem> draftItems = (List<DraftItem>) scope.readState("draftResult");
 
-        ValidationCoordinator.ValidationOutcome outcome = new ValidationCoordinator(MAX_MODULE_QUESTIONS_PER_BATCH)
-                .run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, drafts);
+        // 验证纠错后的问答集合
+        ValidationCoordinator validationCoordinator = new ValidationCoordinator(BATCH_SIZE);
+        List<DraftItem> validatedItems = validationCoordinator.run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, draftItems);
 
-        List<DraftItem> finalDrafts = cleanDrafts(outcome.passedDrafts());
-        if (finalDrafts.isEmpty()) {
-            throw new GenerateException(ErrorType.ALL_REJECTED, "Evaluator 未通过任何题目");
-        }
-        scope.writeState("validatedResult", finalDrafts);
+        // 写入共享领域
+        scope.writeState("validateResult", validatedItems);
     }
 
     /**
@@ -402,8 +402,8 @@ public class GenerateAgent implements IGenerateAgent {
      */
     private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext context) {
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.SUMMARIZE);
-        PlanResult planResult = readPlan(scope, context.getRequest());
-        List<DraftItem> validatedResult = readValidatedResult(scope);
+        PlanResult planResult = readPlanResult(scope, context.getRequest());
+        List<DraftItem> validatedResult = readValidateResult(scope);
 
         String qaSetId = agentRepository.saveGeneratedQaSet(
                 context.getTaskId(),
@@ -415,8 +415,17 @@ public class GenerateAgent implements IGenerateAgent {
 
         int requiredCount = context.getRequest().getRequestedQuestionCount();
         int generatedCount = validatedResult.size();
-        String modules = planModulesText(planResult);
-        String tags = tagsText(validatedResult);
+        String modules = planResult.getPlanItems().stream()
+                .map(item -> item.getModuleTag() == null ? "" : item.getModuleTag())
+                .filter(tag -> !tag.isBlank())
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("");
+        String tags = validatedResult.stream()
+                .map(DraftItem::getTag)
+                .filter(tag -> tag != null && !tag.isBlank())
+                .distinct()
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("");
 
         String summaryMessage;
         try {
@@ -424,7 +433,7 @@ public class GenerateAgent implements IGenerateAgent {
                     context.getTaskId(),
                     context.getRequest().getUserPrompt(),
                     context.getUserProfileJson(),
-                    title(context.getRequest()),
+                    context.getRequest().getTitle(),
                     planResult.getDescription() != null ? planResult.getDescription() : "",
                     requiredCount,
                     generatedCount,
@@ -434,39 +443,17 @@ public class GenerateAgent implements IGenerateAgent {
             );
         } catch (Exception exception) {
             log.warn("SummarizeAgent failed, fallback summary used: message={}", exception.getMessage());
-            summaryMessage = fallbackSummaryMessage(planResult, context.getRequest(), validatedResult,
-                    requiredCount, generatedCount);
+            summaryMessage = fallbackSummaryMessage(requiredCount, generatedCount, modules, tags);
         }
         if (!StringUtils.hasText(summaryMessage)) {
-            summaryMessage = fallbackSummaryMessage(planResult, context.getRequest(), validatedResult,
-                    requiredCount, generatedCount);
+            summaryMessage = fallbackSummaryMessage(requiredCount, generatedCount, modules, tags);
         }
         agentRepository.markTaskCompleted(context.getTaskId(), qaSetId);
         scope.writeState("qaSetId", qaSetId);
         context.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
     }
 
-    private List<DraftItem> cleanDrafts(List<DraftItem> drafts) {
-        return drafts.stream()
-                .filter(item -> item != null)
-                .filter(item -> StringUtils.hasText(item.getQuestion()) && StringUtils.hasText(item.getAnswer()))
-                .map(this::sanitizeDraftItem)
-                .toList();
-    }
-
-    private DraftItem sanitizeDraftItem(DraftItem item) {
-        return new DraftItem(
-                item.getQuestion().trim(),
-                item.getAnswer().trim(),
-                safe(item.getKnowledgeNote()).trim(),
-                StringUtils.hasText(item.getTag()) ? item.getTag().trim() : "General",
-                StringUtils.hasText(item.getDifficulty()) ? item.getDifficulty().trim() : "MEDIUM",
-                safe(item.getConflictTip()),
-                safe(item.getEvidence())
-        );
-    }
-
-    private List<DraftItem> fallbackDrafts(PlanItem planItem, String evidence) {
+    private List<DraftItem> fallbackDraft(PlanItem planItem, String evidence) {
         int count = Math.max(1, planItem.getQuestionCount());
         List<DraftItem> drafts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
@@ -486,32 +473,20 @@ public class GenerateAgent implements IGenerateAgent {
     private PlanResult fallbackPlan(CreateQaSetRequest request) {
         int count = request.getRequestedQuestionCount();
         return new PlanResult(
-                title(request),
+                request.getTitle(),
                 "根据用户资料生成的技术面试问答集",
                 List.of(new PlanItem("General", count, "核心知识点", "概念题, 场景题"))
         );
     }
 
-    private List<DraftItem> readDrafts(AgenticScope scope) {
-        Object value = scope.readState("draftResult");
+    private List<DraftItem> readValidateResult(AgenticScope scope) {
+        Object value = scope.readState("validateResult");
         return value instanceof List<?> list ? (List<DraftItem>) list : List.of();
     }
 
-    private List<DraftItem> readValidatedResult(AgenticScope scope) {
-        Object value = scope.readState("validatedResult");
-        return value instanceof List<?> list ? (List<DraftItem>) list : List.of();
-    }
-
-    private PlanResult readPlan(AgenticScope scope, CreateQaSetRequest request) {
+    private PlanResult readPlanResult(AgenticScope scope, CreateQaSetRequest request) {
         Object value = scope.readState("planResult");
         return value instanceof PlanResult planResult ? planResult : fallbackPlan(request);
-    }
-
-    private String previousQuestions(List<DraftItem> previous) {
-        return JSON.toJSONString(previous.stream()
-                .filter(item -> item != null && item.getQuestion() != null)
-                .map(DraftItem::getQuestion)
-                .toList());
     }
 
     private String extractJsonArray(String text) {
@@ -523,42 +498,9 @@ public class GenerateAgent implements IGenerateAgent {
         return text;
     }
 
-    private String title(CreateQaSetRequest request) {
-        return request.getTitle() == null || request.getTitle().isBlank() ? "生成问答集" : request.getTitle();
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String planModulesText(PlanResult planResult) {
-        if (planResult == null || planResult.getPlanItems() == null) {
-            return "";
-        }
-        return planResult.getPlanItems().stream()
-                .map(item -> item.getModuleTag() == null ? "" : item.getModuleTag())
-                .filter(tag -> !tag.isBlank())
-                .reduce((a, b) -> a + ", " + b)
-                .orElse("");
-    }
-
-    private String tagsText(List<DraftItem> draftItems) {
-        if (draftItems == null || draftItems.isEmpty()) {
-            return "";
-        }
-        return draftItems.stream()
-                .map(DraftItem::getTag)
-                .filter(tag -> tag != null && !tag.isBlank())
-                .distinct()
-                .reduce((a, b) -> a + ", " + b)
-                .orElse("");
-    }
-
-    private String fallbackSummaryMessage(PlanResult planResult, CreateQaSetRequest request, List<DraftItem> draftItems,
-                                          int requiredCount, int generatedCount) {
+    private String fallbackSummaryMessage(int requiredCount, int generatedCount, String modules, String tags) {
         return "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。"
-                + "模块：" + planModulesText(planResult)
-                + "。标签：" + tagsText(draftItems) + "。";
+                + "模块：" + modules + "。标签：" + tags + "。";
     }
 
 }

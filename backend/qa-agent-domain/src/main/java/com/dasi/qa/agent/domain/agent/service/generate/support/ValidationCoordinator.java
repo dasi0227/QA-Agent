@@ -10,9 +10,11 @@ import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -28,29 +30,36 @@ public class ValidationCoordinator {
         this.batchSize = batchSize;
     }
 
-    public ValidationOutcome run(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
-                                 AmendAgent amendAgent, List<DraftItem> drafts) {
+    public List<DraftItem> run(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
+                              AmendAgent amendAgent, List<DraftItem> drafts) {
         List<DraftItem> passedDrafts = new ArrayList<>();
-        int rejectedCount = 0;
 
         for (List<DraftItem> batch : batches(drafts, batchSize)) {
             List<EvaluateItem> initialResults = evaluateOnce(taskId, evaluateAgent, batch);
             passedDrafts.addAll(itemsByVerdict(batch, initialResults, V_PASS));
-            rejectedCount += countByVerdict(initialResults, V_REJECT);
             List<AmendItem> amendItems = amendItemsList(batch, initialResults);
             if (!amendItems.isEmpty()) {
-                ValidationOutcome outcome = runValidationLoop(taskId, request, evaluateAgent, amendAgent,
-                        amendItems);
-                passedDrafts.addAll(outcome.passedDrafts());
-                rejectedCount += outcome.rejectedCount();
+                passedDrafts.addAll(runValidationLoop(taskId, request, evaluateAgent, amendAgent,
+                        amendItems));
             }
         }
 
-        return new ValidationOutcome(passedDrafts, rejectedCount);
+        return passedDrafts.stream()
+                .filter(Objects::nonNull)
+                .filter(item -> StringUtils.hasText(item.getQuestion()) && StringUtils.hasText(item.getAnswer()))
+                .map(item -> new DraftItem(
+                        item.getQuestion().trim(),
+                        item.getAnswer().trim(),
+                        item.getKnowledgeNote() != null ? item.getKnowledgeNote().trim() : "",
+                        StringUtils.hasText(item.getTag()) ? item.getTag().trim() : "General",
+                        StringUtils.hasText(item.getDifficulty()) ? item.getDifficulty().trim() : "MEDIUM",
+                        item.getConflictTip() != null ? item.getConflictTip() : "",
+                        item.getEvidence() != null ? item.getEvidence() : ""))
+                .toList();
     }
 
-    private ValidationOutcome runValidationLoop(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
-                                                AmendAgent amendAgent, List<AmendItem> amendItems) {
+    private List<DraftItem> runValidationLoop(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
+                                              AmendAgent amendAgent, List<AmendItem> amendItems) {
         AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(
                 amendItems.stream().map(AmendItem::getDraftItem).toList());
         AtomicReference<List<EvaluateItem>> currentResults = new AtomicReference<>(List.of());
@@ -90,11 +99,9 @@ public class ValidationCoordinator {
         }
 
         if (Boolean.TRUE.equals(amendmentFailed.get())) {
-            return new ValidationOutcome(List.of(), amendItems.size());
+            return List.of();
         }
-        List<DraftItem> passed = itemsByVerdict(currentItems.get(), currentResults.get(), V_PASS);
-        int rejected = Math.max(0, currentItems.get().size() - passed.size());
-        return new ValidationOutcome(passed, rejected);
+        return itemsByVerdict(currentItems.get(), currentResults.get(), V_PASS);
     }
 
     private List<DraftItem> amendRevisions(String taskId, AmendAgent amendAgent,
@@ -164,15 +171,6 @@ public class ValidationCoordinator {
         return results == null || results.stream().noneMatch(result -> V_AMEND.equals(result.getVerdict()));
     }
 
-    private int countByVerdict(List<EvaluateItem> results, String verdict) {
-        if (results == null) {
-            return 0;
-        }
-        return (int) results.stream()
-                .filter(result -> verdict.equals(result.getVerdict()))
-                .count();
-    }
-
     private List<List<DraftItem>> batches(List<DraftItem> drafts, int batchSize) {
         List<List<DraftItem>> batches = new ArrayList<>();
         for (int i = 0; i < drafts.size(); i += batchSize) {
@@ -190,6 +188,4 @@ public class ValidationCoordinator {
         return text;
     }
 
-    public record ValidationOutcome(List<DraftItem> passedDrafts, int rejectedCount) {
-    }
 }
