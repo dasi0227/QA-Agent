@@ -15,4 +15,5 @@ public class PlanContext {
     private String taskId;
     private String userId;
     private CreateQaSetRequest request;
+    private String userProfileJson;
 }

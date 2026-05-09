@@ -17,5 +17,6 @@ public class SummarizeContext {
     private String userId;
     private CreateQaSetRequest request;
     private EventPublisher eventPublisher;
+    private String userProfileJson;
 
 }

@@ -14,8 +14,8 @@ public enum GeneratePhase {
     ROUTE("ROUTING", "RouteAgent", "读取判定结果并路由到终止分支或继续执行生成分支。"),
     DECIDE("DECIDING", "DecideAgent", "识别用户请求是否满足问答集生成场景并给出判定结果。"),
     ABORT("ABORTING", "AbortAgent", "根据拒绝原因生成终止消息并结束当前生成任务。"),
-    CREATE("CREATING", "CreateAgent", "顺序执行规划、起草、校验修订与总结，生成最终可落库问答集。"),
     PLAN("PLANNING", "PlanAgent", "分析资料摘要并输出模块化题量与难度分配计划。"),
+    WRITE("WRITING", "WriteAgent", "顺序执行规划、起草、校验修订与总结，生成最终可落库问答集。"),
     DRAFT("DRAFTING", "DraftAgent", "基于检索证据按模块起草结构化问答题目。"),
     VALIDATE("VALIDATING", "ValidateAgent", "评估并修订候选问答，确保质量达标。"),
     EVALUATE("EVALUATING", "EvaluateAgent", "审校题目准确性、完整性与证据边界并输出判定。"),
@@ -37,8 +37,8 @@ public enum GeneratePhase {
         if (PLAN.getAgentName().equals(agentName)) {
             return PLAN;
         }
-        if (DRAFT.getAgentName().equals(agentName) || CREATE.getAgentName().equals(agentName)) {
-            return CREATE;
+        if (DRAFT.getAgentName().equals(agentName) || WRITE.getAgentName().equals(agentName)) {
+            return WRITE;
         }
         if (EVALUATE.getAgentName().equals(agentName)
                 || AMEND.getAgentName().equals(agentName)

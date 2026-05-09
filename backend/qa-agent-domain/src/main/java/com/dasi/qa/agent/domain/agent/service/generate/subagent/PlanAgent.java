@@ -7,6 +7,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * PlanAgent：先读资料结构和用户目标，再决定这套问答集应该覆盖哪些模块、每个模块出多少题。
+ * - 输入：资料目录摘要、用户画像、用户要求，以及目标题数。
+ * - 输出：一份可执行的题集规划结果，包含模块划分和题量分配。
+ */
 public interface PlanAgent {
 
     @SystemMessage(fromResource = "prompt/generation-plan.txt")

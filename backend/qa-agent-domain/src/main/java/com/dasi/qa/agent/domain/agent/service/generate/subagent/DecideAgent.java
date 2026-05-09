@@ -7,6 +7,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * DecideAgent：先判断用户这次请求是不是“生成问答集”这条链路应该处理的问题。
+ * - 输入：用户本次的原始要求。
+ * - 输出：是否允许进入后续生成流程，以及对应的判定原因。
+ */
 public interface DecideAgent {
 
     @SystemMessage(fromResource = "prompt/generation-decide.txt")

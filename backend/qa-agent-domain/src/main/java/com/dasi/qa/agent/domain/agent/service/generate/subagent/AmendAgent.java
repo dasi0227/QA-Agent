@@ -6,6 +6,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * AmendAgent：只针对“需要修订”的题目做最小改动，不重新发散生成整批题目。
+ * - 输入：待修订题目，以及每道题对应的审校意见和用户补充要求。
+ * - 输出：修订后的题目列表，供下一轮审校继续判断是否通过。
+ */
 public interface AmendAgent {
 
     @SystemMessage(fromResource = "prompt/generation-amend.txt")

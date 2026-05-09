@@ -8,7 +8,9 @@ import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserLlmModelVO;
-import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileVO;
+import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
+import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileInfoVO;
+import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskEntity;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskMessageEntity;
@@ -67,7 +69,7 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void createGenerationTask(String taskId, String userId, CreateQaSetRequest request) {
+    public void createGenerationTask(String taskId, String userId, CreateQaSetRequest request, UserProfileAllowVO allow) {
         LocalDateTime now = LocalDateTime.now();
         QaGenerationTaskEntity entity = new QaGenerationTaskEntity();
         entity.setId(taskId);
@@ -77,8 +79,8 @@ public class AgentRepository implements IAgentRepository {
         entity.setDocumentIdsJson(JSON.toJSONString(request.getDocumentIds()));
         entity.setStatus(GenerateStatus.PENDING.name());
         entity.setStage(GeneratePhase.INIT.getGenerateStage());
-        entity.setAllowGeneralKnowledge(Boolean.TRUE.equals(request.getAllowGeneralKnowledge()));
-        entity.setAllowWebSearch(Boolean.TRUE.equals(request.getAllowWebSearch()));
+        entity.setAllowGeneralKnowledge(Boolean.TRUE.equals(allow.getAllowGeneralKnowledge()));
+        entity.setAllowWebSearch(Boolean.TRUE.equals(allow.getAllowWebSearch()));
         entity.setRequestedQuestionCount(questionCount(request));
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
@@ -175,23 +177,43 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public UserProfileVO getUserProfile(String userId) {
+    public UserProfileInfoVO getUserProfileInfo(String userId) {
         UserProfileEntity profile = userProfileMapper.selectById(userId);
         if (profile == null) {
             return null;
         }
-        return new UserProfileVO(
+        return new UserProfileInfoVO(
                 profile.getTargetRole(),
                 profile.getTargetDomain(),
                 profile.getTargetCompany(),
+                profile.getMajor(),
+                profile.getGrade(),
+                profile.getStage()
+        );
+    }
+
+    @Override
+    public UserProfileStyleVO getUserProfileStyle(String userId) {
+        UserProfileEntity profile = userProfileMapper.selectById(userId);
+        if (profile == null) {
+            return null;
+        }
+        return new UserProfileStyleVO(
+                profile.getAnswerStyle(),
+                profile.getFeedbackStyle()
+        );
+    }
+
+    @Override
+    public UserProfileAllowVO getUserProfileAllow(String userId) {
+        UserProfileEntity profile = userProfileMapper.selectById(userId);
+        if (profile == null) {
+            return null;
+        }
+        return new UserProfileAllowVO(
                 profile.getAllowGeneralKnowledge(),
                 profile.getAllowWebSearch(),
-                profile.getAnswerStyle(),
-                profile.getFeedbackStyle(),
-                profile.getAge(),
-                profile.getGrade(),
-                profile.getMajor(),
-                profile.getStage()
+                profile.getAllowFallback()
         );
     }
 

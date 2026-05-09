@@ -6,6 +6,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * SummarizeAgent：在题集已经落库后，生成一段最终交付说明，告诉用户本次实际产出了什么。
+ * - 输入：题集标题、题数统计、模块标签、最终题目内容，以及用户背景和补充要求。
+ * - 输出：可直接用于完成消息和 SSE 推送的总结文本。
+ */
 public interface SummarizeAgent {
 
     @SystemMessage(fromResource = "prompt/generation-summarize.txt")
@@ -22,8 +27,6 @@ public interface SummarizeAgent {
             模块名称：{{modules}}
             题目标签：{{tags}}
 
-            累计 token：{{totalTokens}}
-
             最终题目：
             {{qa}}
 
@@ -37,7 +40,6 @@ public interface SummarizeAgent {
                      @V("description") String description,
                      @V("requiredCount") int requiredCount,
                      @V("generatedCount") int generatedCount,
-                     @V("totalTokens") int totalTokens,
                      @V("modules") String modules,
                      @V("tags") String tags,
                      @V("qa") String qa);

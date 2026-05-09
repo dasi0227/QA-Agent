@@ -12,7 +12,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlanAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SummarizeAgent;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
-import dev.langchain4j.agentic.agent.AgentBuilder;
 import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
@@ -111,7 +110,6 @@ public class GenerateAgentFactory {
                 .description(GeneratePhase.ROUTE.getAgentDesc())
                 .subAgents(scope -> DecideResult.fromScope(scope).isValid(), createAgent)
                 .subAgents(scope -> !DecideResult.fromScope(scope).isValid(), abortAction)
-                .listener(context.getAgentListener())
                 .build();
     }
 
@@ -120,8 +118,8 @@ public class GenerateAgentFactory {
                                          AgenticServices.AgenticScopeAction validateAction,
                                          AgenticServices.AgenticScopeAction summarizeAction) {
         return AgenticServices.sequenceBuilder()
-                .name(GeneratePhase.CREATE.getAgentName())
-                .description(GeneratePhase.CREATE.getAgentDesc())
+                .name(GeneratePhase.WRITE.getAgentName())
+                .description(GeneratePhase.WRITE.getAgentDesc())
                 .subAgents(
                         planAction,
                         writeAction,
@@ -148,30 +146,29 @@ public class GenerateAgentFactory {
                 .description(GeneratePhase.ABORT.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
-                .listener(agentListener)
                 .build();
     }
 
     public PlanAgent makePlanAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener, List<Object> writeTools) {
-        AgentBuilder<PlanAgent, ?> builder = AgenticServices.agentBuilder(PlanAgent.class)
+        return AgenticServices.agentBuilder(PlanAgent.class)
                 .name(GeneratePhase.PLAN.getAgentName())
                 .description(GeneratePhase.PLAN.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
-                .listener(agentListener);
-        builder.tools(writeTools.toArray());
-        return builder.build();
+                .listener(agentListener)
+                .tools(writeTools.toArray())
+                .build();
     }
 
     public DraftAgent makeDraftAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener, List<Object> writeTools) {
-        AgentBuilder<DraftAgent, ?> builder = AgenticServices.agentBuilder(DraftAgent.class)
+        return AgenticServices.agentBuilder(DraftAgent.class)
                 .name(GeneratePhase.DRAFT.getAgentName())
                 .description(GeneratePhase.DRAFT.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
-                .listener(agentListener);
-        builder.tools(writeTools.toArray());
-        return builder.build();
+                .listener(agentListener)
+                .tools(writeTools.toArray())
+                .build();
     }
 
     public EvaluateAgent makeEvaluateAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener) {
@@ -185,14 +182,14 @@ public class GenerateAgentFactory {
     }
 
     public AmendAgent makeAmendAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener, List<Object> validateTools) {
-        AgentBuilder<AmendAgent, ?> builder = AgenticServices.agentBuilder(AmendAgent.class)
+        return AgenticServices.agentBuilder(AmendAgent.class)
                 .name(GeneratePhase.AMEND.getAgentName())
                 .description(GeneratePhase.AMEND.getAgentDesc())
                 .chatModel(userModel)
                 .chatMemoryProvider(chatMemoryProvider)
-                .listener(agentListener);
-        builder.tools(validateTools.toArray());
-        return builder.build();
+                .listener(agentListener)
+                .tools(validateTools.toArray())
+                .build();
     }
 
     public SummarizeAgent makeSummarizeAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, AgentListener agentListener) {

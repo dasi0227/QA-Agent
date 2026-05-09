@@ -23,6 +23,6 @@ public class DecideResult {
         Object value = scope.readState("decideResult");
         return value instanceof DecideResult result
                 ? result
-                : new DecideResult(false, "请求判定未完成");
+                : new DecideResult(false, "没有拿到 DecideAgent 的输出结果，默认判定为不可继续执行");
     }
 }

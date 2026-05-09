@@ -30,6 +30,8 @@ public class UserProfileEntity {
 
     private Boolean allowWebSearch;
 
+    private Boolean allowFallback;
+
     private String answerStyle;
 
     private String feedbackStyle;

@@ -6,6 +6,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * DraftAgent：围绕单个模块，把检索到的证据整理成首版问答题目。
+ * - 输入：当前模块的证据内容、用户画像、题量要求、已有题目和用户补充要求。
+ * - 输出：当前模块的草稿题目列表，作为后续审校阶段的输入。
+ */
 public interface DraftAgent {
 
     @SystemMessage(fromResource = "prompt/generation-draft.txt")

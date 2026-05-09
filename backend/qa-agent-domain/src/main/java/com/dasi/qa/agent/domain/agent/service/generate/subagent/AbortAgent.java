@@ -6,6 +6,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * AbortAgent：在请求被判定为不适合生成问答集时，生成一段面向用户的终止说明。
+ * - 输入：用户原始要求，以及“不允许进入生成链路”的判定原因。
+ * - 输出：可直接用于任务失败消息和 SSE 推送的最终说明文本。
+ */
 public interface AbortAgent {
 
     @SystemMessage(fromResource = "prompt/generation-abort.txt")

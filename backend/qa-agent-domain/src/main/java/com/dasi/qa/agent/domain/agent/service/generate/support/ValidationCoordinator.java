@@ -29,7 +29,7 @@ public class ValidationCoordinator {
     }
 
     public ValidationOutcome run(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
-                                 AmendAgent amendAgent, List<DraftItem> drafts) {
+                                 AmendAgent amendAgent, List<DraftItem> drafts, boolean strictEvidence) {
         List<DraftItem> passedDrafts = new ArrayList<>();
         int rejectedCount = 0;
 
@@ -40,7 +40,7 @@ public class ValidationCoordinator {
             List<AmendItem> amendItems = amendItemsList(batch, initialResults);
             if (!amendItems.isEmpty()) {
                 ValidationOutcome outcome = runValidationLoop(taskId, request, evaluateAgent, amendAgent,
-                        amendItems);
+                        amendItems, strictEvidence);
                 passedDrafts.addAll(outcome.passedDrafts());
                 rejectedCount += outcome.rejectedCount();
             }
@@ -50,7 +50,7 @@ public class ValidationCoordinator {
     }
 
     private ValidationOutcome runValidationLoop(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
-                                                AmendAgent amendAgent, List<AmendItem> amendItems) {
+                                                AmendAgent amendAgent, List<AmendItem> amendItems, boolean strictEvidence) {
         AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(
                 amendItems.stream().map(AmendItem::getDraftItem).toList());
         AtomicReference<List<EvaluateItem>> currentResults = new AtomicReference<>(List.of());
@@ -69,8 +69,8 @@ public class ValidationCoordinator {
                                 return;
                             }
                             List<AmendItem> currentAmendItems = amendItemsList(currentItems.get(), currentResults.get());
-                            List<DraftItem> amended = amendRevisions(taskId, amendAgent, request,
-                                    currentAmendItems);
+                            List<DraftItem> amended = amendRevisions(taskId, amendAgent,
+                                    currentAmendItems, strictEvidence);
                             if (amended.size() != currentAmendItems.size()) {
                                 amendmentFailed.set(true);
                                 throw new IllegalStateException("AmendAgent output size mismatch");
@@ -97,15 +97,15 @@ public class ValidationCoordinator {
         return new ValidationOutcome(passed, rejected);
     }
 
-    private List<DraftItem> amendRevisions(String taskId, AmendAgent amendAgent, CreateQaSetRequest request,
-                                           List<AmendItem> amendItems) {
+    private List<DraftItem> amendRevisions(String taskId, AmendAgent amendAgent,
+                                           List<AmendItem> amendItems, boolean strictEvidence) {
         if (amendItems.isEmpty()) {
             return List.of();
         }
         String response = amendAgent.amend(
                 taskId,
                 JSON.toJSONString(amendItems),
-                generationNote(request)
+                generationNote(strictEvidence)
         );
         List<DraftItem> parsed = JSON.parseArray(extractJsonArray(response), DraftItem.class);
         return parsed == null ? List.of() : parsed;
@@ -190,9 +190,9 @@ public class ValidationCoordinator {
         return text;
     }
 
-    private String generationNote(CreateQaSetRequest request) {
-        String note = request.getUserPrompt() == null ? "" : request.getUserPrompt();
-        if (!Boolean.TRUE.equals(request.getAllowGeneralKnowledge())) {
+    private String generationNote(boolean strictEvidence) {
+        String note = "";
+        if (strictEvidence) {
             note += "\n禁止使用资料外事实；证据不足时写 conflictTip。";
         }
         return note;

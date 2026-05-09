@@ -42,15 +42,14 @@ public class EventPublisher {
         eventSink.accept(sseEvent);
     }
 
-    public void publishFailure(ErrorType errorType, String message) {
-        String errorMessage = message == null || message.isBlank() ? errorType.name() : message;
+    public void publishFailure(ErrorType errorType, String errorMessage) {
         agentRepository.markTaskFailed(taskId, errorType, errorMessage);
         publishEvent(GeneratePhase.FAIL, GenerateStatus.UNSOLVED, errorMessage, 0);
     }
 
-
-    public int totalTokens() {
-        return totalTokens.get();
+    public void publishCanceled(ErrorType errorType, String errorMessage) {
+        agentRepository.markTaskFailed(taskId, errorType, errorMessage);
+        publishEvent(GeneratePhase.FAIL, GenerateStatus.CANCELED, errorMessage, 0);
     }
 
 }

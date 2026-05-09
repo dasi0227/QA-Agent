@@ -6,6 +6,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * EvaluateAgent：审校题目是否准确、是否被资料支撑、是否适合作为最终问答集内容。
+ * - 输入：一批待审校的草稿题目。
+ * - 输出：逐题审校结果，包括通过、拒绝或要求修订的判定及原因。
+ */
 public interface EvaluateAgent {
 
     @SystemMessage(fromResource = "prompt/generation-evaluate.txt")

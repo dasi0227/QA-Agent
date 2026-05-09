@@ -28,8 +28,4 @@ public class CreateQaSetRequest {
     @Max(value = 100, message = "单次最多生成 100 题")
     @Min(value = 10, message = "单次最多生成 10 题")
     private Integer requestedQuestionCount;
-
-    private Boolean allowGeneralKnowledge;
-
-    private Boolean allowWebSearch;
 }

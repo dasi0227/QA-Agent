@@ -11,10 +11,11 @@ public enum GenerateStatus {
     PENDING,
     PROCESSING,
     SOLVED,
+    CANCELED,
     UNSOLVED;
 
     // 是否是终止状态
     public boolean isTerminated() {
-        return this == SOLVED || this == UNSOLVED;
+        return this == SOLVED || this == UNSOLVED || this == CANCELED;
     }
 }
