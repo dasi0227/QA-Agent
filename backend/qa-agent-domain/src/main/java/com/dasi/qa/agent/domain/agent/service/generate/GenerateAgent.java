@@ -208,27 +208,27 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * DecideAgent 判断用户需求是否符合 Generate 工作流，防止恶意/无关/错误需求进入 DAG
+     * DecideAgent 负责判断用户需求是否符合 Generate 工作流，防止恶意/无关/错误需求进入 DAG
      */
-    private void doDecide(AgenticScope scope, DecideAgent decideAgent, DecideContext context) {
+    private void doDecide(AgenticScope scope, DecideAgent decideAgent, DecideContext decideContext) {
         // 1. 更新状态
-        agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.DECIDE);
+        agentRepository.updateTaskPhase(decideContext.getTaskId(), GeneratePhase.DECIDE);
 
         // 2. 调用智能体
         try {
-            decideAgent.decide(context.getTaskId(), context.getRequest().getUserPrompt());
+            decideAgent.decide(decideContext.getTaskId(), decideContext.getRequest().getUserPrompt());
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - DecideAgent】调用智能体出错: taskId={}, error={}", context.getTaskId(), exception.getMessage());
+            log.warn("【GenerateAgent - DecideAgent】调用智能体出错: taskId={}, error={}", decideContext.getTaskId(), exception.getMessage());
             scope.writeState("decideResult", new DecideResult(false, "DecideAgent 执行出错，默认判定为不可继续执行"));
         }
     }
 
     /**
-     * AbortAgent 在 DecideAgent 判定为 INVALID 的时候，生成自然语言文本让用户理解非法原因
+     * AbortAgent 负责生成自然语言文本让用户理解非法原因
      */
-    private void doAbort(AgenticScope scope, AbortAgent abortAgent, AbortContext context) {
+    private void doAbort(AgenticScope scope, AbortAgent abortAgent, AbortContext abortContext) {
         // 1. 更新状态
-        agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.ABORT);
+        agentRepository.updateTaskPhase(abortContext.getTaskId(), GeneratePhase.ABORT);
 
         // 2. 拿到决策结果
         DecideResult decideResult = DecideResult.fromScope(scope);
@@ -237,56 +237,60 @@ public class GenerateAgent implements IGenerateAgent {
         // 3. 调用智能体
         String message;
         try {
-            message = abortAgent.abort(context.getTaskId(), context.getRequest().getUserPrompt(), reason);
+            message = abortAgent.abort(abortContext.getTaskId(), abortContext.getRequest().getUserPrompt(), reason);
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - AbortAgent】调用智能体出错: taskId={}, error={}", context.getTaskId(), exception.getMessage());
+            log.warn("【GenerateAgent - AbortAgent】调用智能体出错: taskId={}, error={}", abortContext.getTaskId(), exception.getMessage());
             message = reason;
         }
-        context.getEventPublisher().publishCanceled(ErrorType.CONTENT_FILTERED, message);
+
+        // 4. 发送中断信息
+        abortContext.getEventPublisher().publishCanceled(ErrorType.CONTENT_FILTERED, message);
     }
 
     /**
      * PlanAgent 负责根据用户资料指定执行计划
      */
-    private void doPlan(AgenticScope scope, PlanAgent planAgent, PlanContext context) {
+    private void doPlan(AgenticScope scope, PlanAgent planAgent, PlanContext planContext) {
         // 1. 更新状态
-        agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.PLAN);
+        agentRepository.updateTaskPhase(planContext.getTaskId(), GeneratePhase.PLAN);
 
         // 2. 拿到资料摘要
         String documentsSummary = agentRepository.getDocumentsSummary(
-                context.getRequest().getDocumentIds(),
-                context.getUserId()
+                planContext.getRequest().getDocumentIds(),
+                planContext.getUserId()
         );
 
         // 3. 调用智能体
         PlanResult planResult;
         try {
             planResult = planAgent.plan(
-                    context.getTaskId(),
+                    planContext.getTaskId(),
                     documentsSummary,
-                    context.getUserProfileJson(),
-                    context.getRequest().getUserPrompt(),
-                    context.getRequest().getRequestedQuestionCount()
+                    planContext.getUserProfileJson(),
+                    planContext.getRequest().getUserPrompt(),
+                    planContext.getRequest().getRequestedQuestionCount()
             );
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - PlanAgent】调用智能体出错: taskId={}, error={}", context.getTaskId(), exception.getMessage());
+            log.warn("【GenerateAgent - PlanAgent】调用智能体出错: taskId={}, error={}", planContext.getTaskId(), exception.getMessage());
             throw new GenerateException(ErrorType.fromException(exception), "PlanAgent 调用失败: " + exception.getMessage());
         }
+
+        // 4. 写入共享领域
         scope.writeState("planResult", planResult);
     }
 
     /**
-     * WriteAgent 负责根据用户资料编写 QA
+     * WriteAgent 负责根据 PlanAgent 的计划区分模块编写 QA
      */
-    private void doWrite(AgenticScope scope, DraftAgent draftAgent, WriteContext context) {
+    private void doWrite(AgenticScope scope, DraftAgent draftAgent, WriteContext writeContext) {
         // 1. 更新状态
-        agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.WRITE);
+        agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.WRITE);
 
         // 2. 拿到计划结果
-        PlanResult planResult = readPlan(scope, context.getRequest());
+        PlanResult planResult = readPlan(scope, writeContext.getRequest());
         List<PlanItem> planItems;
         if (planResult == null || planResult.getPlanItems() == null || planResult.getPlanItems().isEmpty()) {
-            planItems = fallbackPlan(context.getRequest()).getPlanItems();
+            planItems = fallbackPlan(writeContext.getRequest()).getPlanItems();
         } else {
             planItems = planResult.getPlanItems().stream()
                     .filter(item -> StringUtils.hasText(item.getModuleTag()))
@@ -294,90 +298,90 @@ public class GenerateAgent implements IGenerateAgent {
                     .toList();
         }
 
-        // 3. 调用智能体
-        List<DraftItem> allDrafts = Collections.synchronizedList(new ArrayList<>());
-        List<String> failedModules = Collections.synchronizedList(new ArrayList<>());
+        // 3. 解析计划，根据模块划分
+        List<DraftItem> draftItems = Collections.synchronizedList(new ArrayList<>());
         List<Object> moduleAgents = new ArrayList<>();
         for (PlanItem planItem : planItems) {
-            moduleAgents.add(AgenticServices.agentAction(moduleScope -> {
+            // 4. 创建每个模块的 DraftAgent
+            AgenticServices.AgenticScopeAction agentAction = AgenticServices.agentAction(moduleScope -> {
                 try {
-                    List<SearchResult> evidence = context.getRagEvidenceProvider()
-                            .search(context.getUserId(), context.getRequest().getDocumentIds(), planItem);
-                    allDrafts.addAll(draftModule(draftAgent, DraftModuleContext.builder()
-                            .taskId(context.getTaskId())
-                            .request(context.getRequest())
+                    // 4.1 拿到 RAG 资料
+                    List<SearchResult> evidence = writeContext.getRagEvidenceProvider().search(writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
+                    // 4.2 构建草稿上下文
+                    DraftContext draftContext = DraftContext.builder()
+                            .taskId(writeContext.getTaskId())
+                            .request(writeContext.getRequest())
                             .planItem(planItem)
-                            .evidence(evidence)
-                            .build(), context));
+                            .evidence(JSON.toJSONString(evidence))
+                            .userProfileJson(writeContext.getUserProfileJson())
+                            .strictEvidence(!Boolean.TRUE.equals(writeContext.getAllow().getAllowGeneralKnowledge()))
+                            .build();
+                    // 4.3 汇总每个模块单独出的题
+                    draftItems.addAll(doDraft(draftAgent, draftContext));
                 } catch (Exception exception) {
-                    failedModules.add(planItem.getModuleTag() + ": " + safe(exception.getMessage()));
-                    log.warn("Write module failed: taskId={}, module={}, message={}",
-                            context.getTaskId(), planItem.getModuleTag(), exception.getMessage());
+                    log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}, error={}", writeContext.getTaskId(), planItem.getModuleTag(), exception.getMessage());
                 }
-            }));
+            });
+            // 5. 汇总 DraftAgent
+            moduleAgents.add(agentAction);
         }
 
+        // 6. 组装为并发工作流
         UntypedAgent writer = AgenticServices.parallelBuilder()
-                .name("WRITE")
-                .description("按模块并发执行 draft 分支")
-                .executor(context.getExecutor())
+                .name(GeneratePhase.WRITE.getAgentName())
+                .description(GeneratePhase.WRITE.getAgentDesc())
+                .executor(writeContext.getExecutor())
                 .subAgents(moduleAgents)
-                .output(moduleScope -> allDrafts)
+                .output(moduleScope -> draftItems)
                 .build();
-        writer.invoke(Map.of("taskId", context.getTaskId()));
 
-        List<DraftItem> deduplicated = deduplicate(allDrafts);
-        scope.writeState("draftItem", deduplicated);
-        if (!failedModules.isEmpty()) {
-            scope.writeState("writeFailedModules", List.copyOf(failedModules));
+        // 7. 调用智能体
+        try {
+            writer.invoke(Map.of());
+        } catch (Exception exception) {
+            log.warn("【GenerateAgent - WriteAgent】调用智能体出错: taskId={}, error={}", writeContext.getTaskId(), exception.getMessage());
+            throw new GenerateException(ErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
         }
+
+        // 8. 写入共享领域
+        scope.writeState("draftResult", draftItems);
     }
 
-    private List<DraftItem> draftModule(DraftAgent draftAgent, DraftModuleContext context,
-                                        WriteContext writeContext) {
-        int remaining = Math.max(0, context.getPlanItem().getQuestionCount());
-        List<DraftItem> moduleDrafts = new ArrayList<>();
+    /**
+     * DraftAgent 在指定模块编写 QA
+     */
+    private List<DraftItem> doDraft(DraftAgent draftAgent, DraftContext draftContext) {
+        // 当前模块题数
+        int remaining = draftContext.getPlanItem().getQuestionCount();
+        List<DraftItem> draftItems = new ArrayList<>();
         while (remaining > 0) {
+            // 当前批次题数
             int batchCount = Math.min(MAX_MODULE_QUESTIONS_PER_BATCH, remaining);
-            List<DraftItem> batch = draftBatch(draftAgent, DraftBatchContext.builder()
-                    .taskId(context.getTaskId())
-                    .request(context.getRequest())
-                    .planItem(context.getPlanItem())
-                    .evidence(context.getEvidence())
-                    .previousQuestions(previousQuestions(moduleDrafts))
-                    .batchCount(batchCount)
-                    .extraNote("")
-                    .build(), writeContext);
-            moduleDrafts.addAll(batch);
+            String previousQuestions = previousQuestions(draftItems);
+            List<DraftItem> draftItemsBatch;
+            try {
+                String response = draftAgent.draft(
+                        draftContext.getTaskId(),
+                        draftContext.getPlanItem().getModuleTag(),
+                        draftContext.getEvidence(),
+                        draftContext.getUserProfileJson(),
+                        batchCount,
+                        previousQuestions,
+                        draftContext.getRequest().getUserPrompt()
+                );
+                draftItems.addAll(JSON.parseArray(extractJsonArray(response), DraftItem.class));
+            } catch (Exception exception) {
+                log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}, error={}", draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
+                draftItems.addAll(fallbackDrafts(draftContext.getPlanItem(), draftContext.getEvidence()));
+            }
             remaining -= batchCount;
         }
-        return moduleDrafts;
+        return draftItems;
     }
 
-    private List<DraftItem> draftBatch(DraftAgent draftAgent, DraftBatchContext context,
-                                       WriteContext writeContext) {
-        try {
-            String response = draftAgent.draft(
-                    context.getTaskId(),
-                    context.getPlanItem().getModuleTag(),
-                    JSON.toJSONString(context.getEvidence()),
-                    writeContext.getUserProfileJson(),
-                    context.getBatchCount(),
-                    context.getPreviousQuestions(),
-                    generationNote(context.getRequest(), context.getExtraNote(),
-                            !Boolean.TRUE.equals(writeContext.getAllow().getAllowGeneralKnowledge()))
-            );
-            List<DraftItem> parsed = JSON.parseArray(extractJsonArray(response), DraftItem.class);
-            return parsed == null ? List.of() : parsed;
-        } catch (Exception exception) {
-            log.warn("DraftAgent failed, fallback drafts used: module={}, message={}",
-                    context.getPlanItem().getModuleTag(), exception.getMessage());
-            return fallbackDrafts(new PlanItem(context.getPlanItem().getModuleTag(), context.getBatchCount(),
-                    context.getPlanItem().getFocusTopics(),
-                    context.getPlanItem().getSuggestedQuestionTypes()), context.getEvidence());
-        }
-    }
-
+    /**
+     * ValidateAgent 负责
+     */
     private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext context) {
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.VALIDATE);
         List<DraftItem> drafts = readDrafts(scope);
@@ -385,7 +389,7 @@ public class GenerateAgent implements IGenerateAgent {
         ValidationCoordinator.ValidationOutcome outcome = new ValidationCoordinator(MAX_MODULE_QUESTIONS_PER_BATCH)
                 .run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, drafts, strictEvidence);
 
-        List<DraftItem> finalDrafts = cleanDrafts(deduplicate(outcome.passedDrafts()), strictEvidence);
+        List<DraftItem> finalDrafts = cleanDrafts(outcome.passedDrafts(), strictEvidence);
         if (finalDrafts.isEmpty()) {
             throw new GenerateException(ErrorType.ALL_REJECTED, "Evaluator 未通过任何题目");
         }
@@ -396,7 +400,6 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.SUMMARIZE);
         PlanResult planResult = readPlan(scope, context.getRequest());
         List<DraftItem> validatedResult = readValidatedResult(scope);
-        List<String> failedModules = readStrings(scope, "writeFailedModules");
 
         String qaSetId = agentRepository.saveGeneratedQaSet(
                 context.getTaskId(),
@@ -428,31 +431,21 @@ public class GenerateAgent implements IGenerateAgent {
         } catch (Exception exception) {
             log.warn("SummarizeAgent failed, fallback summary used: message={}", exception.getMessage());
             summaryMessage = fallbackSummaryMessage(planResult, context.getRequest(), validatedResult,
-                    requiredCount, generatedCount, failedModules);
+                    requiredCount, generatedCount);
         }
-        if (!hasText(summaryMessage)) {
+        if (!StringUtils.hasText(summaryMessage)) {
             summaryMessage = fallbackSummaryMessage(planResult, context.getRequest(), validatedResult,
-                    requiredCount, generatedCount, failedModules);
+                    requiredCount, generatedCount);
         }
         agentRepository.markTaskCompleted(context.getTaskId(), qaSetId);
         scope.writeState("qaSetId", qaSetId);
         context.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
     }
 
-    private List<DraftItem> deduplicate(List<DraftItem> items) {
-        Map<String, DraftItem> map = new LinkedHashMap<>();
-        for (DraftItem item : items) {
-            if (item != null && item.getQuestion() != null && !item.getQuestion().isBlank()) {
-                map.putIfAbsent(item.getQuestion(), item);
-            }
-        }
-        return new ArrayList<>(map.values());
-    }
-
     private List<DraftItem> cleanDrafts(List<DraftItem> drafts, boolean strictEvidence) {
         return drafts.stream()
                 .filter(item -> item != null)
-                .filter(item -> hasText(item.getQuestion()) && hasText(item.getAnswer()))
+                .filter(item -> StringUtils.hasText(item.getQuestion()) && StringUtils.hasText(item.getAnswer()))
                 .map(item -> sanitizeDraftItem(item, strictEvidence))
                 .toList();
     }
@@ -460,33 +453,32 @@ public class GenerateAgent implements IGenerateAgent {
     private DraftItem sanitizeDraftItem(DraftItem item, boolean strictEvidence) {
         String conflictTip = safe(item.getConflictTip());
         String evidence = safe(item.getEvidence());
-        if (strictEvidence && !hasText(evidence)) {
+        if (strictEvidence && !StringUtils.hasText(evidence)) {
             conflictTip = conflictTip.isBlank() ? "资料证据不足，答案仅保留为低置信度基础题" : conflictTip;
         }
         return new DraftItem(
                 item.getQuestion().trim(),
                 item.getAnswer().trim(),
                 safe(item.getKnowledgeNote()).trim(),
-                hasText(item.getTag()) ? item.getTag().trim() : "General",
-                hasText(item.getDifficulty()) ? item.getDifficulty().trim() : "MEDIUM",
+                StringUtils.hasText(item.getTag()) ? item.getTag().trim() : "General",
+                StringUtils.hasText(item.getDifficulty()) ? item.getDifficulty().trim() : "MEDIUM",
                 conflictTip,
                 evidence
         );
     }
 
-    private List<DraftItem> fallbackDrafts(PlanItem planItem, List<SearchResult> evidence) {
-        String evidenceText = evidence.isEmpty() ? "" : evidence.get(0).getContent();
+    private List<DraftItem> fallbackDrafts(PlanItem planItem, String evidence) {
         int count = Math.max(1, planItem.getQuestionCount());
         List<DraftItem> drafts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             drafts.add(new DraftItem(
                     planItem.getModuleTag() + " 的核心问题 " + (i + 1),
-                    evidenceText,
-                    evidenceText,
+                    evidence,
+                    evidence,
                     planItem.getModuleTag(),
                     "MEDIUM",
                     evidence.isEmpty() ? "资料证据不足" : "",
-                    evidenceText
+                    evidence
             ));
         }
         return drafts;
@@ -502,7 +494,7 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private List<DraftItem> readDrafts(AgenticScope scope) {
-        Object value = scope.readState("draftItem");
+        Object value = scope.readState("draftResult");
         return value instanceof List<?> list ? (List<DraftItem>) list : List.of();
     }
 
@@ -523,17 +515,6 @@ public class GenerateAgent implements IGenerateAgent {
                 .toList());
     }
 
-    private String generationNote(CreateQaSetRequest request, String extraNote, boolean strictEvidence) {
-        String note = safe(request.getUserPrompt());
-        if (strictEvidence) {
-            note += "\n禁止使用资料外事实；证据不足时写 conflictTip。";
-        }
-        if (extraNote != null && !extraNote.isBlank()) {
-            note += "\n" + extraNote;
-        }
-        return note;
-    }
-
     private String extractJsonArray(String text) {
         int start = text.indexOf('[');
         int end = text.lastIndexOf(']');
@@ -549,15 +530,6 @@ public class GenerateAgent implements IGenerateAgent {
 
     private String safe(String value) {
         return value == null ? "" : value;
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private List<String> readStrings(AgenticScope scope, String key) {
-        Object value = scope.readState(key);
-        return value instanceof List<?> list ? (List<String>) list : List.of();
     }
 
     private String planModulesText(PlanResult planResult) {
@@ -584,11 +556,10 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private String fallbackSummaryMessage(PlanResult planResult, CreateQaSetRequest request, List<DraftItem> draftItems,
-                                          int requiredCount, int generatedCount, List<String> failedModules) {
+                                          int requiredCount, int generatedCount) {
         return "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。"
                 + "模块：" + planModulesText(planResult)
-                + "。标签：" + tagsText(draftItems)
-                + "。Write 失败模块 " + (failedModules == null ? 0 : failedModules.size()) + " 个。";
+                + "。标签：" + tagsText(draftItems) + "。";
     }
 
 }
