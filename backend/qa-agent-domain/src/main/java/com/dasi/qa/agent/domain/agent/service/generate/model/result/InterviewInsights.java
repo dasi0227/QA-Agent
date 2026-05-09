@@ -34,4 +34,5 @@ public class InterviewInsights {
 
     @Description("来源说明")
     private String sourceHint;
+
 }

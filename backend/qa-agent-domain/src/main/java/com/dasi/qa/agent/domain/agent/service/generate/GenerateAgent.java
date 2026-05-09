@@ -158,10 +158,10 @@ public class GenerateAgent implements IGenerateAgent {
             // 汇总 DAG 运行上下文，并传入各阶段执行回调
             GenerateContext generateContext = GenerateContext.builder()
                     .userModel(userModel)
-                    .chatMemoryProvider(chatMemoryProvider)
-                    .agentListener(agentListener)
                     .writeTools(writeTools)
                     .validateTools(validateTools)
+                    .agentListener(agentListener)
+                    .chatMemoryProvider(chatMemoryProvider)
                     .decideStep((scope, decideAgent) -> runDecide(scope, decideAgent, decideContext))
                     .abortStep((scope, abortAgent) -> runAbort(scope, abortAgent, abortContext))
                     .planStep((scope, planAgent) -> runPlan(scope, planAgent, planContext))

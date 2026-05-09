@@ -18,11 +18,11 @@ public class DraftItem {
         @Description("面试场景的问题表述，口语化提问方式")
         private String question;
 
-        @Description("知识笔记，供学习回顾用，包含关键概念和记忆要点")
-        private String knowledgeNote;
-
         @Description("标准面试回答，逻辑清晰、有分层结构")
         private String answer;
+
+        @Description("知识笔记，供学习回顾用，包含关键概念和记忆要点")
+        private String knowledgeNote;
 
         @Description("所属模块标签")
         private String moduleTag;

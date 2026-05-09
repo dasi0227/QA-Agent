@@ -2,10 +2,14 @@ package com.dasi.qa.agent.domain.agent.service.generate.model.enumeration;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @AllArgsConstructor
+@Slf4j
 public enum GeneratePhase {
+    UNKNOWN("UNKNOWN", "UnknownAgent", "未识别的执行阶段。"),
+
     GENERATE("GENERATING", "GenerateAgent", "先执行请求判定，再根据路由结果进入终止分支或完整生成链路。"),
     ROUTE("ROUTING", "RouteAgent", "读取判定结果并路由到终止分支或继续执行生成分支。"),
     DECIDE("DECIDING", "DecideAgent", "识别用户请求是否满足问答集生成场景并给出判定结果。"),
@@ -44,6 +48,7 @@ public enum GeneratePhase {
         if (SUMMARIZE.getAgentName().equals(agentName)) {
             return SUMMARIZE;
         }
-        throw new IllegalArgumentException("Unknown agentName: " + agentName);
+        log.warn("Unknown agent phase mapping: agentName={}", agentName);
+        return UNKNOWN;
     }
 }

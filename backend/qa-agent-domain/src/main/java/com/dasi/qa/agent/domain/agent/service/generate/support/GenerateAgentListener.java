@@ -53,13 +53,16 @@ public class GenerateAgentListener implements AgentListener {
         int current = total - lastPublishedTokens.getAndSet(total);
 
         // 获取当前执行阶段
-        GeneratePhase phase = GeneratePhase.fromAgentName(response.agentName());
+        GeneratePhase generatePhase = GeneratePhase.fromAgentName(response.agentName());
+
+        // 模型回复
+        String reference = JSON.toJSONString(response.output());
 
         // 调用 Supervisor 获取阶段性总结文本
-        String summary = summarizeStage(phase, response.output());
+        String message = getSupervisorMessage(generatePhase, reference);
 
         // 发送总结性消息
-        eventPublisher.publishEvent(phase, GenerateStatus.PROCESSING, summary, current);
+        eventPublisher.publishEvent(generatePhase, GenerateStatus.PROCESSING, message, current);
     }
 
     /**
@@ -68,35 +71,39 @@ public class GenerateAgentListener implements AgentListener {
     @Override
     public void onAgentInvocationError(AgentInvocationError error) {
         // 获取当前执行阶段
-        GeneratePhase phase = GeneratePhase.fromAgentName(error.agentName());
+        GeneratePhase generatePhase = GeneratePhase.fromAgentName(error.agentName());
 
-        // 拿到错误信息
-        String message = error.error() == null ? "Agent 调用失败" : error.error().getMessage();
+        // 错误原因
+        String reference = error.error() == null ? "Agent 调用失败" : error.error().getMessage();
 
-        // 输出日志并发送错误事件
+        // 调用 Supervisor 获取阶段性总结文本
+        String message = getSupervisorMessage(generatePhase, reference);
+
+        // 发送总结性消息
+        eventPublisher.publishEvent(generatePhase, GenerateStatus.PROCESSING, message, 0);
+
         log.error("Agent invocation failed: taskId={}, agent={}, message={}", taskId, error.agentName(), message);
-        eventPublisher.publishEvent(phase, GenerateStatus.PROCESSING, phase.getGenerateStage() + " 阶段出现可恢复错误：" + message, 0);
-    }
-
-    private String summarizeStage(GeneratePhase phase, Object output) {
-        try {
-            ChatResponse response = chat(supervisorChatModel,
-                    promptUtil.loadSupervisorPrompt(),
-                    "阶段：" + phase.getGenerateStage() + "\n产出：" + JSON.toJSONString(output));
-            return response.aiMessage().text();
-        } catch (Exception e) {
-            return phase.getGenerateStage() + " 阶段完成";
-        }
-    }
-
-    private ChatResponse chat(ChatModel model, String systemPrompt, String userPrompt) {
-        ChatResponse response = model.chat(SystemMessage.from(systemPrompt), UserMessage.from(userPrompt));
-        totalTokens.addAndGet(getTokens(response));
-        return response;
     }
 
     /**
-     * 从智能体回复中的元信息拿到 Token 用量
+     * 调用系统预设的监督智能体，生成阶段性总结消息
+     */
+    private String getSupervisorMessage(GeneratePhase generatePhase, String reference) {
+        try {
+            String systemPrompt = promptUtil.loadSupervisorPrompt();
+            String userPrompt = "阶段：" + generatePhase.getGenerateStage() + "\n产出：" + reference;
+            ChatResponse response = supervisorChatModel.chat(
+                    SystemMessage.from(systemPrompt),
+                    UserMessage.from(userPrompt)
+            );
+            return response.aiMessage().text();
+        } catch (Exception e) {
+            return generatePhase.getGenerateStage() + " 阶段完成";
+        }
+    }
+
+    /**
+     * 从智能体回复的元信息拿到 Token 用量
      */
     private int getTokens(ChatResponse response) {
         if (response == null) return 0;
