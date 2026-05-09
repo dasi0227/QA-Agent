@@ -11,15 +11,11 @@ public interface EvaluateAgent {
     @SystemMessage(fromResource = "prompt/generation-evaluate.txt")
     @UserMessage("""
             待校验题目：
-            {{draftItems}}
+            {{draftItemsJson}}
 
-            证据块：
-            {{evidenceChunks}}
-
-            请返回 ValidationResult JSON 数组。
+            请返回 EvaluateResult JSON 数组。
             """)
     @Agent(name = "EVALUATOR", description = "审校题目事实准确性和证据边界", outputKey = "lastValidationResults")
     String evaluate(@MemoryId @V("taskId") String taskId,
-                    @V("draftItems") String draftItemsJson,
-                    @V("evidenceChunks") String evidenceChunks);
+                    @V("draftItemsJson") String draftItemsJson);
 }

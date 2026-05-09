@@ -10,48 +10,35 @@ public interface SummarizeAgent {
 
     @SystemMessage(fromResource = "prompt/generation-summarize.txt")
     @UserMessage("""
-            用户要求：
-            {{userPrompt}}
+            用户要求：{{userPrompt}}
+            用户资料：{{userProfile}}
 
-            题集标题：
-            {{title}}
+            题集标题：{{title}}
+            题集概述：{{description}}
 
-            规划结果：
-            {{planResult}}
+            请求题数：{{requiredCount}}
+            实际通过题数：{{generatedCount}}
 
-            计划题数：
-            {{plannedCount}}
+            模块名称：{{modules}}
+            题目标签：{{tags}}
 
-            实际通过题数：
-            {{passedCount}}
+            累计 token：{{totalTokens}}
 
-            未通过题数：
-            {{rejectedCount}}
-
-            Creator 失败模块：
-            {{failedModules}}
-
-            模块分布：
-            {{moduleCounts}}
-
-            难度分布：
-            {{difficultyCounts}}
-
-            累计 token：
-            {{totalTokens}}
+            最终题目：
+            {{qa}}
 
             请直接输出最终完成说明文本。
             """)
     @Agent(name = "SUMMARIZER", description = "根据生成结果和统计信息生成最终完成说明")
     String summarize(@MemoryId @V("taskId") String taskId,
                      @V("userPrompt") String userPrompt,
+                     @V("userProfile") String userProfile,
                      @V("title") String title,
-                     @V("planResult") String planResult,
-                     @V("plannedCount") int plannedCount,
-                     @V("passedCount") int passedCount,
-                     @V("rejectedCount") int rejectedCount,
-                     @V("failedModules") String failedModules,
-                     @V("moduleCounts") String moduleCounts,
-                     @V("difficultyCounts") String difficultyCounts,
-                     @V("totalTokens") int totalTokens);
+                     @V("description") String description,
+                     @V("requiredCount") int requiredCount,
+                     @V("generatedCount") int generatedCount,
+                     @V("totalTokens") int totalTokens,
+                     @V("modules") String modules,
+                     @V("tags") String tags,
+                     @V("qa") String qa);
 }

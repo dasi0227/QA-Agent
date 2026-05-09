@@ -6,6 +6,7 @@ import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserLlmModelVO;
+import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileVO;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
@@ -29,6 +30,8 @@ public interface IAgentRepository {
     List<TaskMessageResponse> getTaskMessages(String taskId, String userId);
 
     UserLlmModelVO getUserLlmModel(String userId);
+
+    UserProfileVO getUserProfile(String userId);
 
     String getDocumentsSummary(List<String> documentIds, String userId);
 

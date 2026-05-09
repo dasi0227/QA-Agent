@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,12 +18,9 @@ public class PlanItem {
     @Description("该模块题目数")
     private int questionCount;
 
-    @Description("难度分布")
-    private DifficultyDistribution difficultyDistribution;
+    @Description("重点考察话题，逗号分隔")
+    private String focusTopics;
 
-    @Description("重点考察话题")
-    private List<String> focusTopics;
-
-    @Description("建议题目类型")
-    private List<String> suggestedQuestionTypes;
+    @Description("建议题目类型，逗号分隔")
+    private String suggestedQuestionTypes;
 }

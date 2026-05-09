@@ -22,9 +22,15 @@ public class RagEvidenceProvider {
 
     public List<SearchResult> search(String userId, List<String> documentIds, PlanItem planItem) {
         List<SearchResult> results = new ArrayList<>();
-        List<String> topics = planItem.getFocusTopics() == null || planItem.getFocusTopics().isEmpty()
-                ? List.of(planItem.getModuleTag()) : planItem.getFocusTopics();
+        String focusTopics = planItem.getFocusTopics();
+        List<String> topics = (focusTopics == null || focusTopics.isBlank())
+                ? List.of(planItem.getModuleTag())
+                : List.of(focusTopics.split(","));
         for (String topic : topics) {
+            topic = topic.trim();
+            if (topic.isEmpty()) {
+                continue;
+            }
             SearchRequest request = SearchRequest.builder()
                     .queryText(topic)
                     .strategy(SearchStrategy.HYBRID.name())

@@ -11,23 +11,19 @@ public interface PlanAgent {
 
     @SystemMessage(fromResource = "prompt/generation-plan.txt")
     @UserMessage("""
-            资料摘要：
+            资料目录：
             {{documents}}
 
-            目标岗位：{{targetRole}}
-            目标方向：{{targetDomain}}
-            目标公司：{{targetCompany}}
-            用户备注：{{note}}
+            用户资料：{{userProfile}}
+            用户备注：{{userPrompt}}
             目标题数：{{questionCount}}
 
             请返回 PlanResult JSON。
             """)
-    @Agent(name = "PLANNER", description = "分析资料结构并规划问答集模块", outputKey = "planResult")
+    @Agent(name = "PLANNER", description = "分析资料目录结构并规划问答集模块", outputKey = "planResult")
     PlanResult plan(@MemoryId @V("taskId") String taskId,
-                    @V("documents") String documentsSummary,
-                    @V("targetRole") String targetRole,
-                    @V("targetDomain") String targetDomain,
-                    @V("targetCompany") String targetCompany,
-                    @V("note") String note,
+                    @V("documents") String documents,
+                    @V("userProfile") String userProfile,
+                    @V("userPrompt") String userPrompt,
                     @V("questionCount") int questionCount);
 }

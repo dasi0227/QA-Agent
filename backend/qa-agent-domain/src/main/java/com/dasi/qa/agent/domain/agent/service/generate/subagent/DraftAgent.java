@@ -11,26 +11,20 @@ public interface DraftAgent {
     @SystemMessage(fromResource = "prompt/generation-draft.txt")
     @UserMessage("""
             模块：{{moduleTag}}
-            证据块：{{evidenceChunks}}
-            目标岗位：{{targetRole}}
-            目标公司：{{targetCompany}}
-            回答风格：{{answerStyle}}
-            难度分布：{{difficultyDistribution}}
+            证据块：{{evidence}}
+            用户资料：{{userProfile}}
             本批题数：{{questionCount}}
             已有题目：{{previousQuestions}}
-            用户备注：{{note}}
+            用户备注：{{userPrompt}}
 
             请返回 DraftItem JSON 数组。
             """)
-    @Agent(name = "DRAFTER", description = "根据资料证据起草问答题目", outputKey = "draftItems")
+    @Agent(name = "DRAFTER", description = "根据检索证据起草结构化问答题目", outputKey = "draftItems")
     String draft(@MemoryId @V("taskId") String taskId,
                  @V("moduleTag") String moduleTag,
-                 @V("evidenceChunks") String evidenceChunks,
-                 @V("targetRole") String targetRole,
-                 @V("targetCompany") String targetCompany,
-                 @V("answerStyle") String answerStyle,
-                 @V("difficultyDistribution") String difficultyDistribution,
+                 @V("evidence") String evidence,
+                 @V("userProfile") String userProfile,
                  @V("questionCount") int questionCount,
                  @V("previousQuestions") String previousQuestions,
-                 @V("note") String note);
+                 @V("userPrompt") String userPrompt);
 }

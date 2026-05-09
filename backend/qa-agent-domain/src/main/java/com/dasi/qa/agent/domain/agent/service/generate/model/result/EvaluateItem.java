@@ -10,14 +10,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DifficultyDistribution {
+public class EvaluateItem {
 
-    @Description("简单题数")
-    private int easy;
+    @Description("校验结论，必须是 PASS / AMEND / REJECT 之一")
+    private String verdict;
 
-    @Description("中等题数")
-    private int medium;
+    @Description("判定原因")
+    private String reason;
 
-    @Description("困难题数")
-    private int hard;
+    @Description("修改建议，AMEND 时提供，其余留空")
+    private String suggestion;
 }

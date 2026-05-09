@@ -23,9 +23,9 @@ public class UserProfileVO {
 
     private String feedbackStyle;
 
-    private Integer age;
+    private String age;
 
-    private Integer grade;
+    private String grade;
 
     private String major;
 

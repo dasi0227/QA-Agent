@@ -11,23 +11,15 @@ public interface AmendAgent {
     @SystemMessage(fromResource = "prompt/generation-amend.txt")
     @UserMessage("""
             待修订题目与审校意见：
-            {{revisionItems}}
-
-            证据块：
-            {{evidenceChunks}}
-
-            已有题目：
-            {{previousQuestions}}
+            {{amendItemsJson}}
 
             用户备注：
-            {{note}}
+            {{userPrompt}}
 
             请返回 DraftItem JSON 数组。
             """)
     @Agent(name = "AMENDER", description = "按审校意见最小修订问答题目", outputKey = "amendedDraftItems")
     String amend(@MemoryId @V("taskId") String taskId,
-                 @V("revisionItems") String revisionItemsJson,
-                 @V("evidenceChunks") String evidenceChunks,
-                 @V("previousQuestions") String previousQuestions,
-                 @V("note") String note);
+                 @V("amendItemsJson") String amendItemsJson,
+                 @V("userPrompt") String userPrompt);
 }

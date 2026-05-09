@@ -8,6 +8,7 @@ import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserLlmModelVO;
+import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskEntity;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskMessageEntity;
@@ -174,6 +175,27 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
+    public UserProfileVO getUserProfile(String userId) {
+        UserProfileEntity profile = userProfileMapper.selectById(userId);
+        if (profile == null) {
+            return null;
+        }
+        return new UserProfileVO(
+                profile.getTargetRole(),
+                profile.getTargetDomain(),
+                profile.getTargetCompany(),
+                profile.getAllowGeneralKnowledge(),
+                profile.getAllowWebSearch(),
+                profile.getAnswerStyle(),
+                profile.getFeedbackStyle(),
+                profile.getAge(),
+                profile.getGrade(),
+                profile.getMajor(),
+                profile.getStage()
+        );
+    }
+
+    @Override
     public String getDocumentsSummary(List<String> documentIds, String userId) {
         if (documentIds == null || documentIds.isEmpty()) {
             return "";
@@ -216,11 +238,10 @@ public class AgentRepository implements IAgentRepository {
             item.setQuestion(draftItem.getQuestion());
             item.setKnowledgeNote(draftItem.getKnowledgeNote());
             item.setAnswer(draftItem.getAnswer());
-            item.setModuleTag(draftItem.getModuleTag());
-            item.setDifficulty(draftItem.getDifficulty() == null ? null : draftItem.getDifficulty().name());
+            item.setModuleTag(draftItem.getTag());
+            item.setDifficulty(draftItem.getDifficulty());
             item.setConflictTip(draftItem.getConflictTip());
-            item.setSourceChunkIdsJson(JSON.toJSONString(draftItem.getSourceChunkIds() == null
-                    ? List.of() : draftItem.getSourceChunkIds()));
+            item.setSourceChunkIdsJson(JSON.toJSONString(List.of()));
             item.setSortOrder(sortOrder++);
             qaItemMapper.insert(item);
         }
@@ -253,8 +274,8 @@ public class AgentRepository implements IAgentRepository {
     private List<String> moduleTags(List<DraftItem> draftItems) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (DraftItem draftItem : draftItems) {
-            if (draftItem.getModuleTag() != null && !draftItem.getModuleTag().isBlank()) {
-                tags.add(draftItem.getModuleTag());
+            if (draftItem.getTag() != null && !draftItem.getTag().isBlank()) {
+                tags.add(draftItem.getTag());
             }
         }
         return new ArrayList<>(tags);
