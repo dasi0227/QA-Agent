@@ -1,14 +1,17 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.VerdictType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
-import com.dasi.qa.agent.domain.agent.service.generate.support.*;
+import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentFactory;
+import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentListener;
+import com.dasi.qa.agent.domain.agent.service.generate.support.RagEvidenceProvider;
+import com.dasi.qa.agent.domain.agent.service.generate.support.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.RagSearchTool;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.WebSearchTool;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
@@ -18,6 +21,7 @@ import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
+import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
@@ -33,7 +37,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @Service
@@ -220,7 +227,7 @@ public class GenerateAgent implements IGenerateAgent {
             decideAgent.decide(decideContext.getTaskId(), decideContext.getRequest().getUserPrompt());
         } catch (Exception exception) {
             log.warn("【GenerateAgent - DecideAgent】调用智能体出错: taskId={}, error={}", decideContext.getTaskId(), exception.getMessage());
-            scope.writeState("decideResult", new DecideResult(false, "DecideAgent 执行出错，默认判定为不可继续执行"));
+            scope.writeState("decideResult", fallbackDecide());
         }
     }
 
@@ -391,12 +398,116 @@ public class GenerateAgent implements IGenerateAgent {
         // 2. 初次生成的问答集合
         List<DraftItem> draftItems = readDraftResult(scope);
 
-        // 3. 验证纠错后的问答集合
-        ValidationCoordinator validationCoordinator = new ValidationCoordinator(BATCH_SIZE, jsonUtil, applicationTaskExecutor);
-        List<DraftItem> validatedItems = validationCoordinator.doValidate(context.getTaskId(), evaluateAgent, amendAgent, draftItems);
+        // 3. 获取不同批次集合
+        List<List<DraftItem>> batchList = new ArrayList<>();
+        for (int i = 0; i < draftItems.size(); i += BATCH_SIZE) {
+            batchList.add(draftItems.subList(i, Math.min(i + BATCH_SIZE, draftItems.size())));
+        }
 
-        // 4. 写入共享领域
+        // 4. 创建每个批次的异步任务
+        List<CompletableFuture<List<DraftItem>>> futureList = batchList.stream()
+                .map(batch -> CompletableFuture.supplyAsync(() -> doValidateLoop(context.getTaskId(), evaluateAgent, amendAgent, batch, context.getRequest().getUserPrompt()), applicationTaskExecutor))
+                .toList();
+
+        // 5. 等待所有批次的异步任务执行完成并汇总结果
+        List<DraftItem> validatedItems = futureList.stream()
+                .map(CompletableFuture::join)
+                .flatMap(List::stream)
+                .toList();
+
+        // 6. 写入共享领域
         scope.writeState("validateResult", validatedItems);
+    }
+
+    private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, List<DraftItem> batch, String userPrompt) {
+        List<DraftItem> passItems = new ArrayList<>();
+        AtomicReference<List<DraftItem>> evaluateItems = new AtomicReference<>(batch);
+        AtomicReference<List<AmendItem>> amendItems = new AtomicReference<>(List.of());
+        AtomicBoolean flag = new AtomicBoolean(true);
+
+        UntypedAgent validateAgent = AgenticServices.loopBuilder()
+                .name(GeneratePhase.VALIDATE.getAgentName())
+                .description(GeneratePhase.VALIDATE.getAgentDesc())
+                .maxIterations(2)
+                .exitCondition((scope, iteration) -> flag.get())
+                .subAgents(
+                        // 校验
+                        AgenticServices.agentAction(scope -> {
+                            List<EvaluateItem> evaluates = doEvaluate(taskId, evaluateAgent, evaluateItems.get());
+
+                            List<AmendItem> amends = new ArrayList<>();
+                            for (int i = 0; i < Math.min(evaluateItems.get().size(), evaluates.size()); i++) {
+                                if (VerdictType.PASS.name().equals(evaluates.get(i).getVerdict())) {
+                                    passItems.add(evaluateItems.get().get(i));
+                                } else {
+                                    AmendItem amendItem = AmendItem.builder()
+                                            .draftItem(evaluateItems.get().get(i))
+                                            .reason(evaluates.get(i).getReason())
+                                            .suggestion(evaluates.get(i).getSuggestion())
+                                            .build();
+                                    amends.add(amendItem);
+                                }
+                            }
+
+                            amendItems.set(amends);
+                        }),
+
+                        // 修改
+                        AgenticServices.agentAction(scope -> {
+                            if (amendItems.get().isEmpty()) {
+                                flag.set(true);
+                                return;
+                            }
+                            List<DraftItem> amended = doAmend(taskId, amendAgent, amendItems.get(), userPrompt);
+                            evaluateItems.set(amended);
+                        })
+                )
+                .output(scope -> evaluateItems.get())
+                .build();
+
+        try {
+            validateAgent.invoke(Map.of());
+        } catch (Exception exception) {
+            log.warn("【GenerateAgent - ValidateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
+        }
+
+        return passItems;
+    }
+
+    private List<EvaluateItem> doEvaluate(String taskId, EvaluateAgent evaluateAgent, List<DraftItem> drafts) {
+        try {
+            String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(drafts));
+            return jsonUtil.parseJsonArray(response, EvaluateItem.class);
+        } catch (Exception exception) {
+            log.warn("【GenerateAgent - EvaluateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
+            return fallbackEvaluate(drafts);
+        }
+    }
+
+    private List<DraftItem> doAmend(String taskId, AmendAgent amendAgent, List<AmendItem> items, String userPrompt) {
+        try {
+            String response = amendAgent.amend(taskId, jsonUtil.toJsonString(items), userPrompt);
+            return jsonUtil.parseJsonArray(response, DraftItem.class);
+        } catch (Exception exception) {
+            log.warn("【GenerateAgent - AmendAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
+            return fallbackAmend(items);
+        }
+    }
+
+    private List<DraftItem> fallbackAmend(List<AmendItem> items) {
+        List<DraftItem> results = new ArrayList<>();
+        for (AmendItem item : items) {
+            results.add(item.getDraftItem());
+        }
+        return results;
+    }
+
+    private List<EvaluateItem> fallbackEvaluate(List<DraftItem> drafts) {
+        List<EvaluateItem> results = new ArrayList<>();
+        for (int i = 0; i < drafts.size(); i++) {
+            results.add(new EvaluateItem(VerdictType.PASS.name(), "fallback pass", ""));
+        }
+        return results;
     }
 
     /**
@@ -453,7 +564,7 @@ public class GenerateAgent implements IGenerateAgent {
             );
         } catch (Exception exception) {
             log.warn("【GenerateAgent - SummarizeAgent】调用智能体出错: taskId={}, error={}", summarizeContext.getTaskId(), exception.getMessage());
-            summaryMessage = "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。" + "模块：" + modules + "。标签：" + tags + "。";
+            summaryMessage = fallbackSummarize(requiredCount, generatedCount, modules, tags);
         }
 
         // 7. 标记任务完成
@@ -485,6 +596,14 @@ public class GenerateAgent implements IGenerateAgent {
                 List.of(new PlanItem("General", request.getRequestedQuestionCount(),
                         "核心知识点", "概念题, 场景题"))
         );
+    }
+
+    private DecideResult fallbackDecide() {
+        return new DecideResult(false, "DecideAgent 执行出错，默认判定为不可继续执行");
+    }
+
+    private String fallbackSummarize(int requiredCount, int generatedCount, String modules, String tags) {
+        return "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。模块：" + modules + "。标签：" + tags + "。";
     }
 
     private DecideResult readDecideResult(AgenticScope scope) {

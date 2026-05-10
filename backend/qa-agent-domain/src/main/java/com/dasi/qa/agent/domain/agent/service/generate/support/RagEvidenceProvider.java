@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * RAG 证据检索器，按 PlanItem 的 focusTopics 逐主题搜索资料库，去重后返回证据列表。
+ */
 @Component
 public class RagEvidenceProvider {
 

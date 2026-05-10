@@ -10,6 +10,9 @@ import dev.langchain4j.agent.tool.Tool;
 
 import java.util.List;
 
+/**
+ * RAG 检索工具，供 Agent 按关键词和模块标签搜索用户上传资料中的知识片段。
+ */
 public class RagSearchTool {
 
     private final ISearchService searchService;

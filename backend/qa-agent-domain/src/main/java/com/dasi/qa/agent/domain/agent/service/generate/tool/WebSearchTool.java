@@ -12,6 +12,9 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.util.List;
 
+/**
+ * 联网搜索工具，供 Agent 搜索目标公司岗位的真实面试经验与面经。
+ */
 public class WebSearchTool {
 
     private final ChatModel webSearchModel;

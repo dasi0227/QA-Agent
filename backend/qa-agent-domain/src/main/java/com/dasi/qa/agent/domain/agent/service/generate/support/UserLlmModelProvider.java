@@ -11,6 +11,9 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 
+/**
+ * 用户 LLM 模型提供器，读取用户配置的 base_url/api_key/model_name，构建 ChatModel 实例。
+ */
 @Component
 public class UserLlmModelProvider {
 
