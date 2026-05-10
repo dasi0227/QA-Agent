@@ -1,20 +1,22 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.AmendItem;
-import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.EvaluateItem;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
-import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
+import com.dasi.qa.agent.domain.util.IJsonUtil;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -22,163 +24,130 @@ public class ValidationCoordinator {
 
     private static final String V_PASS = "PASS";
     private static final String V_AMEND = "AMEND";
-    private static final String V_REJECT = "REJECT";
 
     private final int batchSize;
     private final IJsonUtil jsonUtil;
+    private final Executor executor;
 
-    public ValidationCoordinator(int batchSize, IJsonUtil jsonUtil) {
+    public ValidationCoordinator(int batchSize, IJsonUtil jsonUtil, Executor executor) {
         this.batchSize = batchSize;
         this.jsonUtil = jsonUtil;
+        this.executor = executor;
     }
 
-    public List<DraftItem> run(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
-                              AmendAgent amendAgent, List<DraftItem> drafts) {
-        List<DraftItem> passedDrafts = new ArrayList<>();
-
-        for (List<DraftItem> batch : batches(drafts, batchSize)) {
-            List<EvaluateItem> initialResults = evaluateOnce(taskId, evaluateAgent, batch);
-            passedDrafts.addAll(itemsByVerdict(batch, initialResults, V_PASS));
-            List<AmendItem> amendItems = amendItemsList(batch, initialResults);
-            if (!amendItems.isEmpty()) {
-                passedDrafts.addAll(runValidationLoop(taskId, request, evaluateAgent, amendAgent,
-                        amendItems));
-            }
+    public List<DraftItem> doValidate(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, List<DraftItem> drafts) {
+        // 1. 获取不同批次集合
+        List<List<DraftItem>> batchList = new ArrayList<>();
+        for (int i = 0; i < drafts.size(); i += batchSize) {
+            batchList.add(drafts.subList(i, Math.min(i + batchSize, drafts.size())));
         }
 
-        return passedDrafts.stream()
-                .filter(Objects::nonNull)
-                .filter(item -> StringUtils.hasText(item.getQuestion()) && StringUtils.hasText(item.getAnswer()))
-                .map(item -> new DraftItem(
-                        item.getQuestion().trim(),
-                        item.getAnswer().trim(),
-                        item.getKnowledgeNote() != null ? item.getKnowledgeNote().trim() : "",
-                        StringUtils.hasText(item.getTag()) ? item.getTag().trim() : "General",
-                        StringUtils.hasText(item.getDifficulty()) ? item.getDifficulty().trim() : "MEDIUM",
-                        item.getConflictTip() != null ? item.getConflictTip() : "",
-                        item.getEvidence() != null ? item.getEvidence() : ""))
+        // 2. 创建每个批次的异步任务
+        List<CompletableFuture<List<DraftItem>>> futureList = batchList.stream()
+                .map(batch -> CompletableFuture.supplyAsync(() -> doValidateLoop(taskId, evaluateAgent, amendAgent, batch), executor))
+                .toList();
+
+        // 3. 等待所有批次的异步任务执行完成并汇总结果
+        return futureList.stream()
+                .map(CompletableFuture::join)
+                .flatMap(List::stream)
                 .toList();
     }
 
-    private List<DraftItem> runValidationLoop(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
-                                              AmendAgent amendAgent, List<AmendItem> amendItems) {
-        AtomicReference<List<DraftItem>> currentItems = new AtomicReference<>(
-                amendItems.stream().map(AmendItem::getDraftItem).toList());
-        AtomicReference<List<EvaluateItem>> currentResults = new AtomicReference<>(List.of());
-        AtomicReference<Boolean> amendmentFailed = new AtomicReference<>(false);
+    //
+    private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, List<DraftItem> batch) {
+        // 通过集
+        List<DraftItem> passItems = new ArrayList<>();
 
-        UntypedAgent validationLoop = AgenticServices.loopBuilder()
-                .name("VALIDATION_LOOP")
-                .description("按 evaluate 结果决定是否执行 amend")
+        // 当前审批集
+        AtomicReference<List<DraftItem>> evaluateItems = new AtomicReference<>(batch);
+
+        // 当前修改集
+        AtomicReference<List<AmendItem>> amendItems = new AtomicReference<>(List.of());
+
+        // 当前审批结果
+        AtomicBoolean flag = new AtomicBoolean(true);
+
+        // 构造 ValidateDAG
+        UntypedAgent validateAgent = AgenticServices.loopBuilder()
+                .name(GeneratePhase.VALIDATE.getAgentName())
+                .description(GeneratePhase.VALIDATE.getAgentDesc())
                 .maxIterations(2)
-                .exitCondition((loopScope, iteration) -> iteration >= 2 || noAmend(currentResults.get()))
+                .exitCondition((scope, iteration) -> flag.get())
                 .subAgents(
-                        AgenticServices.agentAction(loopScope -> currentResults.set(evaluateOnce(
-                                taskId, evaluateAgent, currentItems.get()))),
-                        AgenticServices.agentAction(loopScope -> {
-                            if (noAmend(currentResults.get())) {
+                        // 校验
+                        AgenticServices.agentAction(scope -> {
+                            List<EvaluateItem> evaluates = doEvaluate(taskId, evaluateAgent, evaluateItems.get());
+
+                            List<AmendItem> amends = new ArrayList<>();
+                            for (int i = 0; i < Math.min(evaluateItems.get().size(), evaluates.size()); i++) {
+                                if (V_PASS.equals(evaluates.get(i).getVerdict())) {
+                                    passItems.add(evaluateItems.get().get(i));
+                                } else {
+                                    AmendItem amendItem = AmendItem.builder()
+                                            .draftItem(evaluateItems.get().get(i))
+                                            .reason(evaluates.get(i).getReason())
+                                            .suggestion(evaluates.get(i).getSuggestion())
+                                            .build();
+                                    amends.add(amendItem);
+                                }
+                            }
+
+                            amendItems.set(amends);
+                        }),
+
+                        // 修改
+                        AgenticServices.agentAction(scope -> {
+                            if (amendItems.get().isEmpty()) {
+                                flag.set(true);
                                 return;
                             }
-                            List<AmendItem> currentAmendItems = amendItemsList(currentItems.get(), currentResults.get());
-                            List<DraftItem> amended = amendRevisions(taskId, amendAgent,
-                                    currentAmendItems);
-                            if (amended.size() != currentAmendItems.size()) {
-                                amendmentFailed.set(true);
-                                throw new IllegalStateException("AmendAgent output size mismatch");
-                            }
-                            currentItems.set(amended);
+                            List<EvaluateItem> evaluates = doDraft(taskId, amendItems.get(), "");
+
+                            String response = amendAgent.amend(taskId, jsonUtil.toJsonString(amendItems), "");
+                            evaluateItems.set(evaluates);
                         })
                 )
-                .output(loopScope -> currentItems.get())
+                .output(scope -> evaluateItems.get())
                 .build();
 
+        // 调用智能体
         try {
-            validationLoop.invoke(java.util.Map.of("taskId", taskId));
+            validateAgent.invoke(Map.of());
         } catch (Exception exception) {
-            amendmentFailed.set(true);
-            log.warn("Validation loop failed, amended items rejected: count={}, message={}",
-                    amendItems.size(), exception.getMessage());
+            log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
         }
 
-        if (Boolean.TRUE.equals(amendmentFailed.get())) {
-            return List.of();
-        }
-        return itemsByVerdict(currentItems.get(), currentResults.get(), V_PASS);
+        return passItems;
     }
 
-    private List<DraftItem> amendRevisions(String taskId, AmendAgent amendAgent,
-                                           List<AmendItem> amendItems) {
-        if (amendItems.isEmpty()) {
-            return List.of();
-        }
-        String response = amendAgent.amend(
-                taskId,
-                jsonUtil.toJsonString(amendItems),
-                ""
-        );
-        List<DraftItem> parsed = jsonUtil.parseJsonArray(response, DraftItem.class);
-        return parsed == null ? List.of() : parsed;
-    }
-
-    private List<EvaluateItem> evaluateOnce(String taskId, EvaluateAgent evaluateAgent,
-                                            List<DraftItem> drafts) {
+    private List<EvaluateItem> doEvaluate(String taskId, EvaluateAgent evaluateAgent, List<DraftItem> drafts) {
         try {
             String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(drafts));
-            List<EvaluateItem> parsed = jsonUtil.parseJsonArray(response, EvaluateItem.class);
-            return parsed == null || parsed.isEmpty() ? passAll(drafts) : parsed;
+            return jsonUtil.parseJsonArray(response, EvaluateItem.class);
         } catch (Exception exception) {
-            log.warn("EvaluateAgent failed, fallback pass used: message={}", exception.getMessage());
-            return passAll(drafts);
+            log.warn("【GenerateAgent - EvaluateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
+            return fallbackDraft(drafts);
         }
     }
 
-    private List<AmendItem> amendItemsList(List<DraftItem> drafts, List<EvaluateItem> results) {
-        List<AmendItem> items = new ArrayList<>();
-        if (results == null) {
-            return items;
+    private List<EvaluateItem> doDraft(String taskId, List<AmendItem> drafts, String userPrompt) {
+        try {
+            String response = amendAgent.amend(taskId, jsonUtil.toJsonString(drafts), userPrompt);
+            return jsonUtil.parseJsonArray(response, EvaluateItem.class);
+        } catch (Exception exception) {
+            log.warn("【GenerateAgent - EvaluateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
+            return fallbackDraft();
         }
-        int count = Math.min(drafts.size(), results.size());
-        for (int i = 0; i < count; i++) {
-            if (V_AMEND.equals(results.get(i).getVerdict())) {
-                items.add(new AmendItem(drafts.get(i),
-                        results.get(i).getReason(), results.get(i).getSuggestion()));
-            }
-        }
-        return items;
     }
 
-    private List<EvaluateItem> passAll(List<DraftItem> drafts) {
+
+    private List<EvaluateItem> fallbackDraft(List<DraftItem> drafts) {
         List<EvaluateItem> results = new ArrayList<>();
         for (int i = 0; i < drafts.size(); i++) {
             results.add(new EvaluateItem(V_PASS, "fallback pass", ""));
         }
         return results;
-    }
-
-    private List<DraftItem> itemsByVerdict(List<DraftItem> drafts, List<EvaluateItem> results, String verdict) {
-        List<DraftItem> items = new ArrayList<>();
-        if (results == null) {
-            return items;
-        }
-        int count = Math.min(drafts.size(), results.size());
-        for (int i = 0; i < count; i++) {
-            if (verdict.equals(results.get(i).getVerdict())) {
-                items.add(drafts.get(i));
-            }
-        }
-        return items;
-    }
-
-    private boolean noAmend(List<EvaluateItem> results) {
-        return results == null || results.stream().noneMatch(result -> V_AMEND.equals(result.getVerdict()));
-    }
-
-    private List<List<DraftItem>> batches(List<DraftItem> drafts, int batchSize) {
-        List<List<DraftItem>> batches = new ArrayList<>();
-        for (int i = 0; i < drafts.size(); i += batchSize) {
-            batches.add(drafts.subList(i, Math.min(i + batchSize, drafts.size())));
-        }
-        return batches;
     }
 
 }

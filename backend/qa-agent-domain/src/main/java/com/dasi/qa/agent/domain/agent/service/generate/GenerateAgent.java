@@ -392,8 +392,8 @@ public class GenerateAgent implements IGenerateAgent {
         List<DraftItem> draftItems = readDraftResult(scope);
 
         // 3. 验证纠错后的问答集合
-        ValidationCoordinator validationCoordinator = new ValidationCoordinator(BATCH_SIZE, jsonUtil);
-        List<DraftItem> validatedItems = validationCoordinator.run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, draftItems);
+        ValidationCoordinator validationCoordinator = new ValidationCoordinator(BATCH_SIZE, jsonUtil, applicationTaskExecutor);
+        List<DraftItem> validatedItems = validationCoordinator.doValidate(context.getTaskId(), evaluateAgent, amendAgent, draftItems);
 
         // 4. 写入共享领域
         scope.writeState("validateResult", validatedItems);
