@@ -232,7 +232,7 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.updateTaskPhase(abortContext.getTaskId(), GeneratePhase.ABORT);
 
         // 2. 拿到决策结果
-        DecideResult decideResult = DecideResult.fromScope(scope);
+        DecideResult decideResult = readDecideResult(scope);
         String reason = decideResult.getReason();
 
         // 3. 调用智能体
@@ -385,37 +385,44 @@ public class GenerateAgent implements IGenerateAgent {
      * ValidateAgent 负责审校 draftResult 中的题目并修订可修复项，输出 validatedResult 写入 scope。
      */
     private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext context) {
-        // 更新状态
+        // 1. 更新状态
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.VALIDATE);
 
-        // 初次生成的问答集合
+        // 2. 初次生成的问答集合
         List<DraftItem> draftItems = readDraftResult(scope);
 
-        // 验证纠错后的问答集合
+        // 3. 验证纠错后的问答集合
         ValidationCoordinator validationCoordinator = new ValidationCoordinator(BATCH_SIZE, jsonUtil);
         List<DraftItem> validatedItems = validationCoordinator.run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, draftItems);
 
-        // 写入共享领域
+        // 4. 写入共享领域
         scope.writeState("validateResult", validatedItems);
     }
 
     /**
-     * SummarizeAgent 负责落库最终问答集并生成完成说明，输出 qaSetId 写入 scope。
+     * SummarizeAgent 负责落库最终问答集并生成完成说明。
      */
-    private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext context) {
-        agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.SUMMARIZE);
+    private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext summarizeContext) {
+        // 1. 更新状态
+        agentRepository.updateTaskPhase(summarizeContext.getTaskId(), GeneratePhase.SUMMARIZE);
+
+        // 2. 计划结果
         PlanResult planResult = readPlanResult(scope);
+
+        // 3. 生成结果
         List<DraftItem> validatedResult = readValidateResult(scope);
 
+        // 4. 保存 QA Set
         String qaSetId = agentRepository.saveGeneratedQaSet(
-                context.getTaskId(),
-                context.getUserId(),
-                context.getRequest(),
+                summarizeContext.getTaskId(),
+                summarizeContext.getUserId(),
+                summarizeContext.getRequest(),
                 planResult,
                 validatedResult
         );
 
-        int requiredCount = context.getRequest().getRequestedQuestionCount();
+        // 5. 解析结果
+        int requiredCount = summarizeContext.getRequest().getRequestedQuestionCount();
         int generatedCount = validatedResult.size();
         String modules = planResult.getPlanItems().stream()
                 .map(item -> item.getModuleTag() == null ? "" : item.getModuleTag())
@@ -429,13 +436,14 @@ public class GenerateAgent implements IGenerateAgent {
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
 
+        // 6. 调用智能体
         String summaryMessage;
         try {
             summaryMessage = summarizeAgent.summarize(
-                    context.getTaskId(),
-                    context.getRequest().getUserPrompt(),
-                    context.getUserProfileJson(),
-                    context.getRequest().getTitle(),
+                    summarizeContext.getTaskId(),
+                    summarizeContext.getRequest().getUserPrompt(),
+                    summarizeContext.getUserProfileJson(),
+                    summarizeContext.getRequest().getTitle(),
                     planResult.getDescription() != null ? planResult.getDescription() : "",
                     requiredCount,
                     generatedCount,
@@ -444,17 +452,13 @@ public class GenerateAgent implements IGenerateAgent {
                     jsonUtil.toJsonString(validatedResult)
             );
         } catch (Exception exception) {
-            log.warn("SummarizeAgent failed, fallback summary used: message={}", exception.getMessage());
-            summaryMessage = "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。"
-                    + "模块：" + modules + "。标签：" + tags + "。";
+            log.warn("【GenerateAgent - SummarizeAgent】调用智能体出错: taskId={}, error={}", summarizeContext.getTaskId(), exception.getMessage());
+            summaryMessage = "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。" + "模块：" + modules + "。标签：" + tags + "。";
         }
-        if (!StringUtils.hasText(summaryMessage)) {
-            summaryMessage = "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。"
-                    + "模块：" + modules + "。标签：" + tags + "。";
-        }
-        agentRepository.markTaskCompleted(context.getTaskId(), qaSetId);
-        scope.writeState("qaSetId", qaSetId);
-        context.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
+
+        // 7. 标记任务完成
+        agentRepository.markTaskCompleted(summarizeContext.getTaskId(), qaSetId);
+        summarizeContext.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
     }
 
     private List<DraftItem> fallbackDraft(PlanItem planItem, String evidence) {

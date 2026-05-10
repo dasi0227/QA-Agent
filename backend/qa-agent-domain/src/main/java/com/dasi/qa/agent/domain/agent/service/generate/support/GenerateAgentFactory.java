@@ -100,7 +100,6 @@ public class GenerateAgentFactory {
                         decideAction,
                         routeAgent
                 )
-                .output(scope -> scope.readState("qaSetId"))
                 .build();
     }
 
@@ -126,7 +125,6 @@ public class GenerateAgentFactory {
                         validateAction,
                         summarizeAction
                 )
-                .output(scope -> scope.readState("qaSetId"))
                 .build();
     }
 
