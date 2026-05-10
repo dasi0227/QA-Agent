@@ -2,9 +2,9 @@ package com.dasi.qa.agent.domain.agent.service.generate;
 
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
-import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.VerdictType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.VerdictType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
@@ -34,7 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -107,7 +106,6 @@ public class GenerateAgent implements IGenerateAgent {
         UserProfileAllowVO allow = agentRepository.getUserProfileAllow(userId);
         String userProfileJson = jsonUtil.toJsonString(info);
         String answerStyle = style.getAnswerStyle();
-
         // 写入任务主记录，确保后续状态可追踪
         agentRepository.createGenerationTask(taskId, userId, request, allow);
 
@@ -147,6 +145,7 @@ public class GenerateAgent implements IGenerateAgent {
             ValidateContext validateContext = ValidateContext.builder()
                     .taskId(taskId)
                     .request(request)
+                    .answerStyle(answerStyle)
                     .build();
 
             DecideContext decideContext = DecideContext.builder()
@@ -224,10 +223,11 @@ public class GenerateAgent implements IGenerateAgent {
 
         // 2. 调用智能体
         try {
-            decideAgent.decide(decideContext.getTaskId(), decideContext.getRequest().getUserPrompt());
+            DecideResult result = decideAgent.decide(decideContext.getTaskId(), decideContext.getRequest().getUserPrompt());
+            scope.writeState(GeneratePhase.DECIDE.getScopeKey(), result);
         } catch (Exception exception) {
             log.warn("【GenerateAgent - DecideAgent】调用智能体出错: taskId={}, error={}", decideContext.getTaskId(), exception.getMessage());
-            scope.writeState("decideResult", fallbackDecide());
+            scope.writeState(GeneratePhase.DECIDE.getScopeKey(), fallbackDecide());
         }
     }
 
@@ -288,7 +288,7 @@ public class GenerateAgent implements IGenerateAgent {
         }
 
         // 4. 写入共享领域
-        scope.writeState("planResult", planResult);
+        scope.writeState(GeneratePhase.PLAN.getScopeKey(), planResult);
     }
 
     /**
@@ -300,10 +300,7 @@ public class GenerateAgent implements IGenerateAgent {
 
         // 2. 拿到计划结果
         PlanResult planResult = readPlanResult(scope);
-        List<PlanItem> planItems = planResult.getPlanItems().stream()
-                .filter(item -> StringUtils.hasText(item.getModuleTag()))
-                .filter(item -> item.getQuestionCount() > 0)
-                .toList();
+        List<PlanItem> planItems = planResult.getPlanItems();
 
         // 3. 解析计划，根据模块划分
         List<DraftItem> draftItems = Collections.synchronizedList(new ArrayList<>());
@@ -322,6 +319,7 @@ public class GenerateAgent implements IGenerateAgent {
                             .planItem(planItem)
                             .evidence(jsonUtil.toJsonString(evidence))
                             .userProfileJson(writeContext.getUserProfileJson())
+                            .answerStyle(writeContext.getAnswerStyle())
                             .build();
                     // 4.3 汇总每个模块单独出的题
                     draftItems.addAll(doDraft(draftAgent, draftContext));
@@ -351,7 +349,7 @@ public class GenerateAgent implements IGenerateAgent {
         }
 
         // 8. 写入共享领域
-        scope.writeState("draftResult", draftItems);
+        scope.writeState(GeneratePhase.WRITE.getScopeKey(), draftItems);
     }
 
     /**
@@ -376,7 +374,8 @@ public class GenerateAgent implements IGenerateAgent {
                         draftContext.getUserProfileJson(),
                         batchCount,
                         previousQuestions,
-                        draftContext.getRequest().getUserPrompt()
+                        draftContext.getRequest().getUserPrompt(),
+                        draftContext.getAnswerStyle()
                 );
                 draftItems.addAll(jsonUtil.parseJsonArray(response, DraftItem.class));
             } catch (Exception exception) {
@@ -406,7 +405,7 @@ public class GenerateAgent implements IGenerateAgent {
 
         // 4. 创建每个批次的异步任务
         List<CompletableFuture<List<DraftItem>>> futureList = batchList.stream()
-                .map(batch -> CompletableFuture.supplyAsync(() -> doValidateLoop(context.getTaskId(), evaluateAgent, amendAgent, batch, context.getRequest().getUserPrompt()), applicationTaskExecutor))
+                .map(batch -> CompletableFuture.supplyAsync(() -> doValidateLoop(context.getTaskId(), evaluateAgent, amendAgent, batch, context.getRequest().getUserPrompt(), context.getAnswerStyle()), applicationTaskExecutor))
                 .toList();
 
         // 5. 等待所有批次的异步任务执行完成并汇总结果
@@ -416,14 +415,14 @@ public class GenerateAgent implements IGenerateAgent {
                 .toList();
 
         // 6. 写入共享领域
-        scope.writeState("validateResult", validatedItems);
+        scope.writeState(GeneratePhase.VALIDATE.getScopeKey(), validatedItems);
     }
 
-    private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, List<DraftItem> batch, String userPrompt) {
+    private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, List<DraftItem> batch, String userPrompt, String answerStyle) {
         List<DraftItem> passItems = new ArrayList<>();
         AtomicReference<List<DraftItem>> evaluateItems = new AtomicReference<>(batch);
         AtomicReference<List<AmendItem>> amendItems = new AtomicReference<>(List.of());
-        AtomicBoolean flag = new AtomicBoolean(true);
+        AtomicBoolean flag = new AtomicBoolean(false);
 
         UntypedAgent validateAgent = AgenticServices.loopBuilder()
                 .name(GeneratePhase.VALIDATE.getAgentName())
@@ -450,15 +449,15 @@ public class GenerateAgent implements IGenerateAgent {
                             }
 
                             amendItems.set(amends);
+                            flag.set(amends.isEmpty());
                         }),
 
                         // 修改
                         AgenticServices.agentAction(scope -> {
                             if (amendItems.get().isEmpty()) {
-                                flag.set(true);
                                 return;
                             }
-                            List<DraftItem> amended = doAmend(taskId, amendAgent, amendItems.get(), userPrompt);
+                            List<DraftItem> amended = doAmend(taskId, amendAgent, amendItems.get(), userPrompt, answerStyle);
                             evaluateItems.set(amended);
                         })
                 )
@@ -484,9 +483,9 @@ public class GenerateAgent implements IGenerateAgent {
         }
     }
 
-    private List<DraftItem> doAmend(String taskId, AmendAgent amendAgent, List<AmendItem> items, String userPrompt) {
+    private List<DraftItem> doAmend(String taskId, AmendAgent amendAgent, List<AmendItem> items, String userPrompt, String answerStyle) {
         try {
-            String response = amendAgent.amend(taskId, jsonUtil.toJsonString(items), userPrompt);
+            String response = amendAgent.amend(taskId, jsonUtil.toJsonString(items), userPrompt, answerStyle);
             return jsonUtil.parseJsonArray(response, DraftItem.class);
         } catch (Exception exception) {
             log.warn("【GenerateAgent - AmendAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
@@ -607,21 +606,21 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private DecideResult readDecideResult(AgenticScope scope) {
-        return (DecideResult) scope.readState("decideResult");
+        return (DecideResult) scope.readState(GeneratePhase.DECIDE.getScopeKey());
     }
 
     private PlanResult readPlanResult(AgenticScope scope) {
-        return (PlanResult) scope.readState("planResult");
+        return (PlanResult) scope.readState(GeneratePhase.PLAN.getScopeKey());
     }
 
     @SuppressWarnings("unchecked")
     private List<DraftItem> readValidateResult(AgenticScope scope) {
-        return (List<DraftItem>) scope.readState("validateResult");
+        return (List<DraftItem>) scope.readState(GeneratePhase.VALIDATE.getScopeKey());
     }
 
     @SuppressWarnings("unchecked")
     private List<DraftItem> readDraftResult(AgenticScope scope) {
-        return (List<DraftItem>) scope.readState("draftResult");
+        return (List<DraftItem>) scope.readState(GeneratePhase.WRITE.getScopeKey());
     }
 
 }

@@ -15,16 +15,21 @@ public interface AmendAgent {
 
     @SystemMessage(fromResource = "prompt/generation-amend.txt")
     @UserMessage("""
-            待修订题目与审校意见：
-            {{amendItemsJson}}
+            待修订题目与审校意见：{{amendItemsJson}}
+            用户备注：{{userPrompt}}
+            答案风格：{{answerStyle}}
 
-            用户备注：
-            {{userPrompt}}
-
-            请返回 DraftItem JSON 数组。
+            输出要求：
+            1. 只输出一个合法 JSON 数组，以 [ 开头，以 ] 结尾。
+            2. 不要输出 Markdown，不要使用 ```json 代码块。
+            3. 不要输出解释文字或任何非 JSON 内容。
+            4. 输出数组长度必须等于输入 amendItems 数量，顺序严格一致。
+            5. 必须包含所有指定字段，缺失字段用 "" 填充。
+            6. 不允许添加未定义字段。
             """)
-    @Agent(name = "AMENDER", description = "按审校意见最小修订问答题目", outputKey = "amendedDraftItems")
+    @Agent(name = "AMENDER", description = "按审校意见最小修订问答题目")
     String amend(@MemoryId @V("taskId") String taskId,
                  @V("amendItemsJson") String amendItemsJson,
-                 @V("userPrompt") String userPrompt);
+                 @V("userPrompt") String userPrompt,
+                 @V("answerStyle") String answerStyle);
 }

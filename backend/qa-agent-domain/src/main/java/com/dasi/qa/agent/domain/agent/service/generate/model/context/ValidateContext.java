@@ -14,4 +14,5 @@ public class ValidateContext {
 
     private String taskId;
     private CreateQaSetRequest request;
+    private String answerStyle;
 }

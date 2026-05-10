@@ -27,10 +27,14 @@ public interface SummarizeAgent {
             模块名称：{{modules}}
             题目标签：{{tags}}
 
-            最终题目：
-            {{qa}}
+            最终题目：{{qa}}
 
-            请直接输出最终完成说明文本。
+            输出要求：
+            1. 只输出 2-4 句中文自然语言。
+            2. 不要输出 JSON、Markdown、代码块、标题或编号。
+            3. 必须包含请求题数和实际通过题数。
+            4. 尽量体现模块名称和标签分布。
+            5. 如果通过率严重偏低（<30%），需提及此异常。
             """)
     @Agent(name = "SUMMARIZER", description = "根据生成结果和统计信息生成最终完成说明")
     String summarize(@MemoryId @V("taskId") String taskId,

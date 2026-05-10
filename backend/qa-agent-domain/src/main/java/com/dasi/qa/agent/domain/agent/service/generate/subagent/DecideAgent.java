@@ -16,12 +16,16 @@ public interface DecideAgent {
 
     @SystemMessage(fromResource = "prompt/generation-decide.txt")
     @UserMessage("""
-            用户要求：
-            {{userPrompt}}
+            用户要求：{{userPrompt}}
 
-            请返回 DecideResult JSON。
+            输出要求：
+            1. 只输出一个合法 JSON 对象，以 { 开头，以 } 结尾。
+            2. 不要输出 Markdown，不要使用 ```json 代码块。
+            3. 不要输出解释文字或任何非 JSON 内容。
+            4. 必须包含 valid 和 reason 两个字段。
+            5. 不允许添加未定义字段。
             """)
-    @Agent(name = "DECIDE", description = "判断生成请求是否可以进入问答集生成 DAG", outputKey = "decideResult")
+    @Agent(name = "DECIDE", description = "判断生成请求是否可以进入问答集生成 DAG")
     DecideResult decide(@MemoryId @V("taskId") String taskId,
                         @V("userPrompt") String userPrompt);
 }

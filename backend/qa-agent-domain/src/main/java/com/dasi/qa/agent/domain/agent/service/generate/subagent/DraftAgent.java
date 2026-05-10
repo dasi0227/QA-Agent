@@ -19,17 +19,25 @@ public interface DraftAgent {
             证据块：{{evidence}}
             用户资料：{{userProfile}}
             本批题数：{{questionCount}}
-            已有题目：{{previousQuestions}}
+            已有题目（避免重复）：{{previousQuestions}}
             用户备注：{{userPrompt}}
+            答案风格：{{answerStyle}}
 
-            请返回 DraftItem JSON 数组。
+            输出要求：
+            1. 只输出一个合法 JSON 数组，以 [ 开头，以 ] 结尾。
+            2. 不要输出 Markdown，不要使用 ```json 代码块。
+            3. 不要输出解释文字或任何非 JSON 内容。
+            4. 必须包含所有指定字段，缺失字段用 "" 填充。
+            5. 数组长度必须等于 {{questionCount}}。
+            6. 不允许添加未定义字段。
             """)
-    @Agent(name = "DRAFTER", description = "根据检索证据起草结构化问答题目", outputKey = "draftItems")
+    @Agent(name = "DRAFTER", description = "根据检索证据起草结构化问答题目")
     String draft(@MemoryId @V("taskId") String taskId,
                  @V("moduleTag") String moduleTag,
                  @V("evidence") String evidence,
                  @V("userProfile") String userProfile,
                  @V("questionCount") int questionCount,
                  @V("previousQuestions") String previousQuestions,
-                 @V("userPrompt") String userPrompt);
+                 @V("userPrompt") String userPrompt,
+                 @V("answerStyle") String answerStyle);
 }

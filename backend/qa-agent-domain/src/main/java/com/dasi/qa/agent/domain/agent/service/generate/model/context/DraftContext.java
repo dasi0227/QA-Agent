@@ -18,6 +18,5 @@ public class DraftContext {
     private PlanItem planItem;
     private String evidence;
     private String userProfileJson;
-    private String previousQuestions;
-    private int batchCount;
+    private String answerStyle;
 }

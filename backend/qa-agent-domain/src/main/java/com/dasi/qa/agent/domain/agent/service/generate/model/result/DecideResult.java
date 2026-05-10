@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.result;
 
+import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import dev.langchain4j.model.output.structured.Description;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,7 @@ public class DecideResult {
     private String reason;
 
     public static DecideResult fromScope(AgenticScope scope) {
-        Object value = scope.readState("decideResult");
+        Object value = scope.readState(GeneratePhase.DECIDE.getScopeKey());
         return value instanceof DecideResult result
                 ? result
                 : new DecideResult(false, "没有拿到 DecideAgent 的输出结果，默认判定为不可继续执行");

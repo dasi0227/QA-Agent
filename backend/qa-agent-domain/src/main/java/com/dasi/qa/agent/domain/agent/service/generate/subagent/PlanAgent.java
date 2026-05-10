@@ -16,16 +16,21 @@ public interface PlanAgent {
 
     @SystemMessage(fromResource = "prompt/generation-plan.txt")
     @UserMessage("""
-            资料目录：
-            {{documents}}
-
+            资料目录：{{documents}}
             用户资料：{{userProfile}}
             用户备注：{{userPrompt}}
             目标题数：{{questionCount}}
 
-            请返回 PlanResult JSON。
+            输出要求：
+            1. 只输出一个合法 JSON 对象，以 { 开头，以 } 结尾。
+            2. 不要输出 Markdown，不要使用 ```json 代码块。
+            3. 不要输出解释文字或任何非 JSON 内容。
+            4. 必须包含 title、description、planItems 三个字段。
+            5. planItems 至少 1 个元素。
+            6. 所有 planItems.questionCount 之和必须等于 {{questionCount}}。
+            7. 不允许添加未定义字段。
             """)
-    @Agent(name = "PLANNER", description = "分析资料目录结构并规划问答集模块", outputKey = "planResult")
+    @Agent(name = "PLANNER", description = "分析资料目录结构并规划问答集模块")
     PlanResult plan(@MemoryId @V("taskId") String taskId,
                     @V("documents") String documents,
                     @V("userProfile") String userProfile,

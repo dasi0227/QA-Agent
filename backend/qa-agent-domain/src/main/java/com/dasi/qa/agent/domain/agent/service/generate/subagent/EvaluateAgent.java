@@ -15,12 +15,17 @@ public interface EvaluateAgent {
 
     @SystemMessage(fromResource = "prompt/generation-evaluate.txt")
     @UserMessage("""
-            待校验题目：
-            {{draftItemsJson}}
+            待校验题目：{{draftItemsJson}}
 
-            请返回 EvaluateResult JSON 数组。
+            输出要求：
+            1. 只输出一个合法 JSON 数组，以 [ 开头，以 ] 结尾。
+            2. 不要输出 Markdown，不要使用 ```json 代码块。
+            3. 不要输出解释文字或任何非 JSON 内容。
+            4. 数组长度必须等于输入题目数量，按输入顺序输出。
+            5. 每题必须包含 verdict、reason、suggestion 三个字段，缺失字段用 "" 填充。
+            6. 不允许添加未定义字段。
             """)
-    @Agent(name = "EVALUATOR", description = "审校题目事实准确性和证据边界", outputKey = "lastValidationResults")
+    @Agent(name = "EVALUATOR", description = "审校题目事实准确性和证据边界")
     String evaluate(@MemoryId @V("taskId") String taskId,
                     @V("draftItemsJson") String draftItemsJson);
 }
