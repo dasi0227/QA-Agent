@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.AmendItem;
+import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.EvaluateItem;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.AmendAgent;
@@ -25,9 +25,11 @@ public class ValidationCoordinator {
     private static final String V_REJECT = "REJECT";
 
     private final int batchSize;
+    private final IJsonUtil jsonUtil;
 
-    public ValidationCoordinator(int batchSize) {
+    public ValidationCoordinator(int batchSize, IJsonUtil jsonUtil) {
         this.batchSize = batchSize;
+        this.jsonUtil = jsonUtil;
     }
 
     public List<DraftItem> run(String taskId, CreateQaSetRequest request, EvaluateAgent evaluateAgent,
@@ -111,18 +113,18 @@ public class ValidationCoordinator {
         }
         String response = amendAgent.amend(
                 taskId,
-                JSON.toJSONString(amendItems),
+                jsonUtil.toJsonString(amendItems),
                 ""
         );
-        List<DraftItem> parsed = JSON.parseArray(extractJsonArray(response), DraftItem.class);
+        List<DraftItem> parsed = jsonUtil.parseJsonArray(response, DraftItem.class);
         return parsed == null ? List.of() : parsed;
     }
 
     private List<EvaluateItem> evaluateOnce(String taskId, EvaluateAgent evaluateAgent,
                                             List<DraftItem> drafts) {
         try {
-            String response = evaluateAgent.evaluate(taskId, JSON.toJSONString(drafts));
-            List<EvaluateItem> parsed = JSON.parseArray(extractJsonArray(response), EvaluateItem.class);
+            String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(drafts));
+            List<EvaluateItem> parsed = jsonUtil.parseJsonArray(response, EvaluateItem.class);
             return parsed == null || parsed.isEmpty() ? passAll(drafts) : parsed;
         } catch (Exception exception) {
             log.warn("EvaluateAgent failed, fallback pass used: message={}", exception.getMessage());
@@ -177,15 +179,6 @@ public class ValidationCoordinator {
             batches.add(drafts.subList(i, Math.min(i + batchSize, drafts.size())));
         }
         return batches;
-    }
-
-    private String extractJsonArray(String text) {
-        int start = text.indexOf('[');
-        int end = text.lastIndexOf(']');
-        if (start >= 0 && end > start) {
-            return text.substring(start, end + 1);
-        }
-        return text;
     }
 
 }

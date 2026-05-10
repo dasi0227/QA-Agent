@@ -1,15 +1,11 @@
 package com.dasi.qa.agent.domain.agent.shared.enumeration;
 
-import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
-
 public enum ErrorType {
     NETWORK_ERROR,
     RATE_LIMITED,
     AUTH_FAILURE,
     INVALID_RESPONSE,
     CONTENT_FILTERED,
-    ALL_REJECTED,
     LLM_NOT_CONFIGURED,
     UNKNOWN;
 
@@ -32,14 +28,4 @@ public enum ErrorType {
         return UNKNOWN;
     }
 
-    public static ErrorType fromValue(String value) {
-        if (value == null || value.isBlank()) {
-            throw new ApiException(ResultCode.INVALID_PARAM);
-        }
-        try {
-            return ErrorType.valueOf(value);
-        } catch (IllegalArgumentException exception) {
-            throw new ApiException(ResultCode.INVALID_PARAM);
-        }
-    }
 }

@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
-import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
+import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
@@ -36,13 +36,13 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-@SuppressWarnings("unchecked")
 @Service
 @Slf4j
 public class GenerateAgent implements IGenerateAgent {
 
     private static final int BATCH_SIZE = 10;
 
+    private final IJsonUtil jsonUtil;
     private final IPromptUtil promptUtil;
     private final IAgentRepository agentRepository;
     private final GenerateAgentFactory generateAgentFactory;
@@ -54,7 +54,8 @@ public class GenerateAgent implements IGenerateAgent {
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
-    public GenerateAgent(IPromptUtil promptUtil,
+    public GenerateAgent(IJsonUtil jsonUtil,
+                         IPromptUtil promptUtil,
                          IAgentRepository agentRepository,
                          UserLlmModelProvider userLlmModelProvider,
                          GenerateAgentFactory generateAgentFactory,
@@ -64,6 +65,7 @@ public class GenerateAgent implements IGenerateAgent {
                          @Qualifier("webSearchModel") ChatModel webSearchModel,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
+        this.jsonUtil = jsonUtil;
         this.promptUtil = promptUtil;
         this.agentRepository = agentRepository;
         this.userLlmModelProvider = userLlmModelProvider;
@@ -96,7 +98,7 @@ public class GenerateAgent implements IGenerateAgent {
         UserProfileInfoVO info = agentRepository.getUserProfileInfo(userId);
         UserProfileStyleVO style = agentRepository.getUserProfileStyle(userId);
         UserProfileAllowVO allow = agentRepository.getUserProfileAllow(userId);
-        String userProfileJson = JSON.toJSONString(info);
+        String userProfileJson = jsonUtil.toJsonString(info);
         String answerStyle = style.getAnswerStyle();
 
         // 写入任务主记录，确保后续状态可追踪
@@ -132,6 +134,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .userId(userId)
                     .request(request)
                     .userProfileJson(userProfileJson)
+                    .allow(allow)
                     .build();
 
             ValidateContext validateContext = ValidateContext.builder()
@@ -269,8 +272,12 @@ public class GenerateAgent implements IGenerateAgent {
                     planContext.getRequest().getRequestedQuestionCount()
             );
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - PlanAgent】调用智能体出错: taskId={}, error={}", planContext.getTaskId(), exception.getMessage());
-            throw new GenerateException(ErrorType.fromException(exception), "PlanAgent 调用失败: " + exception.getMessage());
+            if (Boolean.TRUE.equals(planContext.getAllow().getAllowFallback())) {
+                log.warn("【GenerateAgent - PlanAgent】调用失败，启用默认 Plan: taskId={}, error={}", planContext.getTaskId(), exception.getMessage());
+                planResult = fallbackPlan(planContext.getRequest());
+            } else {
+                throw new GenerateException(ErrorType.fromException(exception), "PlanAgent 调用失败: " + exception.getMessage());
+            }
         }
 
         // 4. 写入共享领域
@@ -285,16 +292,11 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.WRITE);
 
         // 2. 拿到计划结果
-        PlanResult planResult = readPlanResult(scope, writeContext.getRequest());
-        List<PlanItem> planItems;
-        if (planResult == null || planResult.getPlanItems() == null || planResult.getPlanItems().isEmpty()) {
-            planItems = fallbackPlan(writeContext.getRequest()).getPlanItems();
-        } else {
-            planItems = planResult.getPlanItems().stream()
-                    .filter(item -> StringUtils.hasText(item.getModuleTag()))
-                    .filter(item -> item.getQuestionCount() > 0)
-                    .toList();
-        }
+        PlanResult planResult = readPlanResult(scope);
+        List<PlanItem> planItems = planResult.getPlanItems().stream()
+                .filter(item -> StringUtils.hasText(item.getModuleTag()))
+                .filter(item -> item.getQuestionCount() > 0)
+                .toList();
 
         // 3. 解析计划，根据模块划分
         List<DraftItem> draftItems = Collections.synchronizedList(new ArrayList<>());
@@ -311,7 +313,7 @@ public class GenerateAgent implements IGenerateAgent {
                             .taskId(writeContext.getTaskId())
                             .request(writeContext.getRequest())
                             .planItem(planItem)
-                            .evidence(JSON.toJSONString(evidence))
+                            .evidence(jsonUtil.toJsonString(evidence))
                             .userProfileJson(writeContext.getUserProfileJson())
                             .build();
                     // 4.3 汇总每个模块单独出的题
@@ -355,7 +357,7 @@ public class GenerateAgent implements IGenerateAgent {
         while (remaining > 0) {
             // 当前批次题数
             int batchCount = Math.min(BATCH_SIZE, remaining);
-            String previousQuestions = JSON.toJSONString(draftItems.stream()
+            String previousQuestions = jsonUtil.toJsonString(draftItems.stream()
                     .filter(item -> item != null && item.getQuestion() != null)
                     .map(DraftItem::getQuestion)
                     .toList());
@@ -369,7 +371,7 @@ public class GenerateAgent implements IGenerateAgent {
                         previousQuestions,
                         draftContext.getRequest().getUserPrompt()
                 );
-                draftItems.addAll(JSON.parseArray(extractJsonArray(response), DraftItem.class));
+                draftItems.addAll(jsonUtil.parseJsonArray(response, DraftItem.class));
             } catch (Exception exception) {
                 log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}, error={}", draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
                 draftItems.addAll(fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence()));
@@ -387,10 +389,10 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.VALIDATE);
 
         // 初次生成的问答集合
-        List<DraftItem> draftItems = (List<DraftItem>) scope.readState("draftResult");
+        List<DraftItem> draftItems = readDraftResult(scope);
 
         // 验证纠错后的问答集合
-        ValidationCoordinator validationCoordinator = new ValidationCoordinator(BATCH_SIZE);
+        ValidationCoordinator validationCoordinator = new ValidationCoordinator(BATCH_SIZE, jsonUtil);
         List<DraftItem> validatedItems = validationCoordinator.run(context.getTaskId(), context.getRequest(), evaluateAgent, amendAgent, draftItems);
 
         // 写入共享领域
@@ -402,7 +404,7 @@ public class GenerateAgent implements IGenerateAgent {
      */
     private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext context) {
         agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.SUMMARIZE);
-        PlanResult planResult = readPlanResult(scope, context.getRequest());
+        PlanResult planResult = readPlanResult(scope);
         List<DraftItem> validatedResult = readValidateResult(scope);
 
         String qaSetId = agentRepository.saveGeneratedQaSet(
@@ -439,14 +441,16 @@ public class GenerateAgent implements IGenerateAgent {
                     generatedCount,
                     modules,
                     tags,
-                    JSON.toJSONString(validatedResult)
+                    jsonUtil.toJsonString(validatedResult)
             );
         } catch (Exception exception) {
             log.warn("SummarizeAgent failed, fallback summary used: message={}", exception.getMessage());
-            summaryMessage = fallbackSummaryMessage(requiredCount, generatedCount, modules, tags);
+            summaryMessage = "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。"
+                    + "模块：" + modules + "。标签：" + tags + "。";
         }
         if (!StringUtils.hasText(summaryMessage)) {
-            summaryMessage = fallbackSummaryMessage(requiredCount, generatedCount, modules, tags);
+            summaryMessage = "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。"
+                    + "模块：" + modules + "。标签：" + tags + "。";
         }
         agentRepository.markTaskCompleted(context.getTaskId(), qaSetId);
         scope.writeState("qaSetId", qaSetId);
@@ -471,36 +475,30 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     private PlanResult fallbackPlan(CreateQaSetRequest request) {
-        int count = request.getRequestedQuestionCount();
         return new PlanResult(
                 request.getTitle(),
                 "根据用户资料生成的技术面试问答集",
-                List.of(new PlanItem("General", count, "核心知识点", "概念题, 场景题"))
+                List.of(new PlanItem("General", request.getRequestedQuestionCount(),
+                        "核心知识点", "概念题, 场景题"))
         );
     }
 
+    private DecideResult readDecideResult(AgenticScope scope) {
+        return (DecideResult) scope.readState("decideResult");
+    }
+
+    private PlanResult readPlanResult(AgenticScope scope) {
+        return (PlanResult) scope.readState("planResult");
+    }
+
+    @SuppressWarnings("unchecked")
     private List<DraftItem> readValidateResult(AgenticScope scope) {
-        Object value = scope.readState("validateResult");
-        return value instanceof List<?> list ? (List<DraftItem>) list : List.of();
+        return (List<DraftItem>) scope.readState("validateResult");
     }
 
-    private PlanResult readPlanResult(AgenticScope scope, CreateQaSetRequest request) {
-        Object value = scope.readState("planResult");
-        return value instanceof PlanResult planResult ? planResult : fallbackPlan(request);
-    }
-
-    private String extractJsonArray(String text) {
-        int start = text.indexOf('[');
-        int end = text.lastIndexOf(']');
-        if (start >= 0 && end > start) {
-            return text.substring(start, end + 1);
-        }
-        return text;
-    }
-
-    private String fallbackSummaryMessage(int requiredCount, int generatedCount, String modules, String tags) {
-        return "问答集已生成，请求 " + requiredCount + " 题，实际通过 " + generatedCount + " 题。"
-                + "模块：" + modules + "。标签：" + tags + "。";
+    @SuppressWarnings("unchecked")
+    private List<DraftItem> readDraftResult(AgenticScope scope) {
+        return (List<DraftItem>) scope.readState("draftResult");
     }
 
 }
