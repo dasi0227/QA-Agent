@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.po;
+package com.dasi.qa.agent.infrastructure.persistent.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -7,22 +7,38 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("qa_set_document_ref")
-public class QaSetDocumentRef {
-
+@TableName("qa_item")
+public class QaItem {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
-
+    
+    private String userId;
+    
     private String qaSetId;
-
-    private String documentId;
-
+    
+    private String question;
+    
+    private String knowledgeNote;
+    
+    private String answer;
+    
+    private String moduleTag;
+    
+    private String difficulty;
+    
+    private String conflictTip;
+    
+    private String sourceChunkIdsJson;
+    
+    private Integer sortOrder;
+    
     private LocalDateTime createdAt;
+    
+    private LocalDateTime updatedAt;
 }

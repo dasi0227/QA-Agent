@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.po;
+package com.dasi.qa.agent.infrastructure.persistent.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -7,34 +7,43 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("practice_session_item")
-public class PracticeSessionItem {
+@TableName("practice_session")
+public class PracticeSession {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
     
     private String userId;
     
-    private String sessionId;
+    private String qaSetId;
     
-    private String qaItemId;
+    private String mode;
     
-    private Integer sortOrder;
+    private String feedbackMode;
     
-    private String userAnswer;
+    private String status;
     
-    private String result;
+    private String selectedModule;
+    
+    private Integer totalQuestions;
+    
+    private Integer answeredCount;
     
     private Integer score;
     
-    private String feedbackSummary;
+    private BigDecimal accuracy;
     
-    private LocalDateTime answeredAt;
+    private String summary;
+    
+    private LocalDateTime startedAt;
+    
+    private LocalDateTime finishedAt;
     
     private LocalDateTime createdAt;
     

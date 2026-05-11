@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.po;
+package com.dasi.qa.agent.infrastructure.persistent.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -14,25 +14,21 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("message_job")
-public class MessageJob {
+@TableName("user_account")
+public class UserAccount {
 
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
 
-    private String jobId;
+    private String username;
 
-    private String jobStatus;
+    private String email;
 
-    private Integer jobRetry;
+    private String password;
 
-    private String messageTopic;
+    private String status;
 
-    private String messageContent;
-
-    private LocalDateTime messageFirstSentAt;
-
-    private LocalDateTime messageLatestSentAt;
+    private String avatar;
 
     private LocalDateTime createdAt;
 

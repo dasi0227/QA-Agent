@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IMqUtil;
-import com.dasi.qa.agent.infrastructure.persistent.po.MessageJob;
+import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJob;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.po;
+package com.dasi.qa.agent.infrastructure.persistent.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;

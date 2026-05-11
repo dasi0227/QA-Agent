@@ -1,5 +1,6 @@
-package com.dasi.qa.agent.infrastructure.persistent.po;
+package com.dasi.qa.agent.infrastructure.persistent.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
@@ -13,19 +14,15 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("qa_generation_task_message")
-public class QaGenerationTaskMessage {
+@TableName("qa_set_document_ref")
+public class QaSetDocumentRef {
 
-    @TableId
+    @TableId(value = "id", type = IdType.INPUT)
     private String id;
 
-    private String taskId;
+    private String qaSetId;
 
-    private String userId;
-
-    private String stage;
-
-    private String message;
+    private String documentId;
 
     private LocalDateTime createdAt;
 }

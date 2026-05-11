@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.infrastructure.persistent.mapper.mysql;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.dasi.qa.agent.infrastructure.persistent.po.MessageJob;
+import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJob;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

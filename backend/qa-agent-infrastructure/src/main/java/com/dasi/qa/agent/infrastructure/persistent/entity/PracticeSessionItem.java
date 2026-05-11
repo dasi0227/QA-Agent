@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.po;
+package com.dasi.qa.agent.infrastructure.persistent.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -13,26 +13,28 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("document_chunk")
-public class DocumentChunk {
+@TableName("practice_session_item")
+public class PracticeSessionItem {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
     
     private String userId;
     
-    private String documentId;
+    private String sessionId;
     
-    private Integer chunkIndex;
+    private String qaItemId;
     
-    private String titlePath;
+    private Integer sortOrder;
     
-    private String content;
+    private String userAnswer;
     
-    private String summary;
+    private String result;
     
-    private String moduleTagsJson;
+    private Integer score;
     
-    private String embeddingVector;
+    private String feedbackSummary;
+    
+    private LocalDateTime answeredAt;
     
     private LocalDateTime createdAt;
     

@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
-import com.dasi.qa.agent.infrastructure.persistent.po.*;
+import com.dasi.qa.agent.infrastructure.persistent.entity.*;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
