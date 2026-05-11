@@ -28,7 +28,6 @@ import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
-import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
@@ -59,7 +58,6 @@ public class GenerateAgent implements IGenerateAgent {
     private final ISearchService searchService;
     private final RagEvidenceProvider ragEvidenceProvider;
     private final UserLlmModelProvider userLlmModelProvider;
-    private final ChatMemoryProvider chatMemoryProvider;
     private final ChatModel webSearchModel;
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
@@ -71,7 +69,6 @@ public class GenerateAgent implements IGenerateAgent {
                          GenerateAgentFactory generateAgentFactory,
                          ISearchService searchService,
                          RagEvidenceProvider ragEvidenceProvider,
-                         ChatMemoryProvider chatMemoryProvider,
                          @Qualifier("webSearchModel") ChatModel webSearchModel,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
@@ -82,7 +79,6 @@ public class GenerateAgent implements IGenerateAgent {
         this.generateAgentFactory = generateAgentFactory;
         this.searchService = searchService;
         this.ragEvidenceProvider = ragEvidenceProvider;
-        this.chatMemoryProvider = chatMemoryProvider;
         this.webSearchModel = webSearchModel;
         this.supervisorChatModel = supervisorModel;
         this.applicationTaskExecutor = applicationTaskExecutor;
@@ -199,7 +195,6 @@ public class GenerateAgent implements IGenerateAgent {
                     .userModel(userModel)
                     .writeTools(writeTools)
                     .validateTools(validateTools)
-                    .chatMemoryProvider(chatMemoryProvider)
                     .decideStep((scope, decideAgent) -> doDecide(scope, decideAgent, decideContext))
                     .abortStep((scope, abortAgent) -> doAbort(scope, abortAgent, abortContext))
                     .planStep((scope, planAgent) -> doPlan(scope, planAgent, planContext))

@@ -33,12 +33,13 @@ public class EventPublisher {
     public void publishEvent(GeneratePhase phase, GenerateStatus status, String message, int currentTokens) {
         SseEvent sseEvent = SseEvent.builder()
                 .taskId(taskId)
-                .phase(phase)
-                .status(status)
+                .phase(phase.getGenerateStage())
+                .status(status.name())
                 .message(message)
                 .timestamp(System.currentTimeMillis())
                 .currentTokens(currentTokens)
                 .totalTokens(totalTokens.get())
+                .isCompleted(status.isTerminated())
                 .build();
         log.info("【发送事件】阶段 {} : {}", phase.getGenerateStage(), message);
         agentRepository.appendTaskMessage(taskId, userId, phase, message);

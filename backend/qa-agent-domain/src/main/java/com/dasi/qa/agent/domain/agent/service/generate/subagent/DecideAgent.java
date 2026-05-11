@@ -2,7 +2,6 @@ package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DecideResult;
 import dev.langchain4j.agentic.Agent;
-import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -28,7 +27,7 @@ public interface DecideAgent {
             重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "DECIDE", description = "判断生成请求是否可以进入问答集生成 DAG")
-    DecideResult decide(@MemoryId @V("taskId") String taskId,
+    DecideResult decide(@V("taskId") String taskId,
                         @V("userPrompt") String userPrompt,
                         @V("retryHint") String retryHint);
 }

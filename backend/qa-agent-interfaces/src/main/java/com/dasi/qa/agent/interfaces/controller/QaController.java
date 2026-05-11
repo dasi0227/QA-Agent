@@ -68,7 +68,7 @@ public class QaController {
 
     @PostMapping("/set/create")
     public SseEmitter qaSetCreate(@RequestBody @Valid CreateQaSetRequest request) {
-        SseEmitter emitter = new SseEmitter(120000L);
+        SseEmitter emitter = new SseEmitter(600000L);
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);
 

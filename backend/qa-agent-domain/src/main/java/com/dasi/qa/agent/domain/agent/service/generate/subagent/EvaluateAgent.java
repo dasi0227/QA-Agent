@@ -1,7 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import dev.langchain4j.agentic.Agent;
-import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -28,7 +27,7 @@ public interface EvaluateAgent {
             重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "EVALUATOR", description = "审校题目事实准确性和证据边界")
-    String evaluate(@MemoryId @V("taskId") String taskId,
+    String evaluate(@V("taskId") String taskId,
                     @V("draftItemsJson") String draftItemsJson,
                     @V("retryHint") String retryHint);
 }

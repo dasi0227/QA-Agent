@@ -1,7 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import dev.langchain4j.agentic.Agent;
-import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -34,7 +33,7 @@ public interface DraftAgent {
             重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "DRAFTER", description = "根据检索证据起草结构化问答题目")
-    String draft(@MemoryId @V("taskId") String taskId,
+    String draft(@V("taskId") String taskId,
                  @V("moduleTag") String moduleTag,
                  @V("evidence") String evidence,
                  @V("userProfile") String userProfile,

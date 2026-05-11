@@ -2,7 +2,6 @@ package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import dev.langchain4j.agentic.Agent;
-import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -33,7 +32,7 @@ public interface PlanAgent {
             重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "PLANNER", description = "分析资料目录结构并规划问答集模块")
-    PlanResult plan(@MemoryId @V("taskId") String taskId,
+    PlanResult plan(@V("taskId") String taskId,
                     @V("documents") String documents,
                     @V("userProfile") String userProfile,
                     @V("userPrompt") String userPrompt,

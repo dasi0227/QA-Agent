@@ -1,7 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import dev.langchain4j.agentic.Agent;
-import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -30,7 +29,7 @@ public interface AmendAgent {
             重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "AMENDER", description = "按审校意见最小修订问答题目")
-    String amend(@MemoryId @V("taskId") String taskId,
+    String amend(@V("taskId") String taskId,
                  @V("amendItemsJson") String amendItemsJson,
                  @V("userPrompt") String userPrompt,
                  @V("answerStyle") String answerStyle,

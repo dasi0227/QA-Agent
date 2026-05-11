@@ -1,7 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.subagent;
 
 import dev.langchain4j.agentic.Agent;
-import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -37,7 +36,7 @@ public interface SummarizeAgent {
             5. 如果通过率严重偏低（<30%），需提及此异常。
             """)
     @Agent(name = "SUMMARIZER", description = "根据生成结果和统计信息生成最终完成说明")
-    String summarize(@MemoryId @V("taskId") String taskId,
+    String summarize(@V("taskId") String taskId,
                      @V("userPrompt") String userPrompt,
                      @V("userProfile") String userProfile,
                      @V("title") String title,

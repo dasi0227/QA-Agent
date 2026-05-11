@@ -12,7 +12,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlanAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SummarizeAgent;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
-import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.stereotype.Component;
 
@@ -65,13 +64,13 @@ public class GenerateAgentFactory {
     // 组装整个 DAG 链路
     public UntypedAgent build(GenerateContext context) {
         // 1. 基于上下文构建各阶段 Agent 实例
-        DecideAgent decideAgent = makeDecideAgent(context.getUserModel(), context.getChatMemoryProvider());
-        AbortAgent abortAgent = makeAbortAgent(context.getUserModel(), context.getChatMemoryProvider());
-        PlanAgent planAgent = makePlanAgent(context.getUserModel(), context.getChatMemoryProvider(), context.getWriteTools());
-        DraftAgent draftAgent = makeDraftAgent(context.getUserModel(), context.getChatMemoryProvider(), context.getWriteTools());
-        EvaluateAgent evaluateAgent = makeEvaluateAgent(context.getUserModel(), context.getChatMemoryProvider());
-        AmendAgent amendAgent = makeAmendAgent(context.getUserModel(), context.getChatMemoryProvider(), context.getValidateTools());
-        SummarizeAgent summarizeAgent = makeSummarizeAgent(context.getUserModel(), context.getChatMemoryProvider());
+        DecideAgent decideAgent = makeDecideAgent(context.getUserModel());
+        AbortAgent abortAgent = makeAbortAgent(context.getUserModel());
+        PlanAgent planAgent = makePlanAgent(context.getUserModel(), context.getWriteTools());
+        DraftAgent draftAgent = makeDraftAgent(context.getUserModel(), context.getWriteTools());
+        EvaluateAgent evaluateAgent = makeEvaluateAgent(context.getUserModel());
+        AmendAgent amendAgent = makeAmendAgent(context.getUserModel(), context.getValidateTools());
+        SummarizeAgent summarizeAgent = makeSummarizeAgent(context.getUserModel());
 
         // 2. 将阶段执行函数封装为 DAG 可执行节点
         AgenticServices.AgenticScopeAction decideAction =
@@ -127,69 +126,62 @@ public class GenerateAgentFactory {
                 .build();
     }
 
-    public DecideAgent makeDecideAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider) {
+    public DecideAgent makeDecideAgent(ChatModel userModel) {
         return AgenticServices.agentBuilder(DecideAgent.class)
                 .name(GeneratePhase.DECIDE.getAgentName())
                 .description(GeneratePhase.DECIDE.getAgentDesc())
                 .chatModel(userModel)
-                .chatMemoryProvider(chatMemoryProvider)
                 .build();
     }
 
-    public AbortAgent makeAbortAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider) {
+    public AbortAgent makeAbortAgent(ChatModel userModel) {
         return AgenticServices.agentBuilder(AbortAgent.class)
                 .name(GeneratePhase.ABORT.getAgentName())
                 .description(GeneratePhase.ABORT.getAgentDesc())
                 .chatModel(userModel)
-                .chatMemoryProvider(chatMemoryProvider)
                 .build();
     }
 
-    public PlanAgent makePlanAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, List<Object> writeTools) {
+    public PlanAgent makePlanAgent(ChatModel userModel, List<Object> writeTools) {
         return AgenticServices.agentBuilder(PlanAgent.class)
                 .name(GeneratePhase.PLAN.getAgentName())
                 .description(GeneratePhase.PLAN.getAgentDesc())
                 .chatModel(userModel)
-                .chatMemoryProvider(chatMemoryProvider)
                 .tools(writeTools.toArray())
                 .build();
     }
 
-    public DraftAgent makeDraftAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, List<Object> writeTools) {
+    public DraftAgent makeDraftAgent(ChatModel userModel, List<Object> writeTools) {
         return AgenticServices.agentBuilder(DraftAgent.class)
                 .name(GeneratePhase.DRAFT.getAgentName())
                 .description(GeneratePhase.DRAFT.getAgentDesc())
                 .chatModel(userModel)
-                .chatMemoryProvider(chatMemoryProvider)
                 .tools(writeTools.toArray())
                 .build();
     }
 
-    public EvaluateAgent makeEvaluateAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider) {
+    public EvaluateAgent makeEvaluateAgent(ChatModel userModel) {
         return AgenticServices.agentBuilder(EvaluateAgent.class)
                 .name(GeneratePhase.EVALUATE.getAgentName())
                 .description(GeneratePhase.EVALUATE.getAgentDesc())
                 .chatModel(userModel)
-                .chatMemoryProvider(chatMemoryProvider)
                 .build();
     }
 
-    public AmendAgent makeAmendAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider, List<Object> validateTools) {
+    public AmendAgent makeAmendAgent(ChatModel userModel, List<Object> validateTools) {
         return AgenticServices.agentBuilder(AmendAgent.class)
                 .name(GeneratePhase.AMEND.getAgentName())
                 .description(GeneratePhase.AMEND.getAgentDesc())
                 .chatModel(userModel)
-                .chatMemoryProvider(chatMemoryProvider)
                 .tools(validateTools.toArray())
                 .build();
     }
 
-    public SummarizeAgent makeSummarizeAgent(ChatModel userModel, ChatMemoryProvider chatMemoryProvider) {
+    public SummarizeAgent makeSummarizeAgent(ChatModel userModel) {
         return AgenticServices.agentBuilder(SummarizeAgent.class)
                 .name(GeneratePhase.SUMMARIZE.getAgentName())
                 .description(GeneratePhase.SUMMARIZE.getAgentDesc())
                 .chatModel(userModel)
-                .chatMemoryProvider(chatMemoryProvider)
                 .build();
     }
 

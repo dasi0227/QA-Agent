@@ -3,7 +3,6 @@ package com.dasi.qa.agent.interfaces.handler;
 import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.util.function.Consumer;
 
 public class SseEventHandler implements Consumer<SseEvent> {
@@ -17,13 +16,11 @@ public class SseEventHandler implements Consumer<SseEvent> {
     @Override
     public void accept(SseEvent sseEvent) {
         try {
-            emitter.send(SseEmitter.event()
-                    .name(sseEvent.getPhase().getGenerateStage())
-                    .data(sseEvent));
-            if (sseEvent.getStatus().isTerminated()) {
+            emitter.send(SseEmitter.event().data(sseEvent));
+            if (sseEvent.isCompleted()) {
                 emitter.complete();
             }
-        } catch (IOException exception) {
+        } catch (Exception exception) {
             emitter.completeWithError(exception);
         }
     }
