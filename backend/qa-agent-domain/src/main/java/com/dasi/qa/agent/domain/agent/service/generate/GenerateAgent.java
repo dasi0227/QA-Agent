@@ -47,6 +47,7 @@ import java.util.function.Consumer;
 public class GenerateAgent implements IGenerateAgent {
 
     private static final int BATCH_SIZE = 10;
+    private static final int MAX_RETRY = 2;
 
     private final IJsonUtil jsonUtil;
     private final IPromptUtil promptUtil;
@@ -222,12 +223,21 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.updateTaskPhase(decideContext.getTaskId(), GeneratePhase.DECIDE);
 
         // 2. 调用智能体
-        try {
-            DecideResult result = decideAgent.decide(decideContext.getTaskId(), decideContext.getRequest().getUserPrompt());
-            scope.writeState(GeneratePhase.DECIDE.getScopeKey(), result);
-        } catch (Exception exception) {
-            log.warn("【GenerateAgent - DecideAgent】调用智能体出错: taskId={}, error={}", decideContext.getTaskId(), exception.getMessage());
-            scope.writeState(GeneratePhase.DECIDE.getScopeKey(), fallbackDecide());
+        String retryHint = "";
+        for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
+            try {
+                DecideResult result = decideAgent.decide(decideContext.getTaskId(), decideContext.getRequest().getUserPrompt(), retryHint);
+                writeDecideResult(scope, result);
+                break;
+            } catch (Exception exception) {
+                retryHint = exception.getMessage();
+                if (attempt == MAX_RETRY) {
+                    log.warn("【GenerateAgent - DecideAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, decideContext.getTaskId(), retryHint);
+                    writeDecideResult(scope, null);
+                } else {
+                    log.warn("【GenerateAgent - DecideAgent】第{}次失败，重试中: taskId={}", attempt + 1, decideContext.getTaskId());
+                }
+            }
         }
     }
 
@@ -269,26 +279,39 @@ public class GenerateAgent implements IGenerateAgent {
         );
 
         // 3. 调用智能体
-        PlanResult planResult;
-        try {
-            planResult = planAgent.plan(
-                    planContext.getTaskId(),
-                    documentsSummary,
-                    planContext.getUserProfileJson(),
-                    planContext.getRequest().getUserPrompt(),
-                    planContext.getRequest().getRequestedQuestionCount()
-            );
-        } catch (Exception exception) {
+        PlanResult planResult = null;
+        String retryHint = "";
+        for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
+            try {
+                planResult = planAgent.plan(
+                        planContext.getTaskId(),
+                        documentsSummary,
+                        planContext.getUserProfileJson(),
+                        planContext.getRequest().getUserPrompt(),
+                        planContext.getRequest().getRequestedQuestionCount(),
+                        retryHint
+                );
+                break;
+            } catch (Exception exception) {
+                retryHint = exception.getMessage();
+                if (attempt == MAX_RETRY) {
+                    log.warn("【GenerateAgent - PlanAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, planContext.getTaskId(), retryHint);
+                } else {
+                    log.warn("【GenerateAgent - PlanAgent】第{}次失败，重试中: taskId={}", attempt + 1, planContext.getTaskId());
+                }
+            }
+        }
+        if (planResult == null) {
             if (Boolean.TRUE.equals(planContext.getAllow().getAllowFallback())) {
-                log.warn("【GenerateAgent - PlanAgent】调用失败，启用默认 Plan: taskId={}, error={}", planContext.getTaskId(), exception.getMessage());
+                log.warn("【GenerateAgent - PlanAgent】启用默认 Plan: taskId={}", planContext.getTaskId());
                 planResult = fallbackPlan(planContext.getRequest());
             } else {
-                throw new GenerateException(ErrorType.fromException(exception), "PlanAgent 调用失败: " + exception.getMessage());
+                throw new GenerateException(ErrorType.UNKNOWN, "PlanAgent 调用失败，已重试 " + MAX_RETRY + " 次");
             }
         }
 
         // 4. 写入共享领域
-        scope.writeState(GeneratePhase.PLAN.getScopeKey(), planResult);
+        writePlanResult(scope, planResult, planContext.getRequest());
     }
 
     /**
@@ -345,11 +368,12 @@ public class GenerateAgent implements IGenerateAgent {
             writer.invoke(Map.of());
         } catch (Exception exception) {
             log.warn("【GenerateAgent - WriteAgent】调用智能体出错: taskId={}, error={}", writeContext.getTaskId(), exception.getMessage());
+            writeDraftResult(scope, draftItems);
             throw new GenerateException(ErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
         }
 
         // 8. 写入共享领域
-        scope.writeState(GeneratePhase.WRITE.getScopeKey(), draftItems);
+        writeDraftResult(scope, draftItems);
     }
 
     /**
@@ -366,22 +390,34 @@ public class GenerateAgent implements IGenerateAgent {
                     .filter(item -> item != null && item.getQuestion() != null)
                     .map(DraftItem::getQuestion)
                     .toList());
-            try {
-                String response = draftAgent.draft(
-                        draftContext.getTaskId(),
-                        draftContext.getPlanItem().getModuleTag(),
-                        draftContext.getEvidence(),
-                        draftContext.getUserProfileJson(),
-                        batchCount,
-                        previousQuestions,
-                        draftContext.getRequest().getUserPrompt(),
-                        draftContext.getAnswerStyle()
-                );
-                draftItems.addAll(jsonUtil.parseJsonArray(response, DraftItem.class));
-            } catch (Exception exception) {
-                log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}, error={}", draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
-                draftItems.addAll(fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence()));
+            List<DraftItem> batchItems = null;
+            String retryHint = "";
+            for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
+                try {
+                    String response = draftAgent.draft(
+                            draftContext.getTaskId(),
+                            draftContext.getPlanItem().getModuleTag(),
+                            draftContext.getEvidence(),
+                            draftContext.getUserProfileJson(),
+                            batchCount,
+                            previousQuestions,
+                            draftContext.getRequest().getUserPrompt(),
+                            draftContext.getAnswerStyle(),
+                            retryHint
+                    );
+                    batchItems = jsonUtil.parseJsonArray(response, DraftItem.class);
+                    break;
+                } catch (Exception exception) {
+                    retryHint = exception.getMessage();
+                    if (attempt == MAX_RETRY) {
+                        log.warn("【GenerateAgent - DraftAgent】批次重试{}次后仍失败: taskId={}, module={}, error={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), retryHint);
+                        batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence());
+                    } else {
+                        log.warn("【GenerateAgent - DraftAgent】第{}次失败，重试中: taskId={}, module={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag());
+                    }
+                }
             }
+            draftItems.addAll(batchItems);
             remaining -= batchCount;
         }
         return draftItems;
@@ -405,7 +441,12 @@ public class GenerateAgent implements IGenerateAgent {
 
         // 4. 创建每个批次的异步任务
         List<CompletableFuture<List<DraftItem>>> futureList = batchList.stream()
-                .map(batch -> CompletableFuture.supplyAsync(() -> doValidateLoop(context.getTaskId(), evaluateAgent, amendAgent, batch, context.getRequest().getUserPrompt(), context.getAnswerStyle()), applicationTaskExecutor))
+                .map(batch -> CompletableFuture
+                        .supplyAsync(() -> doValidateLoop(context.getTaskId(), evaluateAgent, amendAgent, batch, context.getRequest().getUserPrompt(), context.getAnswerStyle()), applicationTaskExecutor)
+                        .exceptionally(ex -> {
+                            log.warn("【GenerateAgent - ValidateAgent】批次执行异常，退回原始题目: taskId={}, error={}", context.getTaskId(), ex.getMessage());
+                            return batch;
+                        }))
                 .toList();
 
         // 5. 等待所有批次的异步任务执行完成并汇总结果
@@ -415,7 +456,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .toList();
 
         // 6. 写入共享领域
-        scope.writeState(GeneratePhase.VALIDATE.getScopeKey(), validatedItems);
+        writeValidateResult(scope, validatedItems);
     }
 
     private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, List<DraftItem> batch, String userPrompt, String answerStyle) {
@@ -468,29 +509,48 @@ public class GenerateAgent implements IGenerateAgent {
             validateAgent.invoke(Map.of());
         } catch (Exception exception) {
             log.warn("【GenerateAgent - ValidateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
+            if (passItems.isEmpty()) {
+                passItems.addAll(batch);
+            }
         }
 
         return passItems;
     }
 
     private List<EvaluateItem> doEvaluate(String taskId, EvaluateAgent evaluateAgent, List<DraftItem> drafts) {
-        try {
-            String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(drafts));
-            return jsonUtil.parseJsonArray(response, EvaluateItem.class);
-        } catch (Exception exception) {
-            log.warn("【GenerateAgent - EvaluateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
-            return fallbackEvaluate(drafts);
+        String retryHint = "";
+        for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
+            try {
+                String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(drafts), retryHint);
+                return jsonUtil.parseJsonArray(response, EvaluateItem.class);
+            } catch (Exception exception) {
+                retryHint = exception.getMessage();
+                if (attempt == MAX_RETRY) {
+                    log.warn("【GenerateAgent - EvaluateAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, retryHint);
+                    return fallbackEvaluate(drafts);
+                }
+                log.warn("【GenerateAgent - EvaluateAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId);
+            }
         }
+        return fallbackEvaluate(drafts);
     }
 
     private List<DraftItem> doAmend(String taskId, AmendAgent amendAgent, List<AmendItem> items, String userPrompt, String answerStyle) {
-        try {
-            String response = amendAgent.amend(taskId, jsonUtil.toJsonString(items), userPrompt, answerStyle);
-            return jsonUtil.parseJsonArray(response, DraftItem.class);
-        } catch (Exception exception) {
-            log.warn("【GenerateAgent - AmendAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
-            return fallbackAmend(items);
+        String retryHint = "";
+        for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
+            try {
+                String response = amendAgent.amend(taskId, jsonUtil.toJsonString(items), userPrompt, answerStyle, retryHint);
+                return jsonUtil.parseJsonArray(response, DraftItem.class);
+            } catch (Exception exception) {
+                retryHint = exception.getMessage();
+                if (attempt == MAX_RETRY) {
+                    log.warn("【GenerateAgent - AmendAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, retryHint);
+                    return fallbackAmend(items);
+                }
+                log.warn("【GenerateAgent - AmendAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId);
+            }
         }
+        return fallbackAmend(items);
     }
 
     private List<DraftItem> fallbackAmend(List<AmendItem> items) {
@@ -571,6 +631,19 @@ public class GenerateAgent implements IGenerateAgent {
         summarizeContext.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
     }
 
+    private DecideResult fallbackDecide() {
+        return new DecideResult(false, "DecideAgent 执行出错，默认判定为不可继续执行");
+    }
+
+    private PlanResult fallbackPlan(CreateQaSetRequest request) {
+        return new PlanResult(
+                request.getTitle(),
+                "根据用户资料生成的技术面试问答集",
+                List.of(new PlanItem("General", request.getRequestedQuestionCount(),
+                        "核心知识点", "概念题, 场景题"))
+        );
+    }
+
     private List<DraftItem> fallbackDraft(PlanItem planItem, String evidence) {
         int count = Math.max(1, planItem.getQuestionCount());
         List<DraftItem> drafts = new ArrayList<>();
@@ -586,19 +659,6 @@ public class GenerateAgent implements IGenerateAgent {
             ));
         }
         return drafts;
-    }
-
-    private PlanResult fallbackPlan(CreateQaSetRequest request) {
-        return new PlanResult(
-                request.getTitle(),
-                "根据用户资料生成的技术面试问答集",
-                List.of(new PlanItem("General", request.getRequestedQuestionCount(),
-                        "核心知识点", "概念题, 场景题"))
-        );
-    }
-
-    private DecideResult fallbackDecide() {
-        return new DecideResult(false, "DecideAgent 执行出错，默认判定为不可继续执行");
     }
 
     private String fallbackSummarize(int requiredCount, int generatedCount, String modules, String tags) {
@@ -621,6 +681,22 @@ public class GenerateAgent implements IGenerateAgent {
     @SuppressWarnings("unchecked")
     private List<DraftItem> readDraftResult(AgenticScope scope) {
         return (List<DraftItem>) scope.readState(GeneratePhase.WRITE.getScopeKey());
+    }
+
+    private void writeDecideResult(AgenticScope scope, DecideResult result) {
+        scope.writeState(GeneratePhase.DECIDE.getScopeKey(), result != null ? result : fallbackDecide());
+    }
+
+    private void writePlanResult(AgenticScope scope, PlanResult result, CreateQaSetRequest request) {
+        scope.writeState(GeneratePhase.PLAN.getScopeKey(), result != null ? result : fallbackPlan(request));
+    }
+
+    private void writeDraftResult(AgenticScope scope, List<DraftItem> result) {
+        scope.writeState(GeneratePhase.WRITE.getScopeKey(), result != null ? result : List.of());
+    }
+
+    private void writeValidateResult(AgenticScope scope, List<DraftItem> result) {
+        scope.writeState(GeneratePhase.VALIDATE.getScopeKey(), result != null ? result : List.of());
     }
 
 }

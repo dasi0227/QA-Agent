@@ -24,8 +24,11 @@ public interface EvaluateAgent {
             4. 数组长度必须等于输入题目数量，按输入顺序输出。
             5. 每题必须包含 verdict、reason、suggestion 三个字段，缺失字段用 "" 填充。
             6. 不允许添加未定义字段。
+
+            重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "EVALUATOR", description = "审校题目事实准确性和证据边界")
     String evaluate(@MemoryId @V("taskId") String taskId,
-                    @V("draftItemsJson") String draftItemsJson);
+                    @V("draftItemsJson") String draftItemsJson,
+                    @V("retryHint") String retryHint);
 }

@@ -29,11 +29,14 @@ public interface PlanAgent {
             5. planItems 至少 1 个元素。
             6. 所有 planItems.questionCount 之和必须等于 {{questionCount}}。
             7. 不允许添加未定义字段。
+
+            重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "PLANNER", description = "分析资料目录结构并规划问答集模块")
     PlanResult plan(@MemoryId @V("taskId") String taskId,
                     @V("documents") String documents,
                     @V("userProfile") String userProfile,
                     @V("userPrompt") String userPrompt,
-                    @V("questionCount") int questionCount);
+                    @V("questionCount") int questionCount,
+                    @V("retryHint") String retryHint);
 }

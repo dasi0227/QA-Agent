@@ -30,6 +30,8 @@ public interface DraftAgent {
             4. 必须包含所有指定字段，缺失字段用 "" 填充。
             5. 数组长度必须等于 {{questionCount}}。
             6. 不允许添加未定义字段。
+
+            重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "DRAFTER", description = "根据检索证据起草结构化问答题目")
     String draft(@MemoryId @V("taskId") String taskId,
@@ -39,5 +41,6 @@ public interface DraftAgent {
                  @V("questionCount") int questionCount,
                  @V("previousQuestions") String previousQuestions,
                  @V("userPrompt") String userPrompt,
-                 @V("answerStyle") String answerStyle);
+                 @V("answerStyle") String answerStyle,
+                 @V("retryHint") String retryHint);
 }

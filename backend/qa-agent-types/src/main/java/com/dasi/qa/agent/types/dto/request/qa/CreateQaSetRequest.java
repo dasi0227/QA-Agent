@@ -27,6 +27,6 @@ public class CreateQaSetRequest {
     private List<String> documentIds;
 
     @Max(value = 100, message = "单次最多生成 100 题")
-    @Min(value = 10, message = "单次最多生成 10 题")
+    @Min(value = 10, message = "单次至少生成 10 题")
     private Integer requestedQuestionCount;
 }

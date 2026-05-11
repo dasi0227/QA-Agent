@@ -24,8 +24,11 @@ public interface DecideAgent {
             3. 不要输出解释文字或任何非 JSON 内容。
             4. 必须包含 valid 和 reason 两个字段。
             5. 不允许添加未定义字段。
+
+            重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "DECIDE", description = "判断生成请求是否可以进入问答集生成 DAG")
     DecideResult decide(@MemoryId @V("taskId") String taskId,
-                        @V("userPrompt") String userPrompt);
+                        @V("userPrompt") String userPrompt,
+                        @V("retryHint") String retryHint);
 }

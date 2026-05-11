@@ -26,10 +26,13 @@ public interface AmendAgent {
             4. 输出数组长度必须等于输入 amendItems 数量，顺序严格一致。
             5. 必须包含所有指定字段，缺失字段用 "" 填充。
             6. 不允许添加未定义字段。
+
+            重试提示（首次为空）：{{retryHint}}
             """)
     @Agent(name = "AMENDER", description = "按审校意见最小修订问答题目")
     String amend(@MemoryId @V("taskId") String taskId,
                  @V("amendItemsJson") String amendItemsJson,
                  @V("userPrompt") String userPrompt,
-                 @V("answerStyle") String answerStyle);
+                 @V("answerStyle") String answerStyle,
+                 @V("retryHint") String retryHint);
 }
