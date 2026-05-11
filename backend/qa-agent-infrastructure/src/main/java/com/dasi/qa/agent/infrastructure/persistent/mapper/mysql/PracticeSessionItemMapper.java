@@ -1,9 +1,9 @@
 package com.dasi.qa.agent.infrastructure.persistent.mapper.mysql;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItemEntity;
+import com.dasi.qa.agent.infrastructure.persistent.po.PracticeSessionItem;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface PracticeSessionItemMapper extends BaseMapper<PracticeSessionItemEntity> {
+public interface PracticeSessionItemMapper extends BaseMapper<PracticeSessionItem> {
 }

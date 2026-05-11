@@ -5,11 +5,13 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateE
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserLlmModelVO;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 用户 LLM 模型提供器，读取用户配置的 base_url/api_key/model_name，构建 ChatModel 实例。
@@ -23,7 +25,7 @@ public class UserLlmModelProvider {
         this.agentRepository = agentRepository;
     }
 
-    public ChatModel getUserLlmModel(String userId) {
+    public ChatModel getUserLlmModel(String userId, ChatModelListener tokenListener) {
         UserLlmModelVO userLlmModelVO = agentRepository.getUserLlmModel(userId);
         if (isNotValid(userLlmModelVO)) {
             throw new GenerateException(ErrorType.LLM_NOT_CONFIGURED,
@@ -36,6 +38,7 @@ public class UserLlmModelProvider {
                 .modelName(userLlmModelVO.getModelName())
                 .timeout(Duration.ofSeconds(60))
                 .maxRetries(1)
+                .listeners(List.of(tokenListener))
                 .build();
     }
 

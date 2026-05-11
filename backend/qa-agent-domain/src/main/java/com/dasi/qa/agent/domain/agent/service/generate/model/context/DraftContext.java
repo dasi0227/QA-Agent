@@ -1,6 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanItem;
+import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,4 +20,5 @@ public class DraftContext {
     private String evidence;
     private String userProfileJson;
     private String answerStyle;
+    private GenerateSupervisor supervisor;
 }

@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.entity;
+package com.dasi.qa.agent.infrastructure.persistent.po;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @TableName("qa_generation_task")
-public class QaGenerationTaskEntity {
+public class QaGenerationTask {
 
     @TableId
     private String id;

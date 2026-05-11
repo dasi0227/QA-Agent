@@ -9,8 +9,8 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.practice.repository.IPracticeRepository;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItemEntity;
+import com.dasi.qa.agent.infrastructure.persistent.po.PracticeSession;
+import com.dasi.qa.agent.infrastructure.persistent.po.PracticeSessionItem;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -39,22 +39,22 @@ public class PracticeRepository implements IPracticeRepository {
 
     @Override
     public PracticeSessionResponse detailPracticeSession(String id, String userId) {
-        return detail(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, id, userId);
+        return detail(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, id, userId);
     }
 
     @Override
     public List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request, String userId) {
-        return query(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, request, userId);
+        return query(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, request, userId);
     }
 
     @Override
     public PracticeSessionResponse createPracticeSession(PracticeSessionRequest request, String userId) {
-        return create(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, request, userId);
+        return create(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, request, userId);
     }
 
     @Override
     public PracticeSessionResponse updatePracticeSession(PracticeSessionRequest request, String userId) {
-        return update(practiceSessionMapper, PracticeSessionEntity.class, PracticeSessionResponse.class, request, userId);
+        return update(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, request, userId);
     }
 
     @Override
@@ -64,22 +64,22 @@ public class PracticeRepository implements IPracticeRepository {
 
     @Override
     public PracticeSessionItemResponse detailPracticeSessionItem(String id, String userId) {
-        return detail(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, id, userId);
+        return detail(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, id, userId);
     }
 
     @Override
     public List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request, String userId) {
-        return query(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, request, userId);
+        return query(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, request, userId);
     }
 
     @Override
     public PracticeSessionItemResponse createPracticeSessionItem(PracticeSessionItemRequest request, String userId) {
-        return create(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, request, userId);
+        return create(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, request, userId);
     }
 
     @Override
     public PracticeSessionItemResponse updatePracticeSessionItem(PracticeSessionItemRequest request, String userId) {
-        return update(practiceSessionItemMapper, PracticeSessionItemEntity.class, PracticeSessionItemResponse.class, request, userId);
+        return update(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, request, userId);
     }
 
     @Override

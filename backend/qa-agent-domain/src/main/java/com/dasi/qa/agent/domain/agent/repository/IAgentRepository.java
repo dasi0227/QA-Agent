@@ -29,7 +29,7 @@ public interface IAgentRepository {
 
     void markTaskFailed(String taskId, ErrorType errorType, String errorMessage);
 
-    void appendTaskMessage(String taskId, GeneratePhase phase, String message);
+    void appendTaskMessage(String taskId, String userId, GeneratePhase phase, String message);
 
     TaskStatusResponse getTaskStatus(String taskId, String userId);
 

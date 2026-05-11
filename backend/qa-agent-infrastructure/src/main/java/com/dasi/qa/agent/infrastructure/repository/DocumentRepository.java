@@ -13,8 +13,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.document.model.ChunkDraft;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
-import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunkEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.SourceDocumentEntity;
+import com.dasi.qa.agent.infrastructure.persistent.po.DocumentChunk;
+import com.dasi.qa.agent.infrastructure.persistent.po.SourceDocument;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.DocumentChunkMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -59,27 +59,27 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     public SourceDocumentResponse detailSourceDocument(String id, String userId) {
-        return detail(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, id, userId);
+        return detail(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, id, userId);
     }
 
     @Override
     public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request, String userId) {
-        return query(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request, userId);
+        return query(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request, String userId) {
-        return create(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request, userId);
+        return create(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request, String userId) {
-        return update(sourceDocumentMapper, SourceDocumentEntity.class, SourceDocumentResponse.class, request, userId);
+        return update(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
     public void deleteSourceDocument(String id, String userId) {
-        SourceDocumentEntity entity = sourceDocumentMapper.selectById(id);
+        SourceDocument entity = sourceDocumentMapper.selectById(id);
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
@@ -89,22 +89,22 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     public DocumentChunkResponse detailDocumentChunk(String id, String userId) {
-        return detail(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, id, userId);
+        return detail(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, id, userId);
     }
 
     @Override
     public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request, String userId) {
-        return query(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request, userId);
+        return query(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
     public DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request, String userId) {
-        return create(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request, userId);
+        return create(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
     public DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request, String userId) {
-        return update(documentChunkMapper, DocumentChunkEntity.class, DocumentChunkResponse.class, request, userId);
+        return update(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
@@ -118,13 +118,13 @@ public class DocumentRepository implements IDocumentRepository {
     @Transactional(transactionManager = "mysqlTransactionManager")
     public void replaceDocumentChunks(String documentId, String userId, List<ChunkDraft> drafts) {
         // delete old chunks
-        LambdaQueryWrapper<DocumentChunkEntity> deleteWrapper = new LambdaQueryWrapper<>();
-        deleteWrapper.eq(DocumentChunkEntity::getDocumentId, documentId);
+        LambdaQueryWrapper<DocumentChunk> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(DocumentChunk::getDocumentId, documentId);
         documentChunkMapper.delete(deleteWrapper);
 
         // insert new chunks
         for (ChunkDraft draft : drafts) {
-            DocumentChunkEntity entity = new DocumentChunkEntity();
+            DocumentChunk entity = new DocumentChunk();
             entity.setId(draft.getChunkId() != null ? draft.getChunkId() : UUID.randomUUID().toString());
             entity.setDocumentId(documentId);
             entity.setUserId(userId);
@@ -144,14 +144,14 @@ public class DocumentRepository implements IDocumentRepository {
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
     public void deleteDocumentChunksByDocumentId(String documentId) {
-        LambdaQueryWrapper<DocumentChunkEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DocumentChunkEntity::getDocumentId, documentId);
+        LambdaQueryWrapper<DocumentChunk> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DocumentChunk::getDocumentId, documentId);
         documentChunkMapper.delete(wrapper);
     }
 
     @Override
     public String getDocumentUserId(String documentId) {
-        SourceDocumentEntity entity = sourceDocumentMapper.selectById(documentId);
+        SourceDocument entity = sourceDocumentMapper.selectById(documentId);
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
         }

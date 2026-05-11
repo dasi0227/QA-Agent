@@ -12,13 +12,13 @@ import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskMessageEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaItemEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetDocumentRefEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.SourceDocumentEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfileEntity;
+import com.dasi.qa.agent.infrastructure.persistent.po.QaGenerationTask;
+import com.dasi.qa.agent.infrastructure.persistent.po.QaGenerationTaskMessage;
+import com.dasi.qa.agent.infrastructure.persistent.po.QaItem;
+import com.dasi.qa.agent.infrastructure.persistent.po.QaSetDocumentRef;
+import com.dasi.qa.agent.infrastructure.persistent.po.QaSet;
+import com.dasi.qa.agent.infrastructure.persistent.po.SourceDocument;
+import com.dasi.qa.agent.infrastructure.persistent.po.UserProfile;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaGenerationTaskMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaGenerationTaskMessageMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
@@ -71,7 +71,7 @@ public class AgentRepository implements IAgentRepository {
     @Override
     public void createGenerationTask(String taskId, String userId, CreateQaSetRequest request, UserProfileAllowVO allow) {
         LocalDateTime now = LocalDateTime.now();
-        QaGenerationTaskEntity entity = new QaGenerationTaskEntity();
+        QaGenerationTask entity = new QaGenerationTask();
         entity.setId(taskId);
         entity.setUserId(userId);
         entity.setTitle(title(request));
@@ -89,7 +89,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public void updateTaskStatus(String taskId, GenerateStatus status, GeneratePhase phase) {
-        QaGenerationTaskEntity entity = requireTask(taskId);
+        QaGenerationTask entity = requireTask(taskId);
         entity.setStatus(status.name());
         entity.setStage(phase.getGenerateStage());
         if (entity.getStartedAt() == null) {
@@ -100,7 +100,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public void markTaskCompleted(String taskId, String qaSetId) {
-        QaGenerationTaskEntity entity = requireTask(taskId);
+        QaGenerationTask entity = requireTask(taskId);
         entity.setQaSetId(qaSetId);
         entity.setStatus(GenerateStatus.SOLVED.name());
         entity.setStage(GeneratePhase.COMPLETE.getGenerateStage());
@@ -110,7 +110,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public void markTaskFailed(String taskId, ErrorType errorType, String errorMessage) {
-        QaGenerationTaskEntity entity = requireTask(taskId);
+        QaGenerationTask entity = requireTask(taskId);
         entity.setStatus(GenerateStatus.UNSOLVED.name());
         entity.setStage(GeneratePhase.FAIL.getGenerateStage());
         entity.setErrorCode(errorType.name());
@@ -120,9 +120,10 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void appendTaskMessage(String taskId, GeneratePhase phase, String message) {
-        QaGenerationTaskMessageEntity entity = new QaGenerationTaskMessageEntity();
+    public void appendTaskMessage(String taskId, String userId, GeneratePhase phase, String message) {
+        QaGenerationTaskMessage entity = new QaGenerationTaskMessage();
         entity.setId(UUID.randomUUID().toString());
+        entity.setUserId(userId);
         entity.setTaskId(taskId);
         entity.setStage(phase.getGenerateStage());
         entity.setMessage(message);
@@ -132,7 +133,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public TaskStatusResponse getTaskStatus(String taskId, String userId) {
-        QaGenerationTaskEntity entity = requireTask(taskId);
+        QaGenerationTask entity = requireTask(taskId);
         checkUser(entity, userId);
         return TaskStatusResponse.builder()
                 .taskId(entity.getId())
@@ -151,11 +152,11 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public List<TaskMessageResponse> getTaskMessages(String taskId, String userId) {
-        QaGenerationTaskEntity task = requireTask(taskId);
+        QaGenerationTask task = requireTask(taskId);
         checkUser(task, userId);
-        return taskMessageMapper.selectList(new LambdaQueryWrapper<QaGenerationTaskMessageEntity>()
-                        .eq(QaGenerationTaskMessageEntity::getTaskId, taskId)
-                        .orderByAsc(QaGenerationTaskMessageEntity::getCreatedAt))
+        return taskMessageMapper.selectList(new LambdaQueryWrapper<QaGenerationTaskMessage>()
+                        .eq(QaGenerationTaskMessage::getTaskId, taskId)
+                        .orderByAsc(QaGenerationTaskMessage::getCreatedAt))
                 .stream()
                 .map(entity -> TaskMessageResponse.builder()
                         .id(entity.getId())
@@ -169,7 +170,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public UserLlmModelVO getUserLlmModel(String userId) {
-        UserProfileEntity profile = userProfileMapper.selectById(userId);
+        UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {
             return null;
         }
@@ -178,7 +179,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public UserProfileInfoVO getUserProfileInfo(String userId) {
-        UserProfileEntity profile = userProfileMapper.selectById(userId);
+        UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {
             return null;
         }
@@ -194,7 +195,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public UserProfileStyleVO getUserProfileStyle(String userId) {
-        UserProfileEntity profile = userProfileMapper.selectById(userId);
+        UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {
             return null;
         }
@@ -206,7 +207,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     public UserProfileAllowVO getUserProfileAllow(String userId) {
-        UserProfileEntity profile = userProfileMapper.selectById(userId);
+        UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {
             return null;
         }
@@ -222,11 +223,11 @@ public class AgentRepository implements IAgentRepository {
         if (documentIds == null || documentIds.isEmpty()) {
             return "";
         }
-        List<SourceDocumentEntity> documents = sourceDocumentMapper.selectList(
-                new LambdaQueryWrapper<SourceDocumentEntity>()
-                        .in(SourceDocumentEntity::getId, documentIds)
-                        .eq(SourceDocumentEntity::getUserId, userId)
-                        .eq(SourceDocumentEntity::getDeleted, false));
+        List<SourceDocument> documents = sourceDocumentMapper.selectList(
+                new LambdaQueryWrapper<SourceDocument>()
+                        .in(SourceDocument::getId, documentIds)
+                        .eq(SourceDocument::getUserId, userId)
+                        .eq(SourceDocument::getDeleted, false));
         return documents.stream()
                 .map(document -> "# " + document.getFileName() + "\n"
                         + safe(document.getSummary()) + "\n"
@@ -240,7 +241,7 @@ public class AgentRepository implements IAgentRepository {
     public String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
                                      PlanResult planResult, List<DraftItem> draftItems) {
         String qaSetId = UUID.randomUUID().toString();
-        QaSetEntity qaSet = new QaSetEntity();
+        QaSet qaSet = new QaSet();
         qaSet.setId(qaSetId);
         qaSet.setUserId(userId);
         qaSet.setTaskId(taskId);
@@ -253,7 +254,7 @@ public class AgentRepository implements IAgentRepository {
 
         int sortOrder = 1;
         for (DraftItem draftItem : draftItems) {
-            QaItemEntity item = new QaItemEntity();
+            QaItem item = new QaItem();
             item.setId(UUID.randomUUID().toString());
             item.setQaSetId(qaSetId);
             item.setUserId(userId);
@@ -269,7 +270,7 @@ public class AgentRepository implements IAgentRepository {
         }
 
         for (String documentId : request.getDocumentIds()) {
-            QaSetDocumentRefEntity ref = new QaSetDocumentRefEntity();
+            QaSetDocumentRef ref = new QaSetDocumentRef();
             ref.setId(UUID.randomUUID().toString());
             ref.setQaSetId(qaSetId);
             ref.setDocumentId(documentId);
@@ -279,15 +280,15 @@ public class AgentRepository implements IAgentRepository {
         return qaSetId;
     }
 
-    private QaGenerationTaskEntity requireTask(String taskId) {
-        QaGenerationTaskEntity entity = taskMapper.selectById(taskId);
+    private QaGenerationTask requireTask(String taskId) {
+        QaGenerationTask entity = taskMapper.selectById(taskId);
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
         return entity;
     }
 
-    private void checkUser(QaGenerationTaskEntity entity, String userId) {
+    private void checkUser(QaGenerationTask entity, String userId) {
         if (!userId.equals(entity.getUserId())) {
             throw new ApiException(ResultCode.FORBIDDEN);
         }

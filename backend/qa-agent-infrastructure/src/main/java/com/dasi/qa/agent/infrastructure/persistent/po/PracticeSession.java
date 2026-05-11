@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.entity;
+package com.dasi.qa.agent.infrastructure.persistent.po;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -7,32 +7,43 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("document_chunk")
-public class DocumentChunkEntity {
+@TableName("practice_session")
+public class PracticeSession {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
     
     private String userId;
     
-    private String documentId;
+    private String qaSetId;
     
-    private Integer chunkIndex;
+    private String mode;
     
-    private String titlePath;
+    private String feedbackMode;
     
-    private String content;
+    private String status;
+    
+    private String selectedModule;
+    
+    private Integer totalQuestions;
+    
+    private Integer answeredCount;
+    
+    private Integer score;
+    
+    private BigDecimal accuracy;
     
     private String summary;
     
-    private String moduleTagsJson;
+    private LocalDateTime startedAt;
     
-    private String embeddingVector;
+    private LocalDateTime finishedAt;
     
     private LocalDateTime createdAt;
     

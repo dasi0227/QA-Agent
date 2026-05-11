@@ -10,8 +10,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
-import com.dasi.qa.agent.infrastructure.persistent.entity.UserAccountEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfileEntity;
+import com.dasi.qa.agent.infrastructure.persistent.po.UserAccount;
+import com.dasi.qa.agent.infrastructure.persistent.po.UserProfile;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserAccountMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -39,7 +39,7 @@ public class IdentityRepository implements IIdentityRepository {
 
     @Override
     public UserAccountResponse detailUserAccount(String id, String userId) {
-        UserAccountEntity entity = userAccountMapper.selectById(id);
+        UserAccount entity = userAccountMapper.selectById(id);
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
@@ -48,39 +48,39 @@ public class IdentityRepository implements IIdentityRepository {
 
     @Override
     public List<UserAccountResponse> queryUserAccount(UserAccountRequest request, String userId) {
-        LambdaQueryWrapper<UserAccountEntity> wrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<UserAccount> wrapper = new LambdaQueryWrapper<>();
         if (request.getId() != null) {
-            wrapper.eq(UserAccountEntity::getId, request.getId());
+            wrapper.eq(UserAccount::getId, request.getId());
         }
         if (request.getUsername() != null) {
-            wrapper.eq(UserAccountEntity::getUsername, request.getUsername());
+            wrapper.eq(UserAccount::getUsername, request.getUsername());
         }
         if (request.getEmail() != null) {
-            wrapper.eq(UserAccountEntity::getEmail, request.getEmail());
+            wrapper.eq(UserAccount::getEmail, request.getEmail());
         }
         if (request.getStatus() != null) {
-            wrapper.eq(UserAccountEntity::getStatus, request.getStatus());
+            wrapper.eq(UserAccount::getStatus, request.getStatus());
         }
         return userAccountMapper.selectList(wrapper).stream().map(this::toUserAccountResponse).toList();
     }
 
     @Override
     public UserAccountResponse createUserAccount(UserAccountRequest request, String userId) {
-        UserAccountEntity entity = toEntity(request, UserAccountEntity.class);
+        UserAccount entity = toEntity(request, UserAccount.class);
         userAccountMapper.insert(entity);
         return toUserAccountResponse(entity);
     }
 
     @Override
     public UserAccountResponse updateUserAccount(UserAccountRequest request, String userId) {
-        UserAccountEntity entity = toEntity(request, UserAccountEntity.class);
+        UserAccount entity = toEntity(request, UserAccount.class);
         userAccountMapper.updateById(entity);
         return toUserAccountResponse(entity);
     }
 
     @Override
     public void deleteUserAccount(String id, String userId) {
-        UserAccountEntity entity = userAccountMapper.selectById(id);
+        UserAccount entity = userAccountMapper.selectById(id);
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
@@ -90,19 +90,19 @@ public class IdentityRepository implements IIdentityRepository {
 
     @Override
     public UserAccountResponse findUserAccountByUsername(String username) {
-        UserAccountEntity entity = userAccountMapper.selectOne(new LambdaQueryWrapper<UserAccountEntity>().eq(UserAccountEntity::getUsername, username));
+        UserAccount entity = userAccountMapper.selectOne(new LambdaQueryWrapper<UserAccount>().eq(UserAccount::getUsername, username));
         return entity == null ? null : toUserAccountResponse(entity);
     }
 
     @Override
     public UserAccountResponse findUserAccountByEmail(String email) {
-        UserAccountEntity entity = userAccountMapper.selectOne(new LambdaQueryWrapper<UserAccountEntity>().eq(UserAccountEntity::getEmail, email));
+        UserAccount entity = userAccountMapper.selectOne(new LambdaQueryWrapper<UserAccount>().eq(UserAccount::getEmail, email));
         return entity == null ? null : toUserAccountResponse(entity);
     }
 
     @Override
     public UserProfileResponse detailUserProfile(String id, String userId) {
-        UserProfileEntity entity = userProfileMapper.selectById(id);
+        UserProfile entity = userProfileMapper.selectById(id);
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
@@ -114,7 +114,7 @@ public class IdentityRepository implements IIdentityRepository {
 
     @Override
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request, String userId) {
-        QueryWrapper<UserProfileEntity> queryWrapper = new QueryWrapper<>();
+        QueryWrapper<UserProfile> queryWrapper = new QueryWrapper<>();
         Map<String, Object> map = BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue());
         Map<String, Object> snakeMap = new LinkedHashMap<>();
         map.forEach((k, v) -> snakeMap.put(StrUtil.toUnderlineCase(k), v));
@@ -125,7 +125,7 @@ public class IdentityRepository implements IIdentityRepository {
 
     @Override
     public UserProfileResponse createUserProfile(UserProfileRequest request, String userId) {
-        UserProfileEntity entity = toEntity(request, UserProfileEntity.class);
+        UserProfile entity = toEntity(request, UserProfile.class);
         entity.setUserId(userId);
         userProfileMapper.insert(entity);
         return toUserProfileResponse(entity);
@@ -133,7 +133,7 @@ public class IdentityRepository implements IIdentityRepository {
 
     @Override
     public UserProfileResponse updateUserProfile(UserProfileRequest request, String userId) {
-        UserProfileEntity entity = toEntity(request, UserProfileEntity.class);
+        UserProfile entity = toEntity(request, UserProfile.class);
         entity.setUserId(userId);
         userProfileMapper.updateById(entity);
         return toUserProfileResponse(entity);
@@ -150,13 +150,13 @@ public class IdentityRepository implements IIdentityRepository {
         return entity;
     }
 
-    private UserAccountResponse toUserAccountResponse(UserAccountEntity entity) {
+    private UserAccountResponse toUserAccountResponse(UserAccount entity) {
         UserAccountResponse response = ReflectUtil.newInstance(UserAccountResponse.class);
         BeanUtil.copyProperties(entity, response, CopyOptions.create().ignoreNullValue());
         return response;
     }
 
-    private UserProfileResponse toUserProfileResponse(UserProfileEntity entity) {
+    private UserProfileResponse toUserProfileResponse(UserProfile entity) {
         UserProfileResponse response = ReflectUtil.newInstance(UserProfileResponse.class);
         BeanUtil.copyProperties(entity, response, CopyOptions.create().ignoreNullValue());
         if (response.getId() == null || response.getId().isBlank()) {

@@ -73,7 +73,8 @@ public class QaController {
         emitter.onError(emitter::completeWithError);
 
         Consumer<SseEvent> sseEventHandler = new SseEventHandler(emitter);
-        applicationTaskExecutor.execute(() -> generationAgent.execute(contextUtil.getUserId(), request, sseEventHandler));
+        String userId = contextUtil.getUserId();
+        applicationTaskExecutor.execute(() -> generationAgent.execute(userId, request, sseEventHandler));
 
         return emitter;
     }

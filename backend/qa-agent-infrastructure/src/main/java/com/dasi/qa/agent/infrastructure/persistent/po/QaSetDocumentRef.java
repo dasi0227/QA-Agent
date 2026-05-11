@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.entity;
+package com.dasi.qa.agent.infrastructure.persistent.po;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @TableName("qa_set_document_ref")
-public class QaSetDocumentRefEntity {
+public class QaSetDocumentRef {
 
     @TableId(value = "id", type = IdType.INPUT)
     private String id;

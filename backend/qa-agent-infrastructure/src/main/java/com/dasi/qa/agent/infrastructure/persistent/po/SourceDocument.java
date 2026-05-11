@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.entity;
+package com.dasi.qa.agent.infrastructure.persistent.po;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -13,28 +13,30 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("practice_session_item")
-public class PracticeSessionItemEntity {
+@TableName("source_document")
+public class SourceDocument {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
     
     private String userId;
     
-    private String sessionId;
+    private String fileName;
     
-    private String qaItemId;
+    private String fileType;
     
-    private Integer sortOrder;
+    private String filePath;
     
-    private String userAnswer;
+    private String rawContent;
     
-    private String result;
+    private String normalizedContent;
     
-    private Integer score;
+    private String summary;
     
-    private String feedbackSummary;
+    private String moduleTagsJson;
     
-    private LocalDateTime answeredAt;
+    private Integer referenceCount;
+    
+    private Boolean deleted;
     
     private LocalDateTime createdAt;
     

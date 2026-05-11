@@ -5,10 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IMqUtil;
-import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJobEntity;
+import com.dasi.qa.agent.infrastructure.persistent.po.MessageJob;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,7 +30,7 @@ public class MqUtil implements IMqUtil {
     @Override
     public void send(String topic, String jobId, String content) {
         // check existing job
-        MessageJobEntity existing = findExistingJob(jobId);
+        MessageJob existing = findExistingJob(jobId);
         if (existing != null) {
             // retry: update existing
             existing.setJobRetry(existing.getJobRetry() + 1);
@@ -41,7 +40,7 @@ public class MqUtil implements IMqUtil {
             messageJobMapper.updateById(existing);
         } else {
             // first send: insert
-            MessageJobEntity job = MessageJobEntity.builder()
+            MessageJob job = MessageJob.builder()
                     .id(UUID.randomUUID().toString())
                     .jobId(jobId)
                     .jobStatus(JobStatus.UNSOLVED.name())
@@ -62,7 +61,7 @@ public class MqUtil implements IMqUtil {
 
     @Override
     public void markSuccess(String jobId) {
-        MessageJobEntity existing = findExistingJob(jobId);
+        MessageJob existing = findExistingJob(jobId);
         if (existing != null) {
             existing.setJobStatus(JobStatus.SUCCESS.name());
             existing.setUpdatedAt(LocalDateTime.now());
@@ -73,7 +72,7 @@ public class MqUtil implements IMqUtil {
 
     @Override
     public void markFail(String jobId) {
-        MessageJobEntity existing = findExistingJob(jobId);
+        MessageJob existing = findExistingJob(jobId);
         if (existing != null) {
             existing.setJobStatus(JobStatus.FAIL.name());
             existing.setUpdatedAt(LocalDateTime.now());
@@ -82,9 +81,9 @@ public class MqUtil implements IMqUtil {
         }
     }
 
-    private MessageJobEntity findExistingJob(String jobId) {
-        LambdaQueryWrapper<MessageJobEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(MessageJobEntity::getJobId, jobId);
+    private MessageJob findExistingJob(String jobId) {
+        LambdaQueryWrapper<MessageJob> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MessageJob::getJobId, jobId);
         return messageJobMapper.selectOne(wrapper);
     }
 }

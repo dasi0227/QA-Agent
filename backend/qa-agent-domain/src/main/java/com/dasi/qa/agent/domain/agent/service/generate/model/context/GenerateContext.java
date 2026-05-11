@@ -7,7 +7,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.DraftAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.EvaluateAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.PlanAgent;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.SummarizeAgent;
-import dev.langchain4j.agentic.observability.AgentListener;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
@@ -24,7 +23,6 @@ public class GenerateContext {
 
     private final ChatModel userModel;
     private final ChatMemoryProvider chatMemoryProvider;
-    private final AgentListener agentListener;
     private final List<Object> writeTools;
     private final List<Object> validateTools;
     private final DecideStep decideStep;

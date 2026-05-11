@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @Slf4j
 public enum GeneratePhase {
-    UNKNOWN("UNKNOWN", "UnknownAgent", "未识别的执行阶段。", null),
+    UNKNOWN("UNKNOWN", null, "未识别的执行阶段。", null),
 
     GENERATE("GENERATING", "GenerateAgent", "先执行请求判定，再根据路由结果进入终止分支或完整生成链路。", null),
     ROUTE("ROUTING", "RouteAgent", "读取判定结果并路由到终止分支或继续执行生成分支。", null),
@@ -22,9 +22,9 @@ public enum GeneratePhase {
     AMEND("AMENDING", "AmendAgent", "按审校建议进行最小必要修订并保持题目结构稳定。", null),
     SUMMARIZE("SUMMARIZING", "SummarizeAgent", "汇总生成结果与统计信息并输出最终完成说明。", null),
 
-    INIT("INITIALIZED", "NullAgent", "生成任务已创建，等待进入执行链路。", null),
-    COMPLETE("COMPLETED", "NullAgent", "生成链路执行完成并输出结果。", null),
-    FAIL("FAILED", "NullAgent", "生成链路执行失败并返回失败原因。", null);
+    INIT("INITIALIZED", null, "生成任务已创建，等待进入执行链路。", null),
+    COMPLETE("COMPLETED", null, "生成链路执行完成并输出结果。", null),
+    FAIL("FAILED", null, "生成链路执行失败并返回失败原因。", null);
 
     private final String generateStage;
     private final String agentName;

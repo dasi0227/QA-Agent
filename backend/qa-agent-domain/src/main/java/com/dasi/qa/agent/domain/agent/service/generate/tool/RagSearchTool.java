@@ -26,8 +26,8 @@ public class RagSearchTool {
     }
 
     @Tool("搜索用户上传资料中的相关知识片段")
-    public List<SearchResult> search(@P("查询关键词") String queryText,
-                                     @P("限定模块标签") List<String> filterModuleTags) {
+    public List<SearchResult> ragSearch(@P("查询关键词") String queryText,
+                                        @P("限定模块标签") List<String> filterModuleTags) {
         SearchRequest request = SearchRequest.builder()
                 .queryText(queryText)
                 .strategy(SearchStrategy.HYBRID.name())

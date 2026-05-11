@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IMqUtil;
-import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJobEntity;
+import com.dasi.qa.agent.infrastructure.persistent.po.MessageJob;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
 import com.dasi.qa.agent.types.enumeration.JobStatus;
 import com.xxl.job.core.handler.annotation.XxlJob;
@@ -29,9 +29,9 @@ public class MessageRetryJob {
     @XxlJob("messageJobRetryHandler")
     public void execute() {
         log.info("MessageRetryJob started");
-        LambdaQueryWrapper<MessageJobEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(MessageJobEntity::getJobStatus, JobStatus.UNSOLVED.name());
-        List<MessageJobEntity> unsolvedJobs = messageJobMapper.selectList(wrapper);
+        LambdaQueryWrapper<MessageJob> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MessageJob::getJobStatus, JobStatus.UNSOLVED.name());
+        List<MessageJob> unsolvedJobs = messageJobMapper.selectList(wrapper);
 
         if (unsolvedJobs.isEmpty()) {
             log.info("No UNSOLVED message jobs found");
@@ -39,7 +39,7 @@ public class MessageRetryJob {
         }
 
         log.info("Found {} UNSOLVED message jobs", unsolvedJobs.size());
-        for (MessageJobEntity job : unsolvedJobs) {
+        for (MessageJob job : unsolvedJobs) {
             if (job.getJobRetry() < MAX_RETRY) {
                 log.info("Retrying job: jobId={}, retry={}/{}", job.getJobId(), job.getJobRetry() + 1, MAX_RETRY);
                 mqUtil.send(job.getMessageTopic(), job.getJobId(), job.getMessageContent());

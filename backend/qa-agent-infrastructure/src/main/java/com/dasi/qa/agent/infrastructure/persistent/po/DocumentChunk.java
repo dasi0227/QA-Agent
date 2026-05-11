@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.infrastructure.persistent.entity;
+package com.dasi.qa.agent.infrastructure.persistent.po;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -13,30 +13,26 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("source_document")
-public class SourceDocumentEntity {
+@TableName("document_chunk")
+public class DocumentChunk {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
     
     private String userId;
     
-    private String fileName;
+    private String documentId;
     
-    private String fileType;
+    private Integer chunkIndex;
     
-    private String filePath;
+    private String titlePath;
     
-    private String rawContent;
-    
-    private String normalizedContent;
+    private String content;
     
     private String summary;
     
     private String moduleTagsJson;
     
-    private Integer referenceCount;
-    
-    private Boolean deleted;
+    private String embeddingVector;
     
     private LocalDateTime createdAt;
     

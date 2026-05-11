@@ -1,7 +1,5 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
-import static com.dasi.qa.agent.types.constant.StringConstant.DB_USER_ID;
-
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
@@ -10,28 +8,22 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItemEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaItemEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetDocumentRefEntity;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetEntity;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetDocumentRefMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
-import com.dasi.qa.agent.types.exception.ApiException;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
+import com.dasi.qa.agent.infrastructure.persistent.po.*;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Repository;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.dasi.qa.agent.types.constant.StringConstant.DB_USER_ID;
 
 @Repository
 public class QaRepository implements IQaRepository {
@@ -55,59 +47,59 @@ public class QaRepository implements IQaRepository {
 
     @Override
     public QaSetResponse detailQaSet(String id, String userId) {
-        return detail(qaSetMapper, QaSetEntity.class, QaSetResponse.class, id, userId);
+        return detail(qaSetMapper, QaSet.class, QaSetResponse.class, id, userId);
     }
 
     @Override
     public List<QaSetResponse> queryQaSet(QaSetRequest request, String userId) {
-        return query(qaSetMapper, QaSetEntity.class, QaSetResponse.class, request, userId);
+        return query(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
     }
 
     @Override
     public QaSetResponse createQaSet(QaSetRequest request, String userId) {
-        return create(qaSetMapper, QaSetEntity.class, QaSetResponse.class, request, userId);
+        return create(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
     }
 
     @Override
     public QaSetResponse updateQaSet(QaSetRequest request, String userId) {
-        return update(qaSetMapper, QaSetEntity.class, QaSetResponse.class, request, userId);
+        return update(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
     }
 
     @Override
     public void deleteQaSet(String id, String userId) {
-        List<PracticeSessionEntity> sessions = practiceSessionMapper.selectList(
-            new LambdaQueryWrapper<PracticeSessionEntity>().eq(PracticeSessionEntity::getQaSetId, id));
-        for (PracticeSessionEntity session : sessions) {
+        List<PracticeSession> sessions = practiceSessionMapper.selectList(
+            new LambdaQueryWrapper<PracticeSession>().eq(PracticeSession::getQaSetId, id));
+        for (PracticeSession session : sessions) {
             practiceSessionItemMapper.delete(
-                new LambdaQueryWrapper<PracticeSessionItemEntity>().eq(PracticeSessionItemEntity::getSessionId, session.getId()));
+                new LambdaQueryWrapper<PracticeSessionItem>().eq(PracticeSessionItem::getSessionId, session.getId()));
         }
         practiceSessionMapper.delete(
-            new LambdaQueryWrapper<PracticeSessionEntity>().eq(PracticeSessionEntity::getQaSetId, id));
+            new LambdaQueryWrapper<PracticeSession>().eq(PracticeSession::getQaSetId, id));
         qaItemMapper.delete(
-            new LambdaQueryWrapper<QaItemEntity>().eq(QaItemEntity::getQaSetId, id));
+            new LambdaQueryWrapper<QaItem>().eq(QaItem::getQaSetId, id));
         qaSetDocumentRefMapper.delete(
-            new LambdaQueryWrapper<QaSetDocumentRefEntity>().eq(QaSetDocumentRefEntity::getQaSetId, id));
+            new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, id));
         qaSetMapper.deleteById(id);
     }
 
     @Override
     public QaItemResponse detailQaItem(String id, String userId) {
-        return detail(qaItemMapper, QaItemEntity.class, QaItemResponse.class, id, userId);
+        return detail(qaItemMapper, QaItem.class, QaItemResponse.class, id, userId);
     }
 
     @Override
     public List<QaItemResponse> queryQaItem(QaItemRequest request, String userId) {
-        return query(qaItemMapper, QaItemEntity.class, QaItemResponse.class, request, userId);
+        return query(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
     }
 
     @Override
     public QaItemResponse createQaItem(QaItemRequest request, String userId) {
-        return create(qaItemMapper, QaItemEntity.class, QaItemResponse.class, request, userId);
+        return create(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
     }
 
     @Override
     public QaItemResponse updateQaItem(QaItemRequest request, String userId) {
-        return update(qaItemMapper, QaItemEntity.class, QaItemResponse.class, request, userId);
+        return update(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
     }
 
     @Override

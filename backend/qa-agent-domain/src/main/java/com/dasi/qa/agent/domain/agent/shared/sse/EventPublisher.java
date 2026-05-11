@@ -14,15 +14,18 @@ public class EventPublisher {
 
     private final IAgentRepository agentRepository;
     private final String taskId;
+    private final String userId;
     private final Consumer<SseEvent> eventSink;
     private final AtomicInteger totalTokens;
 
     public EventPublisher(IAgentRepository agentRepository,
                           String taskId,
+                          String userId,
                           Consumer<SseEvent> eventSink,
                           AtomicInteger totalTokens) {
         this.agentRepository = agentRepository;
         this.taskId = taskId;
+        this.userId = userId;
         this.eventSink = eventSink;
         this.totalTokens = totalTokens;
     }
@@ -37,8 +40,8 @@ public class EventPublisher {
                 .currentTokens(currentTokens)
                 .totalTokens(totalTokens.get())
                 .build();
-        log.info("[task={}] [phase={}] {}", taskId, phase, message);
-        agentRepository.appendTaskMessage(taskId, phase, message);
+        log.info("【发送事件】阶段 {} : {}", phase.getGenerateStage(), message);
+        agentRepository.appendTaskMessage(taskId, userId, phase, message);
         eventSink.accept(sseEvent);
     }
 

@@ -26,9 +26,9 @@ public class WebSearchTool {
     }
 
     @Tool("搜索目标公司岗位的真实面试经验和面经")
-    public InterviewInsights search(@P("目标公司") String company,
-                                    @P("目标岗位") String role,
-                                    @P("技术模块") String module) {
+    public InterviewInsights webSearch(@P("目标公司") String company,
+                                       @P("目标岗位") String role,
+                                       @P("技术模块") String module) {
         String query = String.format("搜索 %s %s %s 面试面经", company, role, module);
         ChatResponse response = webSearchModel.chat(SystemMessage.from(promptUtil.loadWebSearchPrompt()), UserMessage.from(query));
         try {

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA Agent Test</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 24px; max-width: 800px; margin: 0 auto; }
+h2 { margin: 20px 0 12px; font-size: 16px; color: #333; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+input, button { padding: 8px 14px; border-radius: 6px; font-size: 14px; }
+input { border: 1px solid #d0d0d0; width: 200px; }
+button { border: none; cursor: pointer; font-weight: 500; }
+.btn-pri { background: #1677ff; color: #fff; }
+.btn-pri:hover { background: #4096ff; }
+.btn-out { background: #fff; color: #1677ff; border: 1px solid #1677ff; }
+.btn-out:hover { background: #e6f4ff; }
+.btn-red { background: #ff4d4f; color: #fff; }
+.status { font-size: 13px; color: #666; margin-left: 8px; }
+.card { background: #fff; border-radius: 8px; padding: 14px 18px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.card-header { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.card-message { font-size: 14px; color: #222; line-height: 1.6; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.tag-phase { background: #e6f4ff; color: #1677ff; }
+.tag-status { background: #f6ffed; color: #52c41a; }
+.tag-tokens { background: #fff7e6; color: #fa8c16; }
+.tag-time { background: #f5f5f5; color: #666; }
+.error { color: #ff4d4f; font-size: 13px; margin-top: 4px; }
+#events { margin-top: 16px; }
+pre { background: #fafafa; padding: 8px; border-radius: 4px; font-size: 12px; overflow-x: auto; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<h1>QA Agent Test</h1>
+
+<h2>1. Login</h2>
+<div class="row">
+  <input id="username" value="root" placeholder="Username">
+  <input id="password" value="123456" type="password" placeholder="Password">
+  <button class="btn-pri" onclick="login()">Get Token</button>
+  <span class="status" id="tokenStatus"></span>
+</div>
+
+<h2>2. Upload File</h2>
+<div class="row">
+  <input type="file" id="fileInput">
+  <input id="fileType" value="MARKDOWN" placeholder="File Type">
+  <button class="btn-pri" onclick="upload()">Upload</button>
+  <span class="status" id="uploadStatus"></span>
+</div>
+<pre id="uploadResult" style="display:none"></pre>
+
+<h2>3. Create QA Set</h2>
+<div class="row">
+  <input id="docId" placeholder="Document ID">
+  <input id="title" value="OS 面试问答集" placeholder="Title">
+  <input id="userPrompt" value="偏后端实习面试" placeholder="User Prompt">
+  <input id="questionCount" value="10" type="number" min="10" max="100">
+  <button class="btn-pri" onclick="createQaSet()">Send</button>
+</div>
+
+<h2>4. SSE Events</h2>
+<div id="events"></div>
+
+<script>
+const BASE = 'http://localhost:8080/qa-agent/api/v1';
+let token = '';
+
+function setStatus(id, text, ok) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.style.color = ok ? '#52c41a' : '#ff4d4f';
+}
+
+async function login() {
+  setStatus('tokenStatus', '...', true);
+  try {
+    const res = await fetch(BASE + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+      })
+    });
+    const data = await res.json();
+    if (data.code === 0) {
+      token = data.data.accessToken;
+      setStatus('tokenStatus', 'OK: ' + token.substring(0, 20) + '...', true);
+    } else {
+      setStatus('tokenStatus', 'FAIL: ' + data.msg, false);
+    }
+  } catch (e) {
+    setStatus('tokenStatus', 'ERROR: ' + e.message, false);
+  }
+}
+
+async function upload() {
+  if (!token) { setStatus('uploadStatus', 'Need token', false); return; }
+  setStatus('uploadStatus', '...', true);
+  try {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) { setStatus('uploadStatus', 'Need file', false); return; }
+    const rawContent = await file.text();
+    const res = await fetch(BASE + '/document/source/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: document.getElementById('fileType').value,
+        filePath: '/note/' + file.name,
+        rawContent: rawContent,
+        normalizedContent: '',
+        summary: '',
+        moduleTagsJson: '[]',
+        referenceCount: 0
+      })
+    });
+    const data = await res.json();
+    if (data.code === 0 && data.data) {
+      document.getElementById('docId').value = data.data.id;
+      document.getElementById('uploadResult').textContent = JSON.stringify(data.data, null, 2);
+      document.getElementById('uploadResult').style.display = 'block';
+      setStatus('uploadStatus', 'OK: ' + data.data.id, true);
+    } else {
+      setStatus('uploadStatus', 'FAIL: ' + JSON.stringify(data), false);
+    }
+  } catch (e) {
+    setStatus('uploadStatus', 'ERROR: ' + e.message, false);
+  }
+}
+
+async function createQaSet() {
+  if (!token) { setStatus('tokenStatus', 'Need token', false); return; }
+  const eventsEl = document.getElementById('events');
+  eventsEl.innerHTML = '';
+
+  const body = JSON.stringify({
+    title: document.getElementById('title').value,
+    userPrompt: document.getElementById('userPrompt').value,
+    documentIds: [document.getElementById('docId').value],
+    requestedQuestionCount: parseInt(document.getElementById('questionCount').value) || 10
+  });
+
+  try {
+    const res = await fetch(BASE + '/qa/set/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: body
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let currentEvent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          currentEvent = line.substring(6).trim();
+        } else if (line.startsWith('data:')) {
+          const json = line.substring(5).trim();
+          if (json) {
+            try {
+              const sse = JSON.parse(json);
+              renderEvent(sse, currentEvent);
+            } catch (e) {
+              renderRaw(json, currentEvent);
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    eventsEl.insertAdjacentHTML('beforeend',
+      '<div class="card error">Connection error: ' + e.message + '</div>');
+  }
+}
+
+function renderEvent(sse, stage) {
+  const time = new Date(sse.timestamp).toLocaleTimeString();
+  const tokens = sse.currentTokens + ' / ' + sse.totalTokens;
+  const phase = sse.phase ? sse.phase.generateStage : stage;
+  const status = sse.status || '';
+
+  const color = status === 'UNSOLVED' || status === 'CANCELED' ? '#ff4d4f' :
+                status === 'SOLVED' ? '#52c41a' : '#1677ff';
+
+  document.getElementById('events').insertAdjacentHTML('beforeend', `
+    <div class="card">
+      <div class="card-header">
+        <span class="tag tag-phase">${phase}</span>
+        <span class="tag tag-status" style="color:${color}">${status}</span>
+        <span class="tag tag-tokens">${tokens} tokens</span>
+        <span class="tag tag-time">${time}</span>
+        ${sse.taskId ? '<span class="tag tag-time">' + sse.taskId.substring(0,8) + '</span>' : ''}
+      </div>
+      <div class="card-message">${sse.message || '(no message)'}</div>
+    </div>
+  `);
+}
+
+function renderRaw(json, stage) {
+  document.getElementById('events').insertAdjacentHTML('beforeend', `
+    <div class="card">
+      <div class="card-header"><span class="tag tag-phase">${stage}</span></div>
+      <pre>${json}</pre>
+    </div>
+  `);
+}
+</script>
+</body>
+</html>

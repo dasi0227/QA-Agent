@@ -9,7 +9,7 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateE
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentFactory;
-import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentListener;
+import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import com.dasi.qa.agent.domain.agent.service.generate.support.RagEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.generate.support.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.agent.service.generate.tool.RagSearchTool;
@@ -30,6 +30,9 @@ import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
+import dev.langchain4j.model.output.TokenUsage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -114,14 +117,23 @@ public class GenerateAgent implements IGenerateAgent {
         AtomicInteger totalTokens = new AtomicInteger(0);
 
         // 创建事件发布器
-        EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, sseEventHandler, totalTokens);
+        EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, userId, sseEventHandler, totalTokens);
 
         // 发送任务创建事件
         eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建", 0);
 
         try {
             // 读取并构建用户专属模型
-            ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+            ChatModelListener tokenListener = new ChatModelListener() {
+                @Override
+                public void onResponse(ChatModelResponseContext ctx) {
+                    TokenUsage usage = ctx.chatResponse().tokenUsage();
+                    if (usage != null && usage.totalTokenCount() != null) {
+                        totalTokens.addAndGet(usage.totalTokenCount());
+                    }
+                }
+            };
+            ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId, tokenListener);
 
             // 准备可调用工具
             RagSearchTool ragSearchTool = new RagSearchTool(searchService, userId, request.getDocumentIds());
@@ -131,8 +143,8 @@ public class GenerateAgent implements IGenerateAgent {
                     : List.of(ragSearchTool);
             List<Object> validateTools = List.of(ragSearchTool);
 
-            // 创建链路监听器，负责汇总阶段输出与 token 信息
-            GenerateAgentListener agentListener = new GenerateAgentListener(taskId, promptUtil, eventPublisher, totalTokens, supervisorChatModel);
+            // 创建阶段总结器，负责在每个 Agent 调用成功后生成进度消息并推送 SSE
+            GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, supervisorChatModel, eventPublisher, totalTokens);
 
             // 组装各阶段执行上下文
             PlanContext planContext = PlanContext.builder()
@@ -141,17 +153,20 @@ public class GenerateAgent implements IGenerateAgent {
                     .request(request)
                     .userProfileJson(userProfileJson)
                     .allow(allow)
+                    .supervisor(supervisor)
                     .build();
 
             ValidateContext validateContext = ValidateContext.builder()
                     .taskId(taskId)
                     .request(request)
                     .answerStyle(answerStyle)
+                    .supervisor(supervisor)
                     .build();
 
             DecideContext decideContext = DecideContext.builder()
                     .taskId(taskId)
                     .request(request)
+                    .supervisor(supervisor)
                     .build();
 
             AbortContext abortContext = AbortContext.builder()
@@ -172,10 +187,11 @@ public class GenerateAgent implements IGenerateAgent {
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
-                    .executor(applicationTaskExecutor)
+                    .executor(java.util.concurrent.Executors.newFixedThreadPool(3))
                     .ragEvidenceProvider(ragEvidenceProvider)
                     .userProfileJson(userProfileJson)
                     .answerStyle(answerStyle)
+                    .supervisor(supervisor)
                     .build();
 
             // 汇总 DAG 运行上下文，并传入各阶段执行回调
@@ -183,7 +199,6 @@ public class GenerateAgent implements IGenerateAgent {
                     .userModel(userModel)
                     .writeTools(writeTools)
                     .validateTools(validateTools)
-                    .agentListener(agentListener)
                     .chatMemoryProvider(chatMemoryProvider)
                     .decideStep((scope, decideAgent) -> doDecide(scope, decideAgent, decideContext))
                     .abortStep((scope, abortAgent) -> doAbort(scope, abortAgent, abortContext))
@@ -228,6 +243,7 @@ public class GenerateAgent implements IGenerateAgent {
             try {
                 DecideResult result = decideAgent.decide(decideContext.getTaskId(), decideContext.getRequest().getUserPrompt(), retryHint);
                 writeDecideResult(scope, result);
+                decideContext.getSupervisor().doSupervise(GeneratePhase.DECIDE, jsonUtil.toJsonString(result));
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
@@ -312,6 +328,7 @@ public class GenerateAgent implements IGenerateAgent {
 
         // 4. 写入共享领域
         writePlanResult(scope, planResult, planContext.getRequest());
+        planContext.getSupervisor().doSupervise(GeneratePhase.PLAN, jsonUtil.toJsonString(planResult));
     }
 
     /**
@@ -343,6 +360,7 @@ public class GenerateAgent implements IGenerateAgent {
                             .evidence(jsonUtil.toJsonString(evidence))
                             .userProfileJson(writeContext.getUserProfileJson())
                             .answerStyle(writeContext.getAnswerStyle())
+                            .supervisor(writeContext.getSupervisor())
                             .build();
                     // 4.3 汇总每个模块单独出的题
                     draftItems.addAll(doDraft(draftAgent, draftContext));
@@ -406,6 +424,7 @@ public class GenerateAgent implements IGenerateAgent {
                             retryHint
                     );
                     batchItems = jsonUtil.parseJsonArray(response, DraftItem.class);
+                    draftContext.getSupervisor().doSupervise(GeneratePhase.DRAFT, response);
                     break;
                 } catch (Exception exception) {
                     retryHint = exception.getMessage();
@@ -426,9 +445,9 @@ public class GenerateAgent implements IGenerateAgent {
     /**
      * ValidateAgent 负责审校 draftResult 中的题目并修订可修复项，输出 validatedResult 写入 scope。
      */
-    private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext context) {
+    private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext validateContext) {
         // 1. 更新状态
-        agentRepository.updateTaskPhase(context.getTaskId(), GeneratePhase.VALIDATE);
+        agentRepository.updateTaskPhase(validateContext.getTaskId(), GeneratePhase.VALIDATE);
 
         // 2. 初次生成的问答集合
         List<DraftItem> draftItems = readDraftResult(scope);
@@ -442,9 +461,18 @@ public class GenerateAgent implements IGenerateAgent {
         // 4. 创建每个批次的异步任务
         List<CompletableFuture<List<DraftItem>>> futureList = batchList.stream()
                 .map(batch -> CompletableFuture
-                        .supplyAsync(() -> doValidateLoop(context.getTaskId(), evaluateAgent, amendAgent, batch, context.getRequest().getUserPrompt(), context.getAnswerStyle()), applicationTaskExecutor)
+                        .supplyAsync(() -> doValidateLoop(
+                                validateContext.getTaskId(),
+                                evaluateAgent, amendAgent,
+                                ValidateLoopContext.builder()
+                                        .batch(batch)
+                                        .userPrompt(validateContext.getRequest().getUserPrompt())
+                                        .answerStyle(validateContext.getAnswerStyle())
+                                        .supervisor(validateContext.getSupervisor())
+                                        .build()),
+                                applicationTaskExecutor)
                         .exceptionally(ex -> {
-                            log.warn("【GenerateAgent - ValidateAgent】批次执行异常，退回原始题目: taskId={}, error={}", context.getTaskId(), ex.getMessage());
+                            log.warn("【GenerateAgent - ValidateAgent】批次执行异常，退回原始题目: taskId={}, error={}", validateContext.getTaskId(), ex.getMessage());
                             return batch;
                         }))
                 .toList();
@@ -459,9 +487,9 @@ public class GenerateAgent implements IGenerateAgent {
         writeValidateResult(scope, validatedItems);
     }
 
-    private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, List<DraftItem> batch, String userPrompt, String answerStyle) {
+    private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateLoopContext loopContext) {
         List<DraftItem> passItems = new ArrayList<>();
-        AtomicReference<List<DraftItem>> evaluateItems = new AtomicReference<>(batch);
+        AtomicReference<List<DraftItem>> evaluateItems = new AtomicReference<>(loopContext.getBatch());
         AtomicReference<List<AmendItem>> amendItems = new AtomicReference<>(List.of());
         AtomicBoolean flag = new AtomicBoolean(false);
 
@@ -473,7 +501,13 @@ public class GenerateAgent implements IGenerateAgent {
                 .subAgents(
                         // 校验
                         AgenticServices.agentAction(scope -> {
-                            List<EvaluateItem> evaluates = doEvaluate(taskId, evaluateAgent, evaluateItems.get());
+                            List<EvaluateItem> evaluates = doEvaluate(taskId,
+                                    evaluateAgent,
+                                    EvaluateContext.builder()
+                                            .drafts(evaluateItems.get())
+                                            .supervisor(loopContext.getSupervisor())
+                                            .build()
+                            );
 
                             List<AmendItem> amends = new ArrayList<>();
                             for (int i = 0; i < Math.min(evaluateItems.get().size(), evaluates.size()); i++) {
@@ -498,7 +532,13 @@ public class GenerateAgent implements IGenerateAgent {
                             if (amendItems.get().isEmpty()) {
                                 return;
                             }
-                            List<DraftItem> amended = doAmend(taskId, amendAgent, amendItems.get(), userPrompt, answerStyle);
+                            List<DraftItem> amended = doAmend(taskId, amendAgent,
+                                    AmendContext.builder()
+                                            .items(amendItems.get())
+                                            .userPrompt(loopContext.getUserPrompt())
+                                            .answerStyle(loopContext.getAnswerStyle())
+                                            .supervisor(loopContext.getSupervisor())
+                                            .build());
                             evaluateItems.set(amended);
                         })
                 )
@@ -510,63 +550,51 @@ public class GenerateAgent implements IGenerateAgent {
         } catch (Exception exception) {
             log.warn("【GenerateAgent - ValidateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
             if (passItems.isEmpty()) {
-                passItems.addAll(batch);
+                passItems.addAll(loopContext.getBatch());
             }
         }
 
         return passItems;
     }
 
-    private List<EvaluateItem> doEvaluate(String taskId, EvaluateAgent evaluateAgent, List<DraftItem> drafts) {
+    private List<EvaluateItem> doEvaluate(String taskId, EvaluateAgent evaluateAgent, EvaluateContext evaluateContext) {
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
-                String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(drafts), retryHint);
-                return jsonUtil.parseJsonArray(response, EvaluateItem.class);
+                String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(evaluateContext.getDrafts()), retryHint);
+                List<EvaluateItem> results = jsonUtil.parseJsonArray(response, EvaluateItem.class);
+                evaluateContext.getSupervisor().doSupervise(GeneratePhase.EVALUATE, response);
+                return results;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
                     log.warn("【GenerateAgent - EvaluateAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, retryHint);
-                    return fallbackEvaluate(drafts);
+                    return fallbackEvaluate(evaluateContext.getDrafts());
                 }
                 log.warn("【GenerateAgent - EvaluateAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId);
             }
         }
-        return fallbackEvaluate(drafts);
+        return fallbackEvaluate(evaluateContext.getDrafts());
     }
 
-    private List<DraftItem> doAmend(String taskId, AmendAgent amendAgent, List<AmendItem> items, String userPrompt, String answerStyle) {
+    private List<DraftItem> doAmend(String taskId, AmendAgent amendAgent, AmendContext amendContext) {
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
-                String response = amendAgent.amend(taskId, jsonUtil.toJsonString(items), userPrompt, answerStyle, retryHint);
-                return jsonUtil.parseJsonArray(response, DraftItem.class);
+                String response = amendAgent.amend(taskId, jsonUtil.toJsonString(amendContext.getItems()), amendContext.getUserPrompt(), amendContext.getAnswerStyle(), retryHint);
+                List<DraftItem> results = jsonUtil.parseJsonArray(response, DraftItem.class);
+                amendContext.getSupervisor().doSupervise(GeneratePhase.AMEND, response);
+                return results;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
                     log.warn("【GenerateAgent - AmendAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, retryHint);
-                    return fallbackAmend(items);
+                    return fallbackAmend(amendContext.getItems());
                 }
                 log.warn("【GenerateAgent - AmendAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId);
             }
         }
-        return fallbackAmend(items);
-    }
-
-    private List<DraftItem> fallbackAmend(List<AmendItem> items) {
-        List<DraftItem> results = new ArrayList<>();
-        for (AmendItem item : items) {
-            results.add(item.getDraftItem());
-        }
-        return results;
-    }
-
-    private List<EvaluateItem> fallbackEvaluate(List<DraftItem> drafts) {
-        List<EvaluateItem> results = new ArrayList<>();
-        for (int i = 0; i < drafts.size(); i++) {
-            results.add(new EvaluateItem(VerdictType.PASS.name(), "fallback pass", ""));
-        }
-        return results;
+        return fallbackAmend(amendContext.getItems());
     }
 
     /**
@@ -659,6 +687,22 @@ public class GenerateAgent implements IGenerateAgent {
             ));
         }
         return drafts;
+    }
+
+    private List<DraftItem> fallbackAmend(List<AmendItem> items) {
+        List<DraftItem> results = new ArrayList<>();
+        for (AmendItem item : items) {
+            results.add(item.getDraftItem());
+        }
+        return results;
+    }
+
+    private List<EvaluateItem> fallbackEvaluate(List<DraftItem> drafts) {
+        List<EvaluateItem> results = new ArrayList<>();
+        for (int i = 0; i < drafts.size(); i++) {
+            results.add(new EvaluateItem(VerdictType.PASS.name(), "fallback pass", ""));
+        }
+        return results;
     }
 
     private String fallbackSummarize(int requiredCount, int generatedCount, String modules, String tags) {
