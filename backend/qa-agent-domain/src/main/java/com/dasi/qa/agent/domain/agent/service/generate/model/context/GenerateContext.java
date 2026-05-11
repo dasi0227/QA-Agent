@@ -13,16 +13,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 @Builder
 @AllArgsConstructor
 public class GenerateContext {
 
     private final ChatModel userModel;
-    private final List<Object> writeTools;
-    private final List<Object> validateTools;
     private final DecideStep decideStep;
     private final AbortStep abortStep;
     private final PlanStep planStep;

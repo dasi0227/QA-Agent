@@ -8,7 +8,7 @@ import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.HybridRetrie
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.KeywordRetriever;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.RetrieveContext;
 import com.dasi.qa.agent.domain.document.service.rag.retrieval.impl.SemanticRetriever;
-import com.dasi.qa.agent.types.dto.request.document.SearchRequest;
+import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class SearchService implements ISearchService {
+public class RagSearchService implements IRagSearchService {
 
     private final ISemanticAdapter semanticAdapter;
     private final SemanticRetriever semanticRetriever;
@@ -24,11 +24,11 @@ public class SearchService implements ISearchService {
     private final HybridRetriever hybridRetriever;
     private final EvidenceClipper evidenceClipper;
 
-    public SearchService(ISemanticAdapter semanticAdapter,
-                         SemanticRetriever semanticRetriever,
-                         KeywordRetriever keywordRetriever,
-                         HybridRetriever hybridRetriever,
-                         EvidenceClipper evidenceClipper) {
+    public RagSearchService(ISemanticAdapter semanticAdapter,
+                            SemanticRetriever semanticRetriever,
+                            KeywordRetriever keywordRetriever,
+                            HybridRetriever hybridRetriever,
+                            EvidenceClipper evidenceClipper) {
         this.semanticAdapter = semanticAdapter;
         this.semanticRetriever = semanticRetriever;
         this.keywordRetriever = keywordRetriever;
@@ -37,7 +37,7 @@ public class SearchService implements ISearchService {
     }
 
     @Override
-    public List<SearchResult> execute(SearchRequest request) {
+    public List<SearchResult> execute(RagSearchRequest request) {
         SearchStrategy strategy = SearchStrategy.fromValue(request.getStrategy());
         String queryText = semanticAdapter.rewriteQuery(request.getQueryText());
         int topK = request.getTopK() > 0 ? request.getTopK() : 10;

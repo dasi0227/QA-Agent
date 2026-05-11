@@ -3,8 +3,8 @@ package com.dasi.qa.agent.domain.agent.service.generate.support;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanItem;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.AgentType;
 import com.dasi.qa.agent.domain.document.model.enumeration.SearchStrategy;
-import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
-import com.dasi.qa.agent.types.dto.request.document.SearchRequest;
+import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
+import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import org.springframework.stereotype.Component;
 
@@ -17,9 +17,9 @@ import java.util.List;
 @Component
 public class RagEvidenceProvider {
 
-    private final ISearchService searchService;
+    private final IRagSearchService searchService;
 
-    public RagEvidenceProvider(ISearchService searchService) {
+    public RagEvidenceProvider(IRagSearchService searchService) {
         this.searchService = searchService;
     }
 
@@ -34,7 +34,7 @@ public class RagEvidenceProvider {
             if (topic.isEmpty()) {
                 continue;
             }
-            SearchRequest request = SearchRequest.builder()
+            RagSearchRequest request = RagSearchRequest.builder()
                     .queryText(topic)
                     .strategy(SearchStrategy.HYBRID.name())
                     .userId(userId)

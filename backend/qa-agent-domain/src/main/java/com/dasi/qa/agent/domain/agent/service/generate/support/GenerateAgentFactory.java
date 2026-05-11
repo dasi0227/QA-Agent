@@ -15,7 +15,6 @@ import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 
 /**
  * 为单次问答集生成任务构建 Generate DAG
@@ -66,10 +65,10 @@ public class GenerateAgentFactory {
         // 1. 基于上下文构建各阶段 Agent 实例
         DecideAgent decideAgent = makeDecideAgent(context.getUserModel());
         AbortAgent abortAgent = makeAbortAgent(context.getUserModel());
-        PlanAgent planAgent = makePlanAgent(context.getUserModel(), context.getWriteTools());
-        DraftAgent draftAgent = makeDraftAgent(context.getUserModel(), context.getWriteTools());
+        PlanAgent planAgent = makePlanAgent(context.getUserModel());
+        DraftAgent draftAgent = makeDraftAgent(context.getUserModel());
         EvaluateAgent evaluateAgent = makeEvaluateAgent(context.getUserModel());
-        AmendAgent amendAgent = makeAmendAgent(context.getUserModel(), context.getValidateTools());
+        AmendAgent amendAgent = makeAmendAgent(context.getUserModel());
         SummarizeAgent summarizeAgent = makeSummarizeAgent(context.getUserModel());
 
         // 2. 将阶段执行函数封装为 DAG 可执行节点
@@ -142,21 +141,19 @@ public class GenerateAgentFactory {
                 .build();
     }
 
-    public PlanAgent makePlanAgent(ChatModel userModel, List<Object> writeTools) {
+    public PlanAgent makePlanAgent(ChatModel userModel) {
         return AgenticServices.agentBuilder(PlanAgent.class)
                 .name(GeneratePhase.PLAN.getAgentName())
                 .description(GeneratePhase.PLAN.getAgentDesc())
                 .chatModel(userModel)
-                .tools(writeTools.toArray())
                 .build();
     }
 
-    public DraftAgent makeDraftAgent(ChatModel userModel, List<Object> writeTools) {
+    public DraftAgent makeDraftAgent(ChatModel userModel) {
         return AgenticServices.agentBuilder(DraftAgent.class)
                 .name(GeneratePhase.DRAFT.getAgentName())
                 .description(GeneratePhase.DRAFT.getAgentDesc())
                 .chatModel(userModel)
-                .tools(writeTools.toArray())
                 .build();
     }
 
@@ -168,12 +165,11 @@ public class GenerateAgentFactory {
                 .build();
     }
 
-    public AmendAgent makeAmendAgent(ChatModel userModel, List<Object> validateTools) {
+    public AmendAgent makeAmendAgent(ChatModel userModel) {
         return AgenticServices.agentBuilder(AmendAgent.class)
                 .name(GeneratePhase.AMEND.getAgentName())
                 .description(GeneratePhase.AMEND.getAgentDesc())
                 .chatModel(userModel)
-                .tools(validateTools.toArray())
                 .build();
     }
 

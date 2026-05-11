@@ -10,7 +10,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SearchRequest {
+public class RagSearchRequest {
 
     private String queryText;
 

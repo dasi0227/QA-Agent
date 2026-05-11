@@ -8,19 +8,13 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.Verdict
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
-import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentFactory;
-import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
-import com.dasi.qa.agent.domain.agent.service.generate.support.RagEvidenceProvider;
-import com.dasi.qa.agent.domain.agent.service.generate.support.UserLlmModelProvider;
-import com.dasi.qa.agent.domain.agent.service.generate.tool.RagSearchTool;
-import com.dasi.qa.agent.domain.agent.service.generate.tool.WebSearchTool;
+import com.dasi.qa.agent.domain.agent.service.generate.support.*;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.shared.sse.EventPublisher;
 import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
-import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
@@ -39,6 +33,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,10 +50,9 @@ public class GenerateAgent implements IGenerateAgent {
     private final IPromptUtil promptUtil;
     private final IAgentRepository agentRepository;
     private final GenerateAgentFactory generateAgentFactory;
-    private final ISearchService searchService;
     private final RagEvidenceProvider ragEvidenceProvider;
+    private final WebEvidenceProvider webEvidenceProvider;
     private final UserLlmModelProvider userLlmModelProvider;
-    private final ChatModel webSearchModel;
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
@@ -67,9 +61,8 @@ public class GenerateAgent implements IGenerateAgent {
                          IAgentRepository agentRepository,
                          UserLlmModelProvider userLlmModelProvider,
                          GenerateAgentFactory generateAgentFactory,
-                         ISearchService searchService,
                          RagEvidenceProvider ragEvidenceProvider,
-                         @Qualifier("webSearchModel") ChatModel webSearchModel,
+                         WebEvidenceProvider webEvidenceProvider,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
         this.jsonUtil = jsonUtil;
@@ -77,9 +70,8 @@ public class GenerateAgent implements IGenerateAgent {
         this.agentRepository = agentRepository;
         this.userLlmModelProvider = userLlmModelProvider;
         this.generateAgentFactory = generateAgentFactory;
-        this.searchService = searchService;
         this.ragEvidenceProvider = ragEvidenceProvider;
-        this.webSearchModel = webSearchModel;
+        this.webEvidenceProvider = webEvidenceProvider;
         this.supervisorChatModel = supervisorModel;
         this.applicationTaskExecutor = applicationTaskExecutor;
     }
@@ -131,14 +123,6 @@ public class GenerateAgent implements IGenerateAgent {
             };
             ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId, tokenListener);
 
-            // 准备可调用工具
-            RagSearchTool ragSearchTool = new RagSearchTool(searchService, userId, request.getDocumentIds());
-            WebSearchTool webSearchTool = new WebSearchTool(webSearchModel, promptUtil);
-            List<Object> writeTools = Boolean.TRUE.equals(allow.getAllowWebSearch())
-                    ? List.of(ragSearchTool, webSearchTool)
-                    : List.of(ragSearchTool);
-            List<Object> validateTools = List.of(ragSearchTool);
-
             // 创建阶段总结器，负责在每个 Agent 调用成功后生成进度消息并推送 SSE
             GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, supervisorChatModel, eventPublisher, totalTokens);
 
@@ -183,8 +167,11 @@ public class GenerateAgent implements IGenerateAgent {
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
-                    .executor(java.util.concurrent.Executors.newFixedThreadPool(3))
+                    .executor(Executors.newFixedThreadPool(2))
                     .ragEvidenceProvider(ragEvidenceProvider)
+                    .webEvidenceProvider(Boolean.TRUE.equals(allow.getAllowWebSearch()) ? webEvidenceProvider : null)
+                    .targetCompany(info.getTargetCompany() != null ? info.getTargetCompany() : "")
+                    .targetRole(info.getTargetRole() != null ? info.getTargetRole() : "")
                     .userProfileJson(userProfileJson)
                     .answerStyle(answerStyle)
                     .supervisor(supervisor)
@@ -193,8 +180,6 @@ public class GenerateAgent implements IGenerateAgent {
             // 汇总 DAG 运行上下文，并传入各阶段执行回调
             GenerateContext generateContext = GenerateContext.builder()
                     .userModel(userModel)
-                    .writeTools(writeTools)
-                    .validateTools(validateTools)
                     .decideStep((scope, decideAgent) -> doDecide(scope, decideAgent, decideContext))
                     .abortStep((scope, abortAgent) -> doAbort(scope, abortAgent, abortContext))
                     .planStep((scope, planAgent) -> doPlan(scope, planAgent, planContext))
@@ -346,13 +331,23 @@ public class GenerateAgent implements IGenerateAgent {
             AgenticServices.AgenticScopeAction agentAction = AgenticServices.agentAction(moduleScope -> {
                 try {
                     // 4.1 拿到 RAG 资料
-                    List<SearchResult> evidence = writeContext.getRagEvidenceProvider().search(writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
-                    // 4.2 构建草稿上下文
+                    List<SearchResult> ragEvidence = writeContext.getRagEvidenceProvider().search(writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
+                    // 4.2 联网面经（可选）
+                    String evidenceJson;
+                    if (writeContext.getWebEvidenceProvider() != null) {
+                        List<InterviewInsights> webEvidence = writeContext.getWebEvidenceProvider().search(writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem);
+                        evidenceJson = jsonUtil.toJsonString(Map.of(
+                                "ragResults", ragEvidence,
+                                "interviewInsights", webEvidence));
+                    } else {
+                        evidenceJson = jsonUtil.toJsonString(ragEvidence);
+                    }
+                    // 4.3 构建草稿上下文
                     DraftContext draftContext = DraftContext.builder()
                             .taskId(writeContext.getTaskId())
                             .request(writeContext.getRequest())
                             .planItem(planItem)
-                            .evidence(jsonUtil.toJsonString(evidence))
+                            .evidence(evidenceJson)
                             .userProfileJson(writeContext.getUserProfileJson())
                             .answerStyle(writeContext.getAnswerStyle())
                             .supervisor(writeContext.getSupervisor())

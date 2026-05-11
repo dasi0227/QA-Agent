@@ -3,11 +3,11 @@ package com.dasi.qa.agent.interfaces.controller;
 import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.document.service.crud.IDocumentCrudService;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
-import com.dasi.qa.agent.domain.document.service.rag.search.ISearchService;
+import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.dto.request.document.DocumentChunkRequest;
-import com.dasi.qa.agent.types.dto.request.document.SearchRequest;
+import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
@@ -26,14 +26,14 @@ import static com.dasi.qa.agent.types.constant.StringConstant.INDEX_JOB_ID_PREFI
 public class DocumentController {
 
     private final IDocumentCrudService documentService;
-    private final ISearchService searchService;
+    private final IRagSearchService searchService;
     private final IIndexService indexService;
     private final IContextUtil contextUtil;
     private final IMqUtil mqUtil;
     private final String indexingTopic;
 
     public DocumentController(IDocumentCrudService documentService,
-                              ISearchService searchService,
+                              IRagSearchService searchService,
                               IIndexService indexService,
                               IContextUtil contextUtil,
                               IMqUtil mqUtil,
@@ -113,7 +113,7 @@ public class DocumentController {
     // ======================== V2 RAG endpoints ========================
 
     @PostMapping("/source/search")
-    public Result<List<SearchResult>> sourceDocumentSearch(@RequestBody SearchRequest request) {
+    public Result<List<SearchResult>> sourceDocumentSearch(@RequestBody RagSearchRequest request) {
         request.setUserId(contextUtil.getUserId());
         return Result.success(searchService.execute(request));
     }

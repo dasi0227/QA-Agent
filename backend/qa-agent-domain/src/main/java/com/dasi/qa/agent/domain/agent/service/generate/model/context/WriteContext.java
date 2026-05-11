@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import com.dasi.qa.agent.domain.agent.service.generate.support.RagEvidenceProvider;
+import com.dasi.qa.agent.domain.agent.service.generate.support.WebEvidenceProvider;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +22,9 @@ public class WriteContext {
     private CreateQaSetRequest request;
     private Executor executor;
     private RagEvidenceProvider ragEvidenceProvider;
+    private WebEvidenceProvider webEvidenceProvider;
+    private String targetCompany;
+    private String targetRole;
     private String userProfileJson;
     private String answerStyle;
     private GenerateSupervisor supervisor;
