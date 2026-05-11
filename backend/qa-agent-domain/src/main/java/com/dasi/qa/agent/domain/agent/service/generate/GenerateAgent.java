@@ -167,7 +167,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
-                    .executor(Executors.newFixedThreadPool(2))
+                    .executor(Executors.newFixedThreadPool(3))
                     .ragEvidenceProvider(ragEvidenceProvider)
                     .webEvidenceProvider(Boolean.TRUE.equals(allow.getAllowWebSearch()) ? webEvidenceProvider : null)
                     .targetCompany(info.getTargetCompany() != null ? info.getTargetCompany() : "")
@@ -322,27 +322,37 @@ public class GenerateAgent implements IGenerateAgent {
         PlanResult planResult = readPlanResult(scope);
         List<PlanItem> planItems = planResult.getPlanItems();
 
-        // 3. 解析计划，根据模块划分
+        // 3. Phase 1: 串行预搜全部模块的证据（RAG + Web）
+        Map<String, String> evidenceMap = new LinkedHashMap<>();
+        for (PlanItem planItem : planItems) {
+            try {
+                List<SearchResult> ragEvidence = writeContext.getRagEvidenceProvider().search(
+                        writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
+                String evidenceJson;
+                if (writeContext.getWebEvidenceProvider() != null) {
+                    List<InterviewInsights> webEvidence = writeContext.getWebEvidenceProvider().search(
+                            writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem);
+                    evidenceJson = jsonUtil.toJsonString(Map.of(
+                            "ragResults", ragEvidence,
+                            "interviewInsights", webEvidence));
+                } else {
+                    evidenceJson = jsonUtil.toJsonString(ragEvidence);
+                }
+                evidenceMap.put(planItem.getModuleTag(), evidenceJson);
+            } catch (Exception e) {
+                log.warn("【GenerateAgent - WriteAgent】失败: taskId={}, module={}, error={}", writeContext.getTaskId(), planItem.getModuleTag(), e.getMessage());
+                evidenceMap.put(planItem.getModuleTag(), jsonUtil.toJsonString(List.of()));
+            }
+        }
+
+        // 4. Phase 2: 并行出题，agentAction 内只做纯 LLM 调用，零 DB 访问
         List<DraftItem> draftItems = Collections.synchronizedList(new ArrayList<>());
         List<Object> moduleAgents = new ArrayList<>();
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.DRAFT);
         for (PlanItem planItem : planItems) {
-            // 4. 创建每个模块的 DraftAgent
+            String evidenceJson = evidenceMap.get(planItem.getModuleTag());
             AgenticServices.AgenticScopeAction agentAction = AgenticServices.agentAction(moduleScope -> {
                 try {
-                    // 4.1 拿到 RAG 资料
-                    List<SearchResult> ragEvidence = writeContext.getRagEvidenceProvider().search(writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
-                    // 4.2 联网面经（可选）
-                    String evidenceJson;
-                    if (writeContext.getWebEvidenceProvider() != null) {
-                        List<InterviewInsights> webEvidence = writeContext.getWebEvidenceProvider().search(writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem);
-                        evidenceJson = jsonUtil.toJsonString(Map.of(
-                                "ragResults", ragEvidence,
-                                "interviewInsights", webEvidence));
-                    } else {
-                        evidenceJson = jsonUtil.toJsonString(ragEvidence);
-                    }
-                    // 4.3 构建草稿上下文
                     DraftContext draftContext = DraftContext.builder()
                             .taskId(writeContext.getTaskId())
                             .request(writeContext.getRequest())
@@ -352,17 +362,15 @@ public class GenerateAgent implements IGenerateAgent {
                             .answerStyle(writeContext.getAnswerStyle())
                             .supervisor(writeContext.getSupervisor())
                             .build();
-                    // 4.3 汇总每个模块单独出的题
                     draftItems.addAll(doDraft(draftAgent, draftContext));
                 } catch (Exception exception) {
                     log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}, error={}", writeContext.getTaskId(), planItem.getModuleTag(), exception.getMessage());
                 }
             });
-            // 5. 汇总 DraftAgent
             moduleAgents.add(agentAction);
         }
 
-        // 6. 组装为并发工作流
+        // 5. 组装为并发工作流
         UntypedAgent writer = AgenticServices.parallelBuilder()
                 .name(GeneratePhase.WRITE.getAgentName())
                 .description(GeneratePhase.WRITE.getAgentDesc())
@@ -371,7 +379,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .output(moduleScope -> draftItems)
                 .build();
 
-        // 7. 调用智能体
+        // 6. 调用智能体
         try {
             writer.invoke(Map.of());
         } catch (Exception exception) {
@@ -380,7 +388,7 @@ public class GenerateAgent implements IGenerateAgent {
             throw new GenerateException(ErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
         }
 
-        // 8. 写入共享领域
+        // 7. 写入共享领域
         writeDraftResult(scope, draftItems);
     }
 
