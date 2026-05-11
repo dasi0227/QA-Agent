@@ -243,10 +243,10 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - DecideAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, decideContext.getTaskId(), retryHint);
+                    log.warn("【GenerateAgent - DecideAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, decideContext.getTaskId(), exception.getMessage());
                     writeDecideResult(scope, null);
                 } else {
-                    log.warn("【GenerateAgent - DecideAgent】第{}次失败，重试中: taskId={}", attempt + 1, decideContext.getTaskId());
+                    log.warn("【GenerateAgent - DecideAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, decideContext.getTaskId(), exception.getMessage());
                 }
             }
         }
@@ -306,9 +306,9 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - PlanAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, planContext.getTaskId(), retryHint);
+                    log.warn("【GenerateAgent - PlanAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, planContext.getTaskId(), exception.getMessage());
                 } else {
-                    log.warn("【GenerateAgent - PlanAgent】第{}次失败，重试中: taskId={}", attempt + 1, planContext.getTaskId());
+                    log.warn("【GenerateAgent - PlanAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, planContext.getTaskId(), exception.getMessage());
                 }
             }
         }
@@ -424,10 +424,10 @@ public class GenerateAgent implements IGenerateAgent {
                 } catch (Exception exception) {
                     retryHint = exception.getMessage();
                     if (attempt == MAX_RETRY) {
-                        log.warn("【GenerateAgent - DraftAgent】批次重试{}次后仍失败: taskId={}, module={}, error={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), retryHint);
+                        log.warn("【GenerateAgent - DraftAgent】批次重试{}次后仍失败: taskId={}, module={}, error={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
                         batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence());
                     } else {
-                        log.warn("【GenerateAgent - DraftAgent】第{}次失败，重试中: taskId={}, module={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag());
+                        log.warn("【GenerateAgent - DraftAgent】第{}次失败，重试中: taskId={}, module={}, error={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
                     }
                 }
             }
@@ -563,10 +563,10 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - EvaluateAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, retryHint);
+                    log.warn("【GenerateAgent - EvaluateAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, exception.getMessage());
                     return fallbackEvaluate(evaluateContext.getDrafts());
                 }
-                log.warn("【GenerateAgent - EvaluateAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId);
+                log.warn("【GenerateAgent - EvaluateAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, taskId, exception.getMessage());
             }
         }
         return fallbackEvaluate(evaluateContext.getDrafts());
@@ -583,10 +583,10 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - AmendAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, retryHint);
+                    log.warn("【GenerateAgent - AmendAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, exception.getMessage());
                     return fallbackAmend(amendContext.getItems());
                 }
-                log.warn("【GenerateAgent - AmendAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId);
+                log.warn("【GenerateAgent - AmendAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, taskId, exception.getMessage());
             }
         }
         return fallbackAmend(amendContext.getItems());
