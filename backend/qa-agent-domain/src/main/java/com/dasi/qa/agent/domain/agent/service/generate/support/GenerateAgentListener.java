@@ -79,7 +79,7 @@ public class GenerateAgentListener implements AgentListener {
 
         // 调用 Supervisor 获取阶段性总结文本
         String message = getSupervisorMessage(generatePhase, reference);
-        log.error("【GenerateAgent - {}】调用失败，发送阶段性消息: taskId={}, message={}", generatePhase.getAgentName(), taskId, message);
+        log.warn("【GenerateAgent - {}】调用失败，发送阶段性消息: taskId={}, message={}", generatePhase.getAgentName(), taskId, message);
 
         // 发送总结性消息
         eventPublisher.publishEvent(generatePhase, GenerateStatus.PROCESSING, message, 0);

@@ -12,6 +12,6 @@ public class DlqConsumer {
 
     @KafkaListener(topics = "${qa-agent.kafka.topic-document-index-dlq}", groupId = "${spring.kafka.consumer.group-id}-dlq")
     public void onDlqMessage(String message) {
-        log.error("DLQ received dead message: {}", message);
+        log.error("【死信队列】收到错误，暂时不处理: message={}", message);
     }
 }
