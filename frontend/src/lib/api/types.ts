@@ -143,6 +143,10 @@ export type CreateQuestionSetInput = {
 export type TaskStatus = {
     taskId: string;
     userId: string;
+    title: string;
+    userPrompt: string;
+    documentIdsJson: string;
+    documentNamesJson: string;
     qaSetId: string;
     status: string;
     stage: string;
@@ -159,6 +163,16 @@ export type TaskMessage = {
     taskId: string;
     stage: string;
     message: string;
+    content: string;
+    createdAt: string;
+};
+
+export type TaskListItem = {
+    taskId: string;
+    title: string;
+    status: string;
+    stage: string;
+    qaSetId: string;
     createdAt: string;
 };
 

@@ -18,6 +18,7 @@ import type {
     UpdateQuestionSetInput,
     CreateQuestionSetInput,
     SseEvent,
+    TaskListItem,
     TaskMessage,
     TaskStatus,
 } from "./types";
@@ -75,6 +76,7 @@ export const apiKeys = {
     questionSetItems: (id: string) => ["question-sets", id, "items"] as const,
     taskStatus: (taskId: string) => ["task-status", taskId] as const,
     taskMessages: (taskId: string) => ["task-messages", taskId] as const,
+    taskList: ["task-list"] as const,
 } as const;
 
 type QueryControlOptions = {
@@ -115,6 +117,10 @@ export function normalizeTaskStatus(raw: unknown): TaskStatus {
     return {
         taskId: toStringValue(pick(raw, "taskId", "task_id")),
         userId: toStringValue(pick(raw, "userId", "user_id")),
+        title: toStringValue(pick(raw, "title")),
+        userPrompt: toStringValue(pick(raw, "userPrompt", "user_prompt")),
+        documentIdsJson: toStringValue(pick(raw, "documentIdsJson", "document_ids_json")),
+        documentNamesJson: toStringValue(pick(raw, "documentNamesJson", "document_names_json")),
         qaSetId: toStringValue(pick(raw, "qaSetId", "qa_set_id")),
         status: toStringValue(pick(raw, "status"), "PENDING"),
         stage: toStringValue(pick(raw, "stage"), "INIT"),
@@ -133,6 +139,18 @@ export function normalizeTaskMessage(raw: unknown): TaskMessage {
         taskId: toStringValue(pick(raw, "taskId", "task_id")),
         stage: toStringValue(pick(raw, "stage")),
         message: toStringValue(pick(raw, "message")),
+        content: toStringValue(pick(raw, "content")),
+        createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
+    };
+}
+
+export function normalizeTaskListItem(raw: unknown): TaskListItem {
+    return {
+        taskId: toStringValue(pick(raw, "taskId", "task_id")),
+        title: toStringValue(pick(raw, "title")),
+        status: toStringValue(pick(raw, "status")),
+        stage: toStringValue(pick(raw, "stage")),
+        qaSetId: toStringValue(pick(raw, "qaSetId", "qa_set_id")),
         createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
     };
 }
@@ -579,7 +597,7 @@ export function useCreateQuestionSetStream() {
                     "Content-Type": "application/json",
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
-                body: isDev ? undefined : JSON.stringify({
+                body: JSON.stringify({
                     title: input.title,
                     userPrompt: input.userPrompt,
                     documentIds: input.documentIds,
@@ -645,23 +663,50 @@ export function useCreateQuestionSetStream() {
     });
 }
 
-export function useTaskStatusQuery(taskId?: string) {
+export function useTaskStatusQuery(taskId?: string, opts?: { poll?: boolean }) {
+    const shouldPoll = opts?.poll ?? true;
     return useQuery({
         queryKey: apiKeys.taskStatus(taskId ?? ""),
         enabled: Boolean(taskId),
-        refetchInterval: 2000,
+        refetchInterval: (query) => {
+            if (!shouldPoll) return false;
+            const status = query.state.data?.status;
+            return status === "PROCESSING" || status === "PENDING" ? 2000 : false;
+        },
         queryFn: async () => normalizeTaskStatus(await apiRequest<unknown>("/qa/set/task-status", {
             query: { taskId: taskId ?? "" },
         })),
     });
 }
 
-export function useTaskMessagesQuery(taskId?: string) {
+export function useTaskMessagesQuery(taskId?: string, opts?: { poll?: boolean }) {
+    const shouldPoll = opts?.poll ?? true;
     return useQuery({
         queryKey: apiKeys.taskMessages(taskId ?? ""),
         enabled: Boolean(taskId),
+        refetchInterval: shouldPoll ? 2000 : false,
         queryFn: async () => (await apiRequest<unknown[]>("/qa/set/task-messages", {
             query: { taskId: taskId ?? "" },
         })).map(normalizeTaskMessage),
+    });
+}
+
+export function parseTaskMessagesToEvents(messages: TaskMessage[]): SseEvent[] {
+    return messages
+        .map((m) => {
+            if (!m.content) return null;
+            try {
+                return JSON.parse(m.content) as SseEvent;
+            } catch {
+                return null;
+            }
+        })
+        .filter((e): e is SseEvent => e !== null);
+}
+
+export function useTaskListQuery() {
+    return useQuery({
+        queryKey: apiKeys.taskList,
+        queryFn: async () => (await apiRequest<unknown[]>("/qa/set/task-list")).map(normalizeTaskListItem),
     });
 }

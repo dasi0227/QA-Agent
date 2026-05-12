@@ -21,6 +21,8 @@ public class TaskStatusResponse {
 
     private String documentIdsJson;
 
+    private String documentNamesJson;
+
     private String qaSetId;
 
     private String status;

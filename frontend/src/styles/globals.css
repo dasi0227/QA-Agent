@@ -2487,18 +2487,44 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   overflow-y: auto;
+  gap: 24px;
   padding: 24px 0;
 }
 
 .create-page__empty {
-  font-size: 24px;
+  font-size: 40px;
   color: var(--ink-faint);
   font-family: var(--font-serif);
   text-align: center;
-  max-width: 520px;
-  line-height: 1.6;
-  margin: 0 0 28px;
+  max-width: 800px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.create-page__add-doc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-ink);
+  border: 1px solid var(--btn-secondary-border);
+  box-shadow: var(--btn-secondary-shadow);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.create-page__add-doc-btn:hover {
+  background: var(--btn-secondary-bg-hover);
+  border-color: rgba(183, 133, 74, 0.24);
+  transform: translateY(-1px);
 }
 
 .create-page__docs-grid {
@@ -2972,8 +2998,7 @@ button {
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
-  padding-top: 4px;
-  padding-bottom: 6px;
+  padding: 4px 20px 6px;
   color: var(--ink-faint);
   font-family: var(--font-sans);
   font-size: 11px;
@@ -3004,4 +3029,76 @@ button {
 
 .create-page__stream-area::-webkit-scrollbar {
   display: none;
+}
+
+/* ── History Dialog ── */
+
+.sse-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease;
+  text-align: left;
+  font-family: inherit;
+  color: var(--ink);
+}
+
+.sse-history-item:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--line-strong);
+}
+
+.sse-history-item__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sse-history-item__title {
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sse-history-item__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(183, 133, 74, 0.14);
+  color: #9b7341;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sse-history-item__id {
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sse-history-item__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.sse-history-item__status {
+  color: var(--ink-soft);
 }

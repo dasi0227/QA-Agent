@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ArrowUp, Loader, Plus, Settings, X } from "lucide-react";
+import { ArrowUp, History, Loader, Plus, Settings, X } from "lucide-react";
 import { Link } from "react-router";
 import { TextArea } from "@/components/base/field";
-import { useDocumentsQuery, useCreateQuestionSetStream } from "@/lib/api/hooks";
-import type { DocumentRecord, SseEvent } from "@/lib/api/types";
+import { ErrorDialog } from "@/components/base/error-dialog";
+import {
+    useDocumentsQuery,
+    useCreateQuestionSetStream,
+    useTaskStatusQuery,
+    useTaskMessagesQuery,
+    useTaskListQuery,
+    parseTaskMessagesToEvents,
+} from "@/lib/api/hooks";
+import type { DocumentRecord, SseEvent, TaskListItem } from "@/lib/api/types";
 
 const STORAGE_KEY = "create-page-draft";
+const ACTIVE_TASK_KEY = "qa-agent.active-task-id";
 
 function loadDraft(): { selectedIds: string[]; userPrompt: string } {
     try {
@@ -24,11 +33,26 @@ function clearDraft() {
     localStorage.removeItem(STORAGE_KEY);
 }
 
+function parseJsonArray(json: string): string[] {
+    if (!json) return [];
+    try {
+        const parsed = JSON.parse(json);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
 function formatTime(timestamp: number) {
     const d = new Date(timestamp);
     const datePart = d.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
     const timePart = d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
     return `${datePart} ${timePart}`;
+}
+
+function formatTaskTime(createdAt?: string) {
+    if (!createdAt) return "";
+    return createdAt.replace("T", " ").substring(0, 16);
 }
 
 type TimelineNode = {
@@ -58,6 +82,8 @@ export function CreatePage() {
     const createStream = useCreateQuestionSetStream();
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>(draft.selectedIds);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
     const [streamState, setStreamState] = useState<"idle" | "streaming">("idle");
     const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
@@ -67,6 +93,51 @@ export function CreatePage() {
         docNames: string[];
     } | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Manual recovery via history dialog
+    const [recoveryTaskId, setRecoveryTaskId] = useState<string | null>(null);
+    const [recoveryTrigger, setRecoveryTrigger] = useState(0);
+    const taskStatusQuery = useTaskStatusQuery(recoveryTaskId ?? undefined);
+    const taskMessagesQuery = useTaskMessagesQuery(recoveryTaskId ?? undefined, { poll: recoveryTrigger > 0 });
+    const taskListQuery = useTaskListQuery();
+
+    // When recovery data loads, populate sseEvents and snapshot
+    useEffect(() => {
+        if (!recoveryTaskId || !taskMessagesQuery.data) return;
+        const events = parseTaskMessagesToEvents(taskMessagesQuery.data);
+        if (events.length > 0) {
+            setSseEvents(events);
+            // Stop polling once last event is terminal
+            if (events[events.length - 1].isCompleted) {
+                setRecoveryTrigger(0);
+            }
+        }
+    }, [recoveryTaskId, taskMessagesQuery.data, recoveryTrigger]);
+
+    useEffect(() => {
+        if (!recoveryTaskId || !taskStatusQuery.data) return;
+        const docNames = parseJsonArray(taskStatusQuery.data.documentNamesJson);
+        setSnapshot({
+            userPrompt: taskStatusQuery.data.userPrompt || "",
+            docNames,
+        });
+    }, [recoveryTaskId, taskStatusQuery.data]);
+
+    // Watch for recovery errors
+    useEffect(() => {
+        if (taskStatusQuery.isError) {
+            setErrorDialog({
+                title: "查询失败",
+                message: taskStatusQuery.error instanceof Error ? taskStatusQuery.error.message : "获取任务状态失败",
+            });
+        }
+        if (taskMessagesQuery.isError) {
+            setErrorDialog({
+                title: "查询失败",
+                message: taskMessagesQuery.error instanceof Error ? taskMessagesQuery.error.message : "获取任务消息失败",
+            });
+        }
+    }, [taskStatusQuery.isError, taskMessagesQuery.isError]);
 
     const form = useForm({
         defaultValues: {
@@ -98,6 +169,13 @@ export function CreatePage() {
         }
     }, [sseEvents]);
 
+    // Clear active task on completion
+    useEffect(() => {
+        if (isCompleted) {
+            sessionStorage.removeItem(ACTIVE_TASK_KEY);
+        }
+    }, [isCompleted]);
+
     const handleDialogToggle = (id: string) => {
         setSelectedDocumentIds((current) => {
             if (current.includes(id)) {
@@ -110,6 +188,16 @@ export function CreatePage() {
     const openDialog = useCallback(() => setDialogOpen(true), []);
     const closeDialog = useCallback(() => setDialogOpen(false), []);
 
+    const handleSelectHistoryTask = (task: TaskListItem) => {
+        setHistoryOpen(false);
+        setStreamState("streaming");
+        setSseEvents([]);
+        setStreamError("");
+        setRecoveryTaskId(task.taskId);
+        setRecoveryTrigger((n) => n + 1);
+        taskMessagesQuery.refetch();
+    };
+
     const handleSubmit = form.handleSubmit(async (values) => {
         if (selectedDocumentIds.length === 0) {
             alert("请先添加本次要使用的资料。");
@@ -121,6 +209,9 @@ export function CreatePage() {
         setStreamState("streaming");
         setSseEvents([]);
         setStreamError("");
+        setRecoveryTaskId(null);
+        setSelectedDocumentIds([]);
+        form.reset({ userPrompt: "" });
         clearDraft();
 
         try {
@@ -130,6 +221,9 @@ export function CreatePage() {
                 documentIds: selectedDocumentIds,
                 requestedQuestionCount: 10,
                 onEvent: (event: SseEvent) => {
+                    if (!sessionStorage.getItem(ACTIVE_TASK_KEY)) {
+                        sessionStorage.setItem(ACTIVE_TASK_KEY, event.taskId);
+                    }
                     setSseEvents((prev) => [...prev, event]);
                 },
             });
@@ -141,6 +235,8 @@ export function CreatePage() {
     const timelineNodes = buildTimelineNodes(sseEvents);
     const lastPhaseIsEmpty = timelineNodes.length > 0
         && timelineNodes[timelineNodes.length - 1].events.every((e) => !e.message.trim());
+    const taskList = taskListQuery.data ?? [];
+    const activeTaskId = sessionStorage.getItem(ACTIVE_TASK_KEY);
 
     return (
         <div className="page-frame">
@@ -148,8 +244,6 @@ export function CreatePage() {
                 {streamState === "idle" ? (
                     /* ── Idle State ── */
                     <div className="create-page__main">
-                        <p className="create-page__empty">请添加笔记资料，并输入需求给 QA Agent</p>
-
                         {hasDocuments ? (
                             <div className="create-page__docs-grid">
                                 {selectedDocuments.map((doc) => (
@@ -167,7 +261,15 @@ export function CreatePage() {
                                     </div>
                                 ))}
                             </div>
-                        ) : null}
+                        ) : (
+                            <>
+                                <p className="create-page__empty">请添加笔记资料，并输入需求给 QA Agent</p>
+                                <button type="button" className="create-page__add-doc-btn" onClick={openDialog}>
+                                    <Plus size={18} />
+                                    添加资料
+                                </button>
+                            </>
+                        )}
                     </div>
                 ) : (
                     /* ── Streaming State ── */
@@ -201,7 +303,6 @@ export function CreatePage() {
                                             key={`${node.phase}-${nodeIdx}`}
                                             className={`sse-timeline__node${isActive ? " sse-timeline__node--active" : ""}`}
                                         >
-                                            {/* Phase header */}
                                             <div className="sse-timeline__phase-header">
                                                 <span className="sse-timeline__phase-label">
                                                     {node.phase}
@@ -218,7 +319,6 @@ export function CreatePage() {
                                                 </span>
                                             </div>
 
-                                            {/* Messages */}
                                             {node.events.map((event, i) => (
                                                 <div key={i} className="sse-timeline__message fade-in">
                                                     {event.message.trim() ? (
@@ -233,7 +333,6 @@ export function CreatePage() {
                                                 </div>
                                             ))}
 
-                                            {/* Inline spinner for active node with non-empty last message */}
                                             {isActive && !lastPhaseIsEmpty ? (
                                                 <div className="sse-timeline__message">
                                                     <span className="sse-timeline__spinner">
@@ -256,7 +355,7 @@ export function CreatePage() {
                                             <Loader size={16} className="sse-timeline__spinner-icon" />
                                         </span>
                                         <span className="sse-timeline__message-text" style={{ color: "var(--ink-faint)" }}>
-                                            正在创建生成任务...
+                                            {recoveryTaskId ? "正在恢复生成进度..." : "正在创建生成任务..."}
                                         </span>
                                     </div>
                                 </div>
@@ -311,12 +410,15 @@ export function CreatePage() {
 
                         <div className="create-page__actions">
                             <div className="create-page__actions-left">
-                                <button type="button" className="create-page__action-btn" onClick={openDialog}>
-                                    <Plus size={18} />
-                                    添加资料
-                                </button>
                                 <button type="button" className="create-page__action-btn create-page__action-btn--icon" onClick={() => alert("接口尚未实现")}>
                                     <Settings size={18} />
+                                </button>
+                                <button
+                                    type="button"
+                                    className="create-page__action-btn create-page__action-btn--icon"
+                                    onClick={() => setHistoryOpen(true)}
+                                >
+                                    <History size={18} />
                                 </button>
                             </div>
                             <button
@@ -341,6 +443,85 @@ export function CreatePage() {
                     onClose={closeDialog}
                 />
             ) : null}
+
+            {historyOpen ? (
+                <HistoryDialog
+                    tasks={taskList}
+                    activeTaskId={activeTaskId}
+                    onSelect={handleSelectHistoryTask}
+                    onClose={() => setHistoryOpen(false)}
+                />
+            ) : null}
+
+            <ErrorDialog
+                open={errorDialog !== null}
+                title={errorDialog?.title || "错误"}
+                message={errorDialog?.message || ""}
+                onConfirm={() => setErrorDialog(null)}
+            />
+        </div>
+    );
+}
+
+function HistoryDialog({
+    tasks,
+    activeTaskId,
+    onSelect,
+    onClose,
+}: {
+    tasks: TaskListItem[];
+    activeTaskId: string | null;
+    onSelect: (task: TaskListItem) => void;
+    onClose: () => void;
+}) {
+    return (
+        <div className="doc-select-dialog" onClick={onClose}>
+            <div className="doc-select-dialog__card" onClick={(e) => e.stopPropagation()}>
+                <div className="doc-select-dialog__header">
+                    <h3 className="doc-select-dialog__title">历史任务</h3>
+                    <button className="doc-select-dialog__close" onClick={onClose} aria-label="关闭">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="doc-select-dialog__body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {tasks.length === 0 ? (
+                        <p style={{ gridColumn: "1/-1", textAlign: "center", color: "var(--ink-faint)", fontSize: 14, margin: 0, padding: 24 }}>
+                            暂无历史任务
+                        </p>
+                    ) : (
+                        tasks.map((task) => {
+                            const isActive = task.taskId === activeTaskId;
+                            return (
+                                <button
+                                    key={task.taskId}
+                                    type="button"
+                                    className="sse-history-item"
+                                    onClick={() => onSelect(task)}
+                                >
+                                    <div className="sse-history-item__main">
+                                        <span className="sse-history-item__title">
+                                            {task.title || "未命名任务"}
+                                            {isActive ? (
+                                                <span className="sse-history-item__badge">进行中</span>
+                                            ) : null}
+                                        </span>
+                                        <span className="sse-history-item__id">
+                                            {task.taskId.length > 12
+                                                ? task.taskId.slice(0, 12) + "..."
+                                                : task.taskId}
+                                        </span>
+                                    </div>
+                                    <div className="sse-history-item__meta">
+                                        <span>{formatTaskTime(task.createdAt)}</span>
+                                        <span className="sse-history-item__status">{task.stage || task.status}</span>
+                                    </div>
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

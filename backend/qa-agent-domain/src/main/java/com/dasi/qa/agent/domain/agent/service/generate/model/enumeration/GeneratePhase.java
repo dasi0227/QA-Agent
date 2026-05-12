@@ -13,7 +13,7 @@ public enum GeneratePhase {
     GENERATE("⚙️ 生成执行", "GenerateAgent", "先执行请求判定，再根据路由结果进入终止分支或完整生成链路。", null),
     ROUTE("🧭 路由分发", "RouteAgent", "读取判定结果并路由到终止分支或继续执行生成分支。", null),
     DECIDE("🤔 请求判定", "DecideAgent", "识别用户请求是否满足问答集生成场景并给出判定结果。", "decideResult"),
-    PLAN("☑️ 规划模块", "PlanAgent", "分析资料摘要并输出模块化题量与难度分配计划。", "planResult"),
+    PLAN("🗓️ 规划模块", "PlanAgent", "分析资料摘要并输出模块化题量与难度分配计划。", "planResult"),
     WRITE("📝 题目编写", "WriteAgent", "顺序执行规划、起草、校验修订与总结，生成最终可落库问答集。", "draftResult"),
     DRAFT("✍️ 检索起草", "DraftAgent", "基于检索证据按模块起草结构化问答题目。", null),
     VALIDATE("🧐 审校修订", "ValidateAgent", "评估并修订候选问答，确保质量达标。", "validateResult"),

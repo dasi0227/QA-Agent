@@ -137,12 +137,14 @@ public class AgentRepository implements IAgentRepository {
     public TaskStatusResponse getTaskStatus(String taskId, String userId) {
         QaGenerationTask entity = requireTask(taskId);
         checkUser(entity, userId);
+        String documentNamesJson = getDocumentNames(entity.getDocumentIdsJson());
         return TaskStatusResponse.builder()
                 .taskId(entity.getId())
                 .userId(entity.getUserId())
                 .title(entity.getTitle())
                 .userPrompt(entity.getUserPrompt())
                 .documentIdsJson(entity.getDocumentIdsJson())
+                .documentNamesJson(documentNamesJson)
                 .qaSetId(entity.getQaSetId())
                 .status(entity.getStatus())
                 .stage(entity.getStage())
@@ -153,6 +155,23 @@ public class AgentRepository implements IAgentRepository {
                 .startedAt(format(entity.getStartedAt()))
                 .completedAt(format(entity.getCompletedAt()))
                 .build();
+    }
+
+    private String getDocumentNames(String documentIdsJson) {
+        if (documentIdsJson == null || documentIdsJson.isBlank()) {
+            return "[]";
+        }
+        List<String> ids = JSON.parseArray(documentIdsJson, String.class);
+        if (ids == null || ids.isEmpty()) {
+            return "[]";
+        }
+        return JSON.toJSONString(sourceDocumentMapper.selectList(
+                        new LambdaQueryWrapper<SourceDocument>()
+                                .in(SourceDocument::getId, ids)
+                                .select(SourceDocument::getFileName))
+                .stream()
+                .map(SourceDocument::getFileName)
+                .toList());
     }
 
     @Override

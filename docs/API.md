@@ -197,7 +197,11 @@ SUMMARIZE
 | --- | --- |
 | `taskId` | 生成任务 ID |
 | `userId` | 用户 ID |
-| `qaSetId` | 成功生成后的问答集 ID，失败或未完成时可为空 |
+| `title` | 任务标题 |
+| `userPrompt` | 用户原始输入 |
+| `documentIdsJson` | 所选资料 ID 数组 |
+| `documentNamesJson` | 所选资料文件名数组 |
+| `qaSetId` | 成功生成后的问答集 ID，未完成时为空 |
 | `status` | `PENDING` / `PROCESSING` / `SOLVED` / `UNSOLVED` / `CANCELED` |
 | `stage` | `INIT` / `DECIDING` / `PLANNING` / `WRITING` / `VALIDATING` / `SUMMARIZING` / `COMPLETED` / `FAILED` |
 | `errorCode` | 失败错误类型 |

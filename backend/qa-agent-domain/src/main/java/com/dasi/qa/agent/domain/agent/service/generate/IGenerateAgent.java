@@ -9,4 +9,6 @@ public interface IGenerateAgent {
 
     void execute(String userId, CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler);
 
+    void executeTest(String userId, CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler);
+
 }
