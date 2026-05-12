@@ -36,7 +36,7 @@ function buildUrl(path: string, query?: ApiRequestOptions["query"]) {
     const url = new URL(`${getApiBaseUrl()}/${normalizedPath}`);
     if (query) {
         Object.entries(query).forEach(([key, value]) => {
-            if (value === null || value === undefined || value === "") {
+            if (value === null || value === undefined) {
                 return;
             }
             url.searchParams.set(key, String(value));

@@ -90,18 +90,18 @@ public class GenerateAgent implements IGenerateAgent {
 
         try {
             eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建", 0);
-            Thread.sleep(1500);
+            Thread.sleep(10000);
             eventPublisher.publishEvent(GeneratePhase.DECIDE, GenerateStatus.PROCESSING, "您的需求符合技术面试问答集生成场景，系统已确认进入生成流程。", 120);
             Thread.sleep(2000);
             eventPublisher.publishEvent(GeneratePhase.PLAN, GenerateStatus.PROCESSING, "计划覆盖 Redis、JVM、Spring 三大核心模块，共规划 10 道题目，难度分布均衡。", 350);
             Thread.sleep(2000);
 
             eventPublisher.publishEvent(GeneratePhase.DRAFT, GenerateStatus.PROCESSING, "已生成 4 道 Redis 核心题目，覆盖跳表、持久化 RDB/AOF、缓存淘汰策略、数据结构对比。", 850);
-            Thread.sleep(1800);
+            Thread.sleep(4800);
             eventPublisher.publishEvent(GeneratePhase.DRAFT, GenerateStatus.PROCESSING, "已生成 3 道 JVM 模块题目，涉及类加载机制、GC 算法选择、JMM 内存模型与并发。", 680);
-            Thread.sleep(1600);
+            Thread.sleep(3600);
             eventPublisher.publishEvent(GeneratePhase.DRAFT, GenerateStatus.PROCESSING, "已生成 3 道 Spring 模块题目，涵盖 IoC 与 AOP 原理、事务传播机制、循环依赖解决方案。", 620);
-            Thread.sleep(2000);
+            Thread.sleep(5000);
 
             eventPublisher.publishEvent(GeneratePhase.EVALUATE, GenerateStatus.PROCESSING, "已完成首轮审校，8 题通过，2 题需修订。修订项：Redis 缓存淘汰策略、JVM GC 算法对比。", 420);
             Thread.sleep(2500);
@@ -325,6 +325,7 @@ public class GenerateAgent implements IGenerateAgent {
                         documentsSummary,
                         planContext.getUserProfileJson(),
                         planContext.getRequest().getUserPrompt(),
+                        planContext.getRequest().getJobDescription(),
                         planContext.getRequest().getRequestedQuestionCount(),
                         retryHint
                 );
@@ -456,9 +457,10 @@ public class GenerateAgent implements IGenerateAgent {
                             draftContext.getPlanItem().getModuleTag(),
                             draftContext.getEvidence(),
                             draftContext.getUserProfileJson(),
+                            draftContext.getRequest().getUserPrompt(),
+                            draftContext.getRequest().getJobDescription(),
                             batchCount,
                             previousQuestions,
-                            draftContext.getRequest().getUserPrompt(),
                             draftContext.getAnswerStyle(),
                             retryHint
                     );
@@ -506,6 +508,7 @@ public class GenerateAgent implements IGenerateAgent {
                                 ValidateLoopContext.builder()
                                         .batch(batch)
                                         .userPrompt(validateContext.getRequest().getUserPrompt())
+                                        .jobDescription(validateContext.getRequest().getJobDescription())
                                         .answerStyle(validateContext.getAnswerStyle())
                                         .supervisor(validateContext.getSupervisor())
                                         .build()),
@@ -544,6 +547,8 @@ public class GenerateAgent implements IGenerateAgent {
                                     evaluateAgent,
                                     EvaluateContext.builder()
                                             .drafts(evaluateItems.get())
+                                            .userPrompt(loopContext.getUserPrompt())
+                                            .jobDescription(loopContext.getJobDescription())
                                             .supervisor(loopContext.getSupervisor())
                                             .build()
                             );
@@ -575,6 +580,7 @@ public class GenerateAgent implements IGenerateAgent {
                                     AmendContext.builder()
                                             .items(amendItems.get())
                                             .userPrompt(loopContext.getUserPrompt())
+                                            .jobDescription(loopContext.getJobDescription())
                                             .answerStyle(loopContext.getAnswerStyle())
                                             .supervisor(loopContext.getSupervisor())
                                             .build());
@@ -600,7 +606,8 @@ public class GenerateAgent implements IGenerateAgent {
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
-                String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(evaluateContext.getDrafts()), retryHint);
+                String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(evaluateContext.getDrafts()),
+                        evaluateContext.getUserPrompt(), evaluateContext.getJobDescription(), retryHint);
                 List<EvaluateItem> results = jsonUtil.parseJsonArray(response, EvaluateItem.class);
                 evaluateContext.getSupervisor().doSupervise(GeneratePhase.EVALUATE, response);
                 return results;
@@ -620,7 +627,9 @@ public class GenerateAgent implements IGenerateAgent {
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
-                String response = amendAgent.amend(taskId, jsonUtil.toJsonString(amendContext.getItems()), amendContext.getUserPrompt(), amendContext.getAnswerStyle(), retryHint);
+                String response = amendAgent.amend(taskId, jsonUtil.toJsonString(amendContext.getItems()),
+                        amendContext.getUserPrompt(), amendContext.getJobDescription(),
+                        amendContext.getAnswerStyle(), retryHint);
                 List<DraftItem> results = jsonUtil.parseJsonArray(response, DraftItem.class);
                 amendContext.getSupervisor().doSupervise(GeneratePhase.AMEND, response);
                 return results;
@@ -679,6 +688,7 @@ public class GenerateAgent implements IGenerateAgent {
             summaryMessage = summarizeAgent.summarize(
                     summarizeContext.getTaskId(),
                     summarizeContext.getRequest().getUserPrompt(),
+                    summarizeContext.getRequest().getJobDescription(),
                     summarizeContext.getUserProfileJson(),
                     summarizeContext.getRequest().getTitle(),
                     planResult.getDescription() != null ? planResult.getDescription() : "",

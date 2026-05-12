@@ -23,10 +23,14 @@ public class CreateQaSetRequest {
     @NotBlank(message = "用户提示词不能为空")
     private String userPrompt;
 
+    @Builder.Default
+    private String jobDescription = "暂无";
+
     @NotEmpty(message = "请至少选择一份资料")
     private List<String> documentIds;
 
     @Max(value = 100, message = "单次最多生成 100 题")
     @Min(value = 10, message = "单次至少生成 10 题")
     private Integer requestedQuestionCount;
+
 }

@@ -7,7 +7,7 @@ import dev.langchain4j.service.V;
 
 /**
  * EvaluateAgent：审校题目是否准确、是否被资料支撑、是否适合作为最终问答集内容。
- * - 输入：一批待审校的草稿题目。
+ * - 输入：一批待审校的草稿题目、用户补充要求和岗位描述。
  * - 输出：逐题审校结果，包括通过、拒绝或要求修订的判定及原因。
  */
 public interface EvaluateAgent {
@@ -15,6 +15,8 @@ public interface EvaluateAgent {
     @SystemMessage(fromResource = "prompt/generation-evaluate.txt")
     @UserMessage("""
             待校验题目：{{draftItemsJson}}
+            用户备注：{{userPrompt}}
+            岗位描述：{{jobDescription}}
 
             输出要求：
             1. 只输出一个合法 JSON 数组，以 [ 开头，以 ] 结尾。
@@ -29,5 +31,7 @@ public interface EvaluateAgent {
     @Agent(name = "EVALUATOR", description = "审校题目事实准确性和证据边界")
     String evaluate(@V("taskId") String taskId,
                     @V("draftItemsJson") String draftItemsJson,
+                    @V("userPrompt") String userPrompt,
+                    @V("jobDescription") String jobDescription,
                     @V("retryHint") String retryHint);
 }

@@ -7,7 +7,7 @@ import dev.langchain4j.service.V;
 
 /**
  * DraftAgent：围绕单个模块，把检索到的证据整理成首版问答题目。
- * - 输入：当前模块的证据内容、用户画像、题量要求、已有题目和用户补充要求。
+ * - 输入：当前模块的证据内容、用户画像、题量要求、岗位描述、已有题目和用户补充要求。
  * - 输出：当前模块的草稿题目列表，作为后续审校阶段的输入。
  */
 public interface DraftAgent {
@@ -17,9 +17,10 @@ public interface DraftAgent {
             模块：{{moduleTag}}
             证据块：{{evidence}}
             用户资料：{{userProfile}}
+            用户备注：{{userPrompt}}
+            岗位描述：{{jobDescription}}
             本批题数：{{questionCount}}
             已有题目（避免重复）：{{previousQuestions}}
-            用户备注：{{userPrompt}}
             答案风格：{{answerStyle}}
 
             输出要求：
@@ -37,9 +38,10 @@ public interface DraftAgent {
                  @V("moduleTag") String moduleTag,
                  @V("evidence") String evidence,
                  @V("userProfile") String userProfile,
+                 @V("userPrompt") String userPrompt,
+                 @V("jobDescription") String jobDescription,
                  @V("questionCount") int questionCount,
                  @V("previousQuestions") String previousQuestions,
-                 @V("userPrompt") String userPrompt,
                  @V("answerStyle") String answerStyle,
                  @V("retryHint") String retryHint);
 }

@@ -6,8 +6,8 @@ import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
 /**
- * AmendAgent：只针对“需要修订”的题目做最小改动，不重新发散生成整批题目。
- * - 输入：待修订题目，以及每道题对应的审校意见和用户补充要求。
+ * AmendAgent：只针对"需要修订"的题目做最小改动，不重新发散生成整批题目。
+ * - 输入：待修订题目，以及每道题对应的审校意见、用户补充要求、岗位描述和答案风格。
  * - 输出：修订后的题目列表，供下一轮审校继续判断是否通过。
  */
 public interface AmendAgent {
@@ -16,6 +16,7 @@ public interface AmendAgent {
     @UserMessage("""
             待修订题目与审校意见：{{amendItemsJson}}
             用户备注：{{userPrompt}}
+            岗位描述：{{jobDescription}}
             答案风格：{{answerStyle}}
 
             输出要求：
@@ -32,6 +33,7 @@ public interface AmendAgent {
     String amend(@V("taskId") String taskId,
                  @V("amendItemsJson") String amendItemsJson,
                  @V("userPrompt") String userPrompt,
+                 @V("jobDescription") String jobDescription,
                  @V("answerStyle") String answerStyle,
                  @V("retryHint") String retryHint);
 }

@@ -17,6 +17,7 @@ public class AmendContext {
 
     private List<AmendItem> items;
     private String userPrompt;
+    private String jobDescription;
     private String answerStyle;
     private GenerateSupervisor supervisor;
 }

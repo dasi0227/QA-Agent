@@ -17,6 +17,7 @@ public class ValidateLoopContext {
 
     private List<DraftItem> batch;
     private String userPrompt;
+    private String jobDescription;
     private String answerStyle;
     private GenerateSupervisor supervisor;
 }

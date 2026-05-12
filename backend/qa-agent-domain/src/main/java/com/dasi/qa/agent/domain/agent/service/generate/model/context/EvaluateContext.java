@@ -16,5 +16,7 @@ import java.util.List;
 public class EvaluateContext {
 
     private List<DraftItem> drafts;
+    private String userPrompt;
+    private String jobDescription;
     private GenerateSupervisor supervisor;
 }

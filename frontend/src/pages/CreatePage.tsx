@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { ArrowUp, History, Loader, Plus, Settings, X } from "lucide-react";
 import { Link } from "react-router";
 import { TextArea } from "@/components/base/field";
 import { ErrorDialog } from "@/components/base/error-dialog";
 import {
+    apiKeys,
     useDocumentsQuery,
     useCreateQuestionSetStream,
     useTaskStatusQuery,
@@ -77,12 +79,16 @@ function buildTimelineNodes(events: SseEvent[]): TimelineNode[] {
 }
 
 export function CreatePage() {
+    const queryClient = useQueryClient();
     const [draft] = useState(loadDraft);
     const documentsQuery = useDocumentsQuery();
     const createStream = useCreateQuestionSetStream();
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>(draft.selectedIds);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [requestedCount, setRequestedCount] = useState(20);
+    const [jobDescription, setJobDescription] = useState("");
     const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
     const [streamState, setStreamState] = useState<"idle" | "streaming">("idle");
@@ -97,7 +103,7 @@ export function CreatePage() {
     // Manual recovery via history dialog
     const [recoveryTaskId, setRecoveryTaskId] = useState<string | null>(null);
     const [recoveryTrigger, setRecoveryTrigger] = useState(0);
-    const taskStatusQuery = useTaskStatusQuery(recoveryTaskId ?? undefined);
+    const taskStatusQuery = useTaskStatusQuery(recoveryTaskId ?? undefined, { poll: recoveryTrigger > 0 });
     const taskMessagesQuery = useTaskMessagesQuery(recoveryTaskId ?? undefined, { poll: recoveryTrigger > 0 });
     const taskListQuery = useTaskListQuery();
 
@@ -107,12 +113,20 @@ export function CreatePage() {
         const events = parseTaskMessagesToEvents(taskMessagesQuery.data);
         if (events.length > 0) {
             setSseEvents(events);
-            // Stop polling once last event is terminal
-            if (events[events.length - 1].isCompleted) {
+            if (events[events.length - 1].isCompleted
+                || /完成|COMPLETED|失败|FAILED/i.test(events[events.length - 1].phase)) {
                 setRecoveryTrigger(0);
             }
         }
     }, [recoveryTaskId, taskMessagesQuery.data, recoveryTrigger]);
+
+    // Stop polling when task status is terminal
+    useEffect(() => {
+        const status = taskStatusQuery.data?.status;
+        if (status && !["PROCESSING", "PENDING"].includes(status)) {
+            setRecoveryTrigger(0);
+        }
+    }, [taskStatusQuery.data?.status]);
 
     useEffect(() => {
         if (!recoveryTaskId || !taskStatusQuery.data) return;
@@ -123,8 +137,9 @@ export function CreatePage() {
         });
     }, [recoveryTaskId, taskStatusQuery.data]);
 
-    // Watch for recovery errors
+    // Watch for recovery errors (only when actively recovering)
     useEffect(() => {
+        if (!recoveryTrigger) return;
         if (taskStatusQuery.isError) {
             setErrorDialog({
                 title: "查询失败",
@@ -137,7 +152,7 @@ export function CreatePage() {
                 message: taskMessagesQuery.error instanceof Error ? taskMessagesQuery.error.message : "获取任务消息失败",
             });
         }
-    }, [taskStatusQuery.isError, taskMessagesQuery.isError]);
+    }, [taskStatusQuery.isError, taskMessagesQuery.isError, recoveryTrigger]);
 
     const form = useForm({
         defaultValues: {
@@ -152,7 +167,14 @@ export function CreatePage() {
     );
 
     const hasDocuments = selectedDocuments.length > 0;
-    const isCompleted = sseEvents.length > 0 && sseEvents[sseEvents.length - 1].isCompleted;
+    const taskTerminal = taskStatusQuery.data?.status
+        ? !["PROCESSING", "PENDING"].includes(taskStatusQuery.data.status)
+        : false;
+    const isCompleted = taskTerminal
+        || (sseEvents.length > 0 && (
+            sseEvents[sseEvents.length - 1].isCompleted
+            || /完成|COMPLETED|失败|FAILED/i.test(sseEvents[sseEvents.length - 1].phase)
+        ));
 
     // Persist draft on changes
     useEffect(() => {
@@ -210,16 +232,21 @@ export function CreatePage() {
         setSseEvents([]);
         setStreamError("");
         setRecoveryTaskId(null);
+        setRecoveryTrigger(0);
         setSelectedDocumentIds([]);
         form.reset({ userPrompt: "" });
         clearDraft();
+
+        // Invalidate task list so new task appears in history
+        queryClient.invalidateQueries({ queryKey: apiKeys.taskList });
 
         try {
             await createStream.mutateAsync({
                 title: "",
                 userPrompt: values.userPrompt,
                 documentIds: selectedDocumentIds,
-                requestedQuestionCount: 10,
+                requestedQuestionCount: requestedCount,
+                jobDescription: jobDescription || undefined,
                 onEvent: (event: SseEvent) => {
                     if (!sessionStorage.getItem(ACTIVE_TASK_KEY)) {
                         sessionStorage.setItem(ACTIVE_TASK_KEY, event.taskId);
@@ -410,13 +437,13 @@ export function CreatePage() {
 
                         <div className="create-page__actions">
                             <div className="create-page__actions-left">
-                                <button type="button" className="create-page__action-btn create-page__action-btn--icon" onClick={() => alert("接口尚未实现")}>
+                                <button type="button" className="create-page__action-btn create-page__action-btn--icon" onClick={() => setSettingsOpen(true)}>
                                     <Settings size={18} />
                                 </button>
                                 <button
                                     type="button"
                                     className="create-page__action-btn create-page__action-btn--icon"
-                                    onClick={() => setHistoryOpen(true)}
+                                    onClick={() => { setHistoryOpen(true); taskListQuery.refetch(); }}
                                 >
                                     <History size={18} />
                                 </button>
@@ -450,6 +477,16 @@ export function CreatePage() {
                     activeTaskId={activeTaskId}
                     onSelect={handleSelectHistoryTask}
                     onClose={() => setHistoryOpen(false)}
+                />
+            ) : null}
+
+            {settingsOpen ? (
+                <SettingsDialog
+                    requestedCount={requestedCount}
+                    jobDescription={jobDescription}
+                    onChangeCount={setRequestedCount}
+                    onChangeJobDesc={setJobDescription}
+                    onClose={() => setSettingsOpen(false)}
                 />
             ) : null}
 
@@ -520,6 +557,58 @@ function HistoryDialog({
                             );
                         })
                     )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SettingsDialog({
+    requestedCount,
+    jobDescription,
+    onChangeCount,
+    onChangeJobDesc,
+    onClose,
+}: {
+    requestedCount: number;
+    jobDescription: string;
+    onChangeCount: (v: number) => void;
+    onChangeJobDesc: (v: string) => void;
+    onClose: () => void;
+}) {
+    return (
+        <div className="doc-select-dialog" onClick={onClose}>
+            <div className="doc-select-dialog__card" onClick={(e) => e.stopPropagation()}>
+                <div className="doc-select-dialog__header">
+                    <h3 className="doc-select-dialog__title">生成设置</h3>
+                    <button className="doc-select-dialog__close" onClick={onClose} aria-label="关闭">
+                        <X size={18} />
+                    </button>
+                </div>
+                <div className="doc-select-dialog__body" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                    <label className="field">
+                        <span className="field__label">题目数量</span>
+                        <span className="field__hint">单次生成 10–100 题</span>
+                        <input
+                            className="input"
+                            type="number"
+                            min={10}
+                            max={100}
+                            value={requestedCount}
+                            onChange={(e) => onChangeCount(Number(e.target.value))}
+                        />
+                    </label>
+                    <label className="field">
+                        <span className="field__label">岗位描述</span>
+                        <span className="field__hint">可选，用于辅助生成更贴合岗位的题目</span>
+                        <textarea
+                            className="textarea"
+                            rows={4}
+                            placeholder="例如：Java 后端开发，要求熟悉 Spring Boot、MySQL、Redis，有分布式系统经验..."
+                            value={jobDescription}
+                            onChange={(e) => onChangeJobDesc(e.target.value)}
+                        />
+                    </label>
                 </div>
             </div>
         </div>

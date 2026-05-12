@@ -588,10 +588,8 @@ export function useCreateQuestionSetStream() {
     return useMutation({
         mutationFn: async (input: CreateQuestionSetInput & { onEvent: (event: SseEvent) => void }) => {
             const token = getAccessToken();
-            const isDev = import.meta.env.DEV;
-            const endpoint = isDev ? "/qa/set/create/test" : "/qa/set/create";
 
-            const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
+            const response = await fetch(`${getApiBaseUrl()}/qa/set/create`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -602,6 +600,7 @@ export function useCreateQuestionSetStream() {
                     userPrompt: input.userPrompt,
                     documentIds: input.documentIds,
                     requestedQuestionCount: input.requestedQuestionCount,
+                    jobDescription: input.jobDescription || null,
                 }),
             });
 
@@ -665,28 +664,30 @@ export function useCreateQuestionSetStream() {
 
 export function useTaskStatusQuery(taskId?: string, opts?: { poll?: boolean }) {
     const shouldPoll = opts?.poll ?? true;
+    const id = taskId || "";
     return useQuery({
-        queryKey: apiKeys.taskStatus(taskId ?? ""),
+        queryKey: apiKeys.taskStatus(id),
         enabled: Boolean(taskId),
         refetchInterval: (query) => {
-            if (!shouldPoll) return false;
+            if (!shouldPoll || !taskId) return false;
             const status = query.state.data?.status;
             return status === "PROCESSING" || status === "PENDING" ? 2000 : false;
         },
         queryFn: async () => normalizeTaskStatus(await apiRequest<unknown>("/qa/set/task-status", {
-            query: { taskId: taskId ?? "" },
+            query: { taskId: id },
         })),
     });
 }
 
 export function useTaskMessagesQuery(taskId?: string, opts?: { poll?: boolean }) {
     const shouldPoll = opts?.poll ?? true;
+    const id = taskId || "";
     return useQuery({
-        queryKey: apiKeys.taskMessages(taskId ?? ""),
+        queryKey: apiKeys.taskMessages(id),
         enabled: Boolean(taskId),
-        refetchInterval: shouldPoll ? 2000 : false,
+        refetchInterval: shouldPoll && taskId ? 2000 : false,
         queryFn: async () => (await apiRequest<unknown[]>("/qa/set/task-messages", {
-            query: { taskId: taskId ?? "" },
+            query: { taskId: id },
         })).map(normalizeTaskMessage),
     });
 }

@@ -138,6 +138,7 @@ export type CreateQuestionSetInput = {
     userPrompt: string;
     documentIds: string[];
     requestedQuestionCount: number;
+    jobDescription?: string;
 };
 
 export type TaskStatus = {

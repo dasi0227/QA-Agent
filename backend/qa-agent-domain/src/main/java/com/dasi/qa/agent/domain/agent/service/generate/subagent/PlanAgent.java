@@ -8,7 +8,7 @@ import dev.langchain4j.service.V;
 
 /**
  * PlanAgent：先读资料结构和用户目标，再决定这套问答集应该覆盖哪些模块、每个模块出多少题。
- * - 输入：资料目录摘要、用户画像、用户要求，以及目标题数。
+ * - 输入：资料目录摘要、用户画像、用户要求、岗位描述，以及目标题数。
  * - 输出：一份可执行的题集规划结果，包含模块划分和题量分配。
  */
 public interface PlanAgent {
@@ -18,6 +18,7 @@ public interface PlanAgent {
             资料目录：{{documents}}
             用户资料：{{userProfile}}
             用户备注：{{userPrompt}}
+            岗位描述：{{jobDescription}}
             目标题数：{{questionCount}}
 
             输出要求：
@@ -36,6 +37,7 @@ public interface PlanAgent {
                     @V("documents") String documents,
                     @V("userProfile") String userProfile,
                     @V("userPrompt") String userPrompt,
+                    @V("jobDescription") String jobDescription,
                     @V("questionCount") int questionCount,
                     @V("retryHint") String retryHint);
 }
