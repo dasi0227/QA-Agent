@@ -269,10 +269,10 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - DecideAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, decideContext.getTaskId(), exception.getMessage());
+                    log.warn("【GenerateAgent - DecideAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, decideContext.getTaskId(), exception);
                     writeDecideResult(scope, null);
                 } else {
-                    log.warn("【GenerateAgent - DecideAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, decideContext.getTaskId(), exception.getMessage());
+                    log.warn("【GenerateAgent - DecideAgent】第{}次失败，重试中: taskId={}", attempt + 1, decideContext.getTaskId(), exception);
                 }
             }
         }
@@ -294,7 +294,7 @@ public class GenerateAgent implements IGenerateAgent {
         try {
             message = abortAgent.abort(abortContext.getTaskId(), abortContext.getRequest().getUserPrompt(), reason);
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - AbortAgent】调用智能体出错: taskId={}, error={}", abortContext.getTaskId(), exception.getMessage());
+            log.warn("【GenerateAgent - AbortAgent】调用智能体出错: taskId={}", abortContext.getTaskId(), exception);
             message = reason;
         }
 
@@ -333,9 +333,9 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - PlanAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, planContext.getTaskId(), exception.getMessage());
+                    log.warn("【GenerateAgent - PlanAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, planContext.getTaskId(), exception);
                 } else {
-                    log.warn("【GenerateAgent - PlanAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, planContext.getTaskId(), exception.getMessage());
+                    log.warn("【GenerateAgent - PlanAgent】第{}次失败，重试中: taskId={}", attempt + 1, planContext.getTaskId(), exception);
                 }
             }
         }
@@ -382,7 +382,7 @@ public class GenerateAgent implements IGenerateAgent {
                 }
                 evidenceMap.put(planItem.getModuleTag(), evidenceJson);
             } catch (Exception e) {
-                log.warn("【GenerateAgent - WriteAgent】失败: taskId={}, module={}, error={}", writeContext.getTaskId(), planItem.getModuleTag(), e.getMessage());
+                log.warn("【GenerateAgent - WriteAgent】失败: taskId={}, module={}", writeContext.getTaskId(), planItem.getModuleTag(), e);
                 evidenceMap.put(planItem.getModuleTag(), jsonUtil.toJsonString(List.of()));
             }
         }
@@ -406,7 +406,7 @@ public class GenerateAgent implements IGenerateAgent {
                             .build();
                     draftItems.addAll(doDraft(draftAgent, draftContext));
                 } catch (Exception exception) {
-                    log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}, error={}", writeContext.getTaskId(), planItem.getModuleTag(), exception.getMessage());
+                    log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}", writeContext.getTaskId(), planItem.getModuleTag(), exception);
                 }
             });
             moduleAgents.add(agentAction);
@@ -425,7 +425,7 @@ public class GenerateAgent implements IGenerateAgent {
         try {
             writer.invoke(Map.of());
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - WriteAgent】调用智能体出错: taskId={}, error={}", writeContext.getTaskId(), exception.getMessage());
+            log.warn("【GenerateAgent - WriteAgent】调用智能体出错: taskId={}", writeContext.getTaskId(), exception);
             writeDraftResult(scope, draftItems);
             throw new GenerateException(ErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
         }
@@ -470,10 +470,10 @@ public class GenerateAgent implements IGenerateAgent {
                 } catch (Exception exception) {
                     retryHint = exception.getMessage();
                     if (attempt == MAX_RETRY) {
-                        log.warn("【GenerateAgent - DraftAgent】批次重试{}次后仍失败: taskId={}, module={}, error={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
+                        log.warn("【GenerateAgent - DraftAgent】批次重试{}次后仍失败: taskId={}, module={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception);
                         batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence());
                     } else {
-                        log.warn("【GenerateAgent - DraftAgent】第{}次失败，重试中: taskId={}, module={}, error={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception.getMessage());
+                        log.warn("【GenerateAgent - DraftAgent】第{}次失败，重试中: taskId={}, module={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception);
                     }
                 }
             }
@@ -514,7 +514,7 @@ public class GenerateAgent implements IGenerateAgent {
                                         .build()),
                                 applicationTaskExecutor)
                         .exceptionally(ex -> {
-                            log.warn("【GenerateAgent - ValidateAgent】批次执行异常，退回原始题目: taskId={}, error={}", validateContext.getTaskId(), ex.getMessage());
+                            log.warn("【GenerateAgent - ValidateAgent】批次执行异常，退回原始题目: taskId={}", validateContext.getTaskId(), ex.getMessage());
                             return batch;
                         }))
                 .toList();
@@ -593,7 +593,7 @@ public class GenerateAgent implements IGenerateAgent {
         try {
             validateAgent.invoke(Map.of());
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - ValidateAgent】调用智能体出错: taskId={}, error={}", taskId, exception.getMessage());
+            log.warn("【GenerateAgent - ValidateAgent】调用智能体出错: taskId={}", taskId, exception);
             if (passItems.isEmpty()) {
                 passItems.addAll(loopContext.getBatch());
             }
@@ -614,10 +614,10 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - EvaluateAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, exception.getMessage());
+                    log.warn("【GenerateAgent - EvaluateAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, taskId, exception);
                     return fallbackEvaluate(evaluateContext.getDrafts());
                 }
-                log.warn("【GenerateAgent - EvaluateAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, taskId, exception.getMessage());
+                log.warn("【GenerateAgent - EvaluateAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId, exception);
             }
         }
         return fallbackEvaluate(evaluateContext.getDrafts());
@@ -636,10 +636,10 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - AmendAgent】重试{}次后仍失败: taskId={}, error={}", MAX_RETRY, taskId, exception.getMessage());
+                    log.warn("【GenerateAgent - AmendAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, taskId, exception);
                     return fallbackAmend(amendContext.getItems());
                 }
-                log.warn("【GenerateAgent - AmendAgent】第{}次失败，重试中: taskId={}, error={}", attempt + 1, taskId, exception.getMessage());
+                log.warn("【GenerateAgent - AmendAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId, exception);
             }
         }
         return fallbackAmend(amendContext.getItems());
@@ -699,7 +699,7 @@ public class GenerateAgent implements IGenerateAgent {
                     jsonUtil.toJsonString(validatedResult)
             );
         } catch (Exception exception) {
-            log.warn("【GenerateAgent - SummarizeAgent】调用智能体出错: taskId={}, error={}", summarizeContext.getTaskId(), exception.getMessage());
+            log.warn("【GenerateAgent - SummarizeAgent】调用智能体出错: taskId={}", summarizeContext.getTaskId(), exception);
             summaryMessage = fallbackSummarize(requiredCount, generatedCount, modules, tags);
         }
 

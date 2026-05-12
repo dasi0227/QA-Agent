@@ -87,6 +87,7 @@ export function CreatePage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [qaSetTitle, setQaSetTitle] = useState("未命名问答集");
     const [requestedCount, setRequestedCount] = useState(20);
     const [jobDescription, setJobDescription] = useState("");
     const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
@@ -242,7 +243,7 @@ export function CreatePage() {
 
         try {
             await createStream.mutateAsync({
-                title: "",
+                title: qaSetTitle,
                 userPrompt: values.userPrompt,
                 documentIds: selectedDocumentIds,
                 requestedQuestionCount: requestedCount,
@@ -482,8 +483,10 @@ export function CreatePage() {
 
             {settingsOpen ? (
                 <SettingsDialog
+                    title={qaSetTitle}
                     requestedCount={requestedCount}
                     jobDescription={jobDescription}
+                    onChangeTitle={setQaSetTitle}
                     onChangeCount={setRequestedCount}
                     onChangeJobDesc={setJobDescription}
                     onClose={() => setSettingsOpen(false)}
@@ -564,14 +567,18 @@ function HistoryDialog({
 }
 
 function SettingsDialog({
+    title,
     requestedCount,
     jobDescription,
+    onChangeTitle,
     onChangeCount,
     onChangeJobDesc,
     onClose,
 }: {
+    title: string;
     requestedCount: number;
     jobDescription: string;
+    onChangeTitle: (v: string) => void;
     onChangeCount: (v: number) => void;
     onChangeJobDesc: (v: string) => void;
     onClose: () => void;
@@ -587,8 +594,17 @@ function SettingsDialog({
                 </div>
                 <div className="doc-select-dialog__body" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                     <label className="field">
+                        <span className="field__label">题目名称</span>
+                        <input
+                            className="input"
+                            type="text"
+                            maxLength={50}
+                            value={title}
+                            onChange={(e) => onChangeTitle(e.target.value)}
+                        />
+                    </label>
+                    <label className="field">
                         <span className="field__label">题目数量</span>
-                        <span className="field__hint">单次生成 10–100 题</span>
                         <input
                             className="input"
                             type="number"
@@ -599,8 +615,7 @@ function SettingsDialog({
                         />
                     </label>
                     <label className="field">
-                        <span className="field__label">岗位描述</span>
-                        <span className="field__hint">可选，用于辅助生成更贴合岗位的题目</span>
+                        <span className="field__label">岗位描述（可选）</span>
                         <textarea
                             className="textarea"
                             rows={4}
