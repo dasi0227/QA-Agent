@@ -9,17 +9,17 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TaskMessageResponse {
-
-    private String id;
+public class TaskListItemResponse {
 
     private String taskId;
 
+    private String title;
+
+    private String status;
+
     private String stage;
 
-    private String message;
-
-    private String content;
+    private String qaSetId;
 
     private String createdAt;
 }

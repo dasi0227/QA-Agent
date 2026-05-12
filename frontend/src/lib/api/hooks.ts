@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, ApiError } from "./client";
+import { apiRequest, getApiBaseUrl, ApiError } from "./client";
+import { getAccessToken } from "../auth";
 import type {
     AuthSession,
     AuthUser,
@@ -15,6 +16,10 @@ import type {
     SendVerifyCodeInput,
     UpdateQuestionItemInput,
     UpdateQuestionSetInput,
+    CreateQuestionSetInput,
+    SseEvent,
+    TaskMessage,
+    TaskStatus,
 } from "./types";
 import { setAuthSession } from "../auth";
 
@@ -68,6 +73,8 @@ export const apiKeys = {
     questionSets: ["question-sets"] as const,
     questionSet: (id: string) => ["question-sets", id] as const,
     questionSetItems: (id: string) => ["question-sets", id, "items"] as const,
+    taskStatus: (taskId: string) => ["task-status", taskId] as const,
+    taskMessages: (taskId: string) => ["task-messages", taskId] as const,
 } as const;
 
 type QueryControlOptions = {
@@ -98,6 +105,35 @@ export function normalizeProfile(raw: unknown): Profile {
         grade: toStringValue(pick(raw, "grade")),
         major: toStringValue(pick(raw, "major")),
         stage: toStringValue(pick(raw, "stage")),
+        llmBaseUrl: toStringValue(pick(raw, "llmBaseUrl", "llm_base_url")),
+        llmApiKey: toStringValue(pick(raw, "llmApiKey", "llm_api_key")),
+        llmModelName: toStringValue(pick(raw, "llmModelName", "llm_model_name")),
+    };
+}
+
+export function normalizeTaskStatus(raw: unknown): TaskStatus {
+    return {
+        taskId: toStringValue(pick(raw, "taskId", "task_id")),
+        userId: toStringValue(pick(raw, "userId", "user_id")),
+        qaSetId: toStringValue(pick(raw, "qaSetId", "qa_set_id")),
+        status: toStringValue(pick(raw, "status"), "PENDING"),
+        stage: toStringValue(pick(raw, "stage"), "INIT"),
+        errorCode: toStringValue(pick(raw, "errorCode", "error_code")),
+        errorMessage: toStringValue(pick(raw, "errorMessage", "error_message")),
+        requestedQuestionCount: toNumberValue(pick(raw, "requestedQuestionCount", "requested_question_count")),
+        createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
+        startedAt: toStringValue(pick(raw, "startedAt", "started_at")),
+        completedAt: toStringValue(pick(raw, "completedAt", "completed_at")),
+    };
+}
+
+export function normalizeTaskMessage(raw: unknown): TaskMessage {
+    return {
+        id: toStringValue(pick(raw, "id")),
+        taskId: toStringValue(pick(raw, "taskId", "task_id")),
+        stage: toStringValue(pick(raw, "stage")),
+        message: toStringValue(pick(raw, "message")),
+        createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
     };
 }
 
@@ -177,6 +213,9 @@ function toProfilePayload(profile: Profile) {
         grade: profile.grade,
         major: profile.major,
         stage: profile.stage,
+        llmBaseUrl: profile.llmBaseUrl,
+        llmApiKey: profile.llmApiKey,
+        llmModelName: profile.llmModelName,
     };
 }
 
@@ -523,5 +562,106 @@ export function useUploadDocumentMutation() {
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.documents });
         },
+    });
+}
+
+export function useCreateQuestionSetStream() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: CreateQuestionSetInput & { onEvent: (event: SseEvent) => void }) => {
+            const token = getAccessToken();
+            const isDev = import.meta.env.DEV;
+            const endpoint = isDev ? "/qa/set/create/test" : "/qa/set/create";
+
+            const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: isDev ? undefined : JSON.stringify({
+                    title: input.title,
+                    userPrompt: input.userPrompt,
+                    documentIds: input.documentIds,
+                    requestedQuestionCount: input.requestedQuestionCount,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new ApiError(`生成请求失败（${response.status}）`, { status: response.status });
+            }
+
+            if (!response.body) {
+                throw new ApiError("响应体为空");
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let lineBuffer = "";
+            let dataLines: string[] = [];
+
+            const flushEvent = () => {
+                if (dataLines.length === 0) return;
+                const json = dataLines.join("");
+                dataLines = [];
+                try {
+                    if (json.trim()) {
+                        const event: SseEvent = JSON.parse(json);
+                        input.onEvent(event);
+                    }
+                } catch {
+                    // skip unparseable event
+                }
+            };
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    lineBuffer += decoder.decode(value, { stream: true });
+                    const lines = lineBuffer.split("\n");
+                    lineBuffer = lines.pop() || "";
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith("data:")) {
+                            dataLines.push(trimmed.slice(5));
+                        } else if (!trimmed && dataLines.length > 0) {
+                            // Empty line after data → event boundary
+                            flushEvent();
+                        }
+                        // ignore other lines (event:, id:, etc.)
+                    }
+                }
+                flushEvent();
+            } finally {
+                reader.releaseLock();
+            }
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useTaskStatusQuery(taskId?: string) {
+    return useQuery({
+        queryKey: apiKeys.taskStatus(taskId ?? ""),
+        enabled: Boolean(taskId),
+        refetchInterval: 2000,
+        queryFn: async () => normalizeTaskStatus(await apiRequest<unknown>("/qa/set/task-status", {
+            query: { taskId: taskId ?? "" },
+        })),
+    });
+}
+
+export function useTaskMessagesQuery(taskId?: string) {
+    return useQuery({
+        queryKey: apiKeys.taskMessages(taskId ?? ""),
+        enabled: Boolean(taskId),
+        queryFn: async () => (await apiRequest<unknown[]>("/qa/set/task-messages", {
+            query: { taskId: taskId ?? "" },
+        })).map(normalizeTaskMessage),
     });
 }

@@ -49,6 +49,7 @@ venv/
 
 # Project-local brainstorming / temporary artifacts
 .superpowers/
+.claude/
 
 # Local object storage fallback
 backend/storage/

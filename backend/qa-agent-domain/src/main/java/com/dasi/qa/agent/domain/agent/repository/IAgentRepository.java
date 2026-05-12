@@ -10,6 +10,7 @@ import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
+import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 
@@ -29,11 +30,13 @@ public interface IAgentRepository {
 
     void markTaskFailed(String taskId, ErrorType errorType, String errorMessage);
 
-    void appendTaskMessage(String taskId, String userId, GeneratePhase phase, String message);
+    void appendTaskMessage(String taskId, String userId, GeneratePhase phase, String message, String content);
 
     TaskStatusResponse getTaskStatus(String taskId, String userId);
 
     List<TaskMessageResponse> getTaskMessages(String taskId, String userId);
+
+    List<TaskListItemResponse> getTaskList(String userId);
 
     UserLlmModelVO getUserLlmModel(String userId);
 

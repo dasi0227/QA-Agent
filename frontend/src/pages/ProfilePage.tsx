@@ -23,6 +23,9 @@ const profileSchema = z.object({
     grade: z.string().min(1, "请输入年级"),
     major: z.string().min(1, "请输入专业"),
     stage: z.string().min(1, "请输入准备阶段"),
+    llmBaseUrl: z.string(),
+    llmApiKey: z.string(),
+    llmModelName: z.string(),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
@@ -39,6 +42,9 @@ const defaultProfile: ProfileForm = {
     grade: "大四",
     major: "计算机科学与技术",
     stage: "秋招准备",
+    llmBaseUrl: "",
+    llmApiKey: "",
+    llmModelName: "",
 };
 
 function getCroppedImg(imageSrc: string, crop: Area): Promise<Blob> {
@@ -256,6 +262,21 @@ export function ProfilePage() {
                             </Field>
                             <Field label="反馈风格" error={form.formState.errors.feedbackStyle?.message}>
                                 <TextInput {...form.register("feedbackStyle")} />
+                            </Field>
+                        </div>
+                    </section>
+
+                    <section className="profile-section">
+                        <div className="profile-section__title">LLM 接入信息</div>
+                        <div className="profile-grid">
+                            <Field label="Base URL" hint="API 地址，例如 https://api.openai.com/v1">
+                                <TextInput placeholder="https://api.openai.com/v1" {...form.register("llmBaseUrl")} />
+                            </Field>
+                            <Field label="API Key">
+                                <TextInput type="password" placeholder="sk-..." {...form.register("llmApiKey")} />
+                            </Field>
+                            <Field label="模型名称" hint="例如 gpt-4o、deepseek-chat">
+                                <TextInput placeholder="gpt-4o" {...form.register("llmModelName")} />
                             </Field>
                         </div>
                     </section>

@@ -121,23 +121,25 @@
 4. `target_company`
 5. `allow_general_knowledge`
 6. `allow_web_search`
-7. `answer_style`
-8. `feedback_style`
-9. `age`
-10. `grade`
-11. `major`
-12. `stage`
-13. `llm_base_url`
-14. `llm_api_key`
-15. `llm_model_name`
-16. `created_at`
-17. `updated_at`
+7. `allow_fallback`
+8. `answer_style`
+9. `feedback_style`
+10. `age`
+11. `grade`
+12. `major`
+13. `stage`
+14. `llm_base_url`
+15. `llm_api_key`
+16. `llm_model_name`
+17. `created_at`
+18. `updated_at`
 
 说明：
 
 1. 一个用户只允许一份全局 `Profile`。
 2. 不保留 `note`。
 3. `llm_base_url`、`llm_api_key`、`llm_model_name` 是用户自配 LLM 接入信息，V3 GenerateAgent 必须从这里读取；缺失时任务失败，错误类型为 `ErrorType.LLM_NOT_CONFIGURED`。
+4. `allow_fallback` 控制 PlanAgent 规划失败时是否走默认兜底 Plan（默认为 0）。
 
 ### 4.3 `source_document`
 
@@ -199,7 +201,7 @@
 1. `id`
 2. `user_id`
 3. `title`
-4. `note`
+4. `user_prompt`
 5. `document_ids_json`
 6. `qa_set_id`
 7. `status`
@@ -231,12 +233,14 @@
 2. `task_id`
 3. `stage`
 4. `message`
-5. `created_at`
+5. `content`
+6. `created_at`
 
 说明：
 
 1. 不强行定义 `message_type`。
-2. 该表主要服务多阶段任务链路，例如 `PLAN -> SEARCH -> DRAFT -> VALIDATE -> FINALIZE`。
+2. `content` 存储完整 SseEvent JSON，用于前端回看阶段详情。
+3. 该表主要服务多阶段任务链路。
 
 ### 4.7 `qa_set`
 

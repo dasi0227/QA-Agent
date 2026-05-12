@@ -27,6 +27,7 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
+import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -75,7 +76,7 @@ public class AgentRepository implements IAgentRepository {
         entity.setId(taskId);
         entity.setUserId(userId);
         entity.setTitle(title(request));
-        entity.setNote(request.getUserPrompt());
+        entity.setUserPrompt(request.getUserPrompt());
         entity.setDocumentIdsJson(JSON.toJSONString(request.getDocumentIds()));
         entity.setStatus(GenerateStatus.PENDING.name());
         entity.setStage(GeneratePhase.INIT.getGenerateStage());
@@ -120,13 +121,14 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void appendTaskMessage(String taskId, String userId, GeneratePhase phase, String message) {
+    public void appendTaskMessage(String taskId, String userId, GeneratePhase phase, String message, String content) {
         QaGenerationTaskMessage entity = new QaGenerationTaskMessage();
         entity.setId(UUID.randomUUID().toString());
         entity.setUserId(userId);
         entity.setTaskId(taskId);
         entity.setStage(phase.getGenerateStage());
         entity.setMessage(message);
+        entity.setContent(content);
         entity.setCreatedAt(LocalDateTime.now());
         taskMessageMapper.insert(entity);
     }
@@ -138,6 +140,9 @@ public class AgentRepository implements IAgentRepository {
         return TaskStatusResponse.builder()
                 .taskId(entity.getId())
                 .userId(entity.getUserId())
+                .title(entity.getTitle())
+                .userPrompt(entity.getUserPrompt())
+                .documentIdsJson(entity.getDocumentIdsJson())
                 .qaSetId(entity.getQaSetId())
                 .status(entity.getStatus())
                 .stage(entity.getStage())
@@ -163,6 +168,24 @@ public class AgentRepository implements IAgentRepository {
                         .taskId(entity.getTaskId())
                         .stage(entity.getStage())
                         .message(entity.getMessage())
+                        .content(entity.getContent())
+                        .createdAt(format(entity.getCreatedAt()))
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public List<TaskListItemResponse> getTaskList(String userId) {
+        return taskMapper.selectList(new LambdaQueryWrapper<QaGenerationTask>()
+                        .eq(QaGenerationTask::getUserId, userId)
+                        .orderByDesc(QaGenerationTask::getCreatedAt))
+                .stream()
+                .map(entity -> TaskListItemResponse.builder()
+                        .taskId(entity.getId())
+                        .title(entity.getTitle())
+                        .status(entity.getStatus())
+                        .stage(entity.getStage())
+                        .qaSetId(entity.getQaSetId())
                         .createdAt(format(entity.getCreatedAt()))
                         .build())
                 .toList();

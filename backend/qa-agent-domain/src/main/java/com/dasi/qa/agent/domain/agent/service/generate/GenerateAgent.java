@@ -105,7 +105,7 @@ public class GenerateAgent implements IGenerateAgent {
         AtomicInteger totalTokens = new AtomicInteger(0);
 
         // 创建事件发布器
-        EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, userId, sseEventHandler, totalTokens);
+        EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, userId, sseEventHandler, totalTokens, jsonUtil);
 
         // 发送任务创建事件
         eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建", 0);

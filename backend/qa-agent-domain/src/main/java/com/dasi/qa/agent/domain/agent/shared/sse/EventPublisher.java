@@ -4,6 +4,7 @@ import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
+import com.dasi.qa.agent.domain.util.IJsonUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,17 +18,20 @@ public class EventPublisher {
     private final String userId;
     private final Consumer<SseEvent> eventSink;
     private final AtomicInteger totalTokens;
+    private final IJsonUtil jsonUtil;
 
     public EventPublisher(IAgentRepository agentRepository,
                           String taskId,
                           String userId,
                           Consumer<SseEvent> eventSink,
-                          AtomicInteger totalTokens) {
+                          AtomicInteger totalTokens,
+                          IJsonUtil jsonUtil) {
         this.agentRepository = agentRepository;
         this.taskId = taskId;
         this.userId = userId;
         this.eventSink = eventSink;
         this.totalTokens = totalTokens;
+        this.jsonUtil = jsonUtil;
     }
 
     public void publishEvent(GeneratePhase phase, GenerateStatus status, String message, int currentTokens) {
@@ -42,7 +46,7 @@ public class EventPublisher {
                 .isCompleted(status.isTerminated())
                 .build();
         log.info("【发送事件】阶段 {} : {}", phase.getGenerateStage(), message);
-        agentRepository.appendTaskMessage(taskId, userId, phase, message);
+        agentRepository.appendTaskMessage(taskId, userId, phase, message, jsonUtil.toJsonString(sseEvent));
         eventSink.accept(sseEvent);
     }
 

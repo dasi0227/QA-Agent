@@ -55,7 +55,7 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/identity/profile/me` | 是 | — | 返回当前登录用户的画像 |
-| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` | 条件查询 |
+| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` | 条件查询 |
 | POST | `/identity/profile/create` | 是 | 同上 | 创建当前用户画像 |
 | POST | `/identity/profile/update` | 是 | 同上 | 更新当前用户画像 |
 | POST | `/identity/profile/delete` | 是 | `id?` | 删除当前用户画像 |
@@ -138,13 +138,22 @@
 | POST | `/qa/set/query` | 是 | `id?`, `taskId?`, `title?`, `description?`, `moduleTagsJson?`, `questionCount?`, `practiceCount?`, `averageScore?`, `bestScore?` |
 | POST | `/qa/set/update` | 是 | 同上，`id` 必填 |
 | POST | `/qa/set/delete` | 是 | `id` |
-| POST | `/qa/set/create` | 是 | `title?`, `note?`, `documentIds`, `requestedQuestionCount?`, `allowGeneralKnowledge?`, `allowWebSearch?` |
+| POST | `/qa/set/create` | 是 | `title?`, `userPrompt?`, `documentIds`, `requestedQuestionCount?` |
 | GET | `/qa/set/task-status?taskId=...` | 是 | `taskId` |
 | GET | `/qa/set/task-messages?taskId=...` | 是 | `taskId` |
+| GET | `/qa/set/task-list` | 是 | — |
 
 说明：删除 `qa_set` 会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
 
 说明：`/qa/set/create` 返回 `text/event-stream`，不包裹 `Result<T>`。请求线程只完成参数校验、用户识别、`SseEmitter` 创建和异步任务提交，实际 GenerateAgent DAG 在线程池中执行。
+
+### 开发测试接口
+
+| 方法 | 路径 | 环境 | 说明 |
+|---|---|---|---|
+| POST | `/qa/set/create/test` | dev only | 模拟 SSE 事件流，无需请求体，约 15 秒返回 8 条模拟阶段事件，最后 `isCompleted=true` 收尾 |
+
+模拟事件序列：INITIALIZED → DECIDING → PLANNING → WRITING（3 条多模块起草消息）→ VALIDATING（2 条审校修订消息）→ COMPLETED
 
 #### `/qa/set/create` SSE 事件示例
 
@@ -156,7 +165,8 @@
   "message": "已完成本批题目审校和修订。",
   "timestamp": 1717000000000,
   "currentTokens": 1200,
-  "totalTokens": 2400
+  "totalTokens": 2400,
+  "isCompleted": false
 }
 ```
 
@@ -166,21 +176,20 @@ V3 GenerateAgent 当前 DAG：
 DECIDE
   DecideAgent
 
-PLANNER
+PLAN
   PlanAgent
 
-CREATOR
-  parallelBuilder
-    SearchAgent -> DraftAgent
+WRITE
+  RagEvidenceProvider → DraftAgent（模块并行，预搜串行）
 
-VALIDATOR
-  EvaluateAgent -> AmendAgent -> EvaluateAgent
+VALIDATE
+  EvaluateAgent → AmendAgent → EvaluateAgent（Loop，maxIterations=2）
 
-SUMMARIZER
+SUMMARIZE
   SummarizeAgent
 ```
 
-对外 SSE `stage` 暴露 `DECIDE`、`PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`、`COMPLETED`、`FAILED` 等任务阶段，不暴露 `EVALUATOR` 或 `AMENDER`。
+对外 SSE `stage` 暴露 `DECIDE`、`PLAN`、`WRITE`、`VALIDATE`、`SUMMARIZE`、`COMPLETED`、`FAILED`，不暴露 `EVALUATOR` 或 `AMENDER`。
 
 #### `/qa/set/task-status` 响应字段
 
@@ -189,14 +198,25 @@ SUMMARIZER
 | `taskId` | 生成任务 ID |
 | `userId` | 用户 ID |
 | `qaSetId` | 成功生成后的问答集 ID，失败或未完成时可为空 |
-| `status` | `PENDING` / `PROCESSING` / `COMPLETED` / `FAILED` |
-| `stage` | `PENDING` / `DECIDE` / `PLANNER` / `CREATOR` / `VALIDATOR` / `SUMMARIZER` / `COMPLETED` / `FAILED` |
+| `status` | `PENDING` / `PROCESSING` / `SOLVED` / `UNSOLVED` / `CANCELED` |
+| `stage` | `INIT` / `DECIDING` / `PLANNING` / `WRITING` / `VALIDATING` / `SUMMARIZING` / `COMPLETED` / `FAILED` |
 | `errorCode` | 失败错误类型 |
 | `errorMessage` | 失败原因 |
 | `requestedQuestionCount` | 请求题数 |
 | `createdAt` | 创建时间 |
 | `startedAt` | 开始时间 |
 | `completedAt` | 完成时间 |
+
+#### `/qa/set/task-list` 响应字段
+
+| 字段 | 说明 |
+| --- | --- |
+| `taskId` | 生成任务 ID |
+| `title` | 任务标题 |
+| `status` | `PENDING` / `PROCESSING` / `SOLVED` / `UNSOLVED` / `CANCELED` |
+| `stage` | 当前阶段 |
+| `qaSetId` | 成功生成后的问答集 ID，可空 |
+| `createdAt` | 创建时间 |
 
 #### `/qa/set/task-messages` 响应字段
 
@@ -205,7 +225,8 @@ SUMMARIZER
 | `id` | 消息 ID |
 | `taskId` | 生成任务 ID |
 | `stage` | 阶段 |
-| `message` | 阶段消息 |
+| `message` | 阶段消息摘要 |
+| `content` | 完整 SseEvent JSON |
 | `createdAt` | 创建时间 |
 
 ### 题目
@@ -254,6 +275,9 @@ SUMMARIZER
 | `40400` | not found |
 | `40900` | username already registered |
 | `40901` | email already registered |
-| `40902` | 用户未配置 LLM 接入信息 |
+| `40902` | 用户未配置 LLM 接入信息（llm_base_url/llm_api_key/llm_model_name 缺失）|
+| `40903` | PlanAgent 规划失败 |
+| `40904` | WriteAgent 出题失败 |
+| `40905` | 所有题目均未通过审校（ALL_REJECTED） |
 | `42900` | verify code rate limited |
 | `50000` | internal error |

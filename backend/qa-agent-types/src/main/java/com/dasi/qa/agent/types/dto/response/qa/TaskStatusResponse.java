@@ -15,6 +15,12 @@ public class TaskStatusResponse {
 
     private String userId;
 
+    private String title;
+
+    private String userPrompt;
+
+    private String documentIdsJson;
+
     private String qaSetId;
 
     private String status;

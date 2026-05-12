@@ -27,5 +27,7 @@ public class QaGenerationTaskMessage {
 
     private String message;
 
+    private String content;
+
     private LocalDateTime createdAt;
 }

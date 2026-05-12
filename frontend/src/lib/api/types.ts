@@ -53,6 +53,9 @@ export type Profile = {
     grade: string;
     major: string;
     stage: string;
+    llmBaseUrl: string;
+    llmApiKey: string;
+    llmModelName: string;
 };
 
 export type DocumentRecord = {
@@ -128,4 +131,76 @@ export type UpdateQuestionItemInput = QuestionItemDraft & {
 export type DeleteQuestionItemInput = {
     qaSetId: string;
     questionItemId: string;
+};
+
+export type CreateQuestionSetInput = {
+    title: string;
+    userPrompt: string;
+    documentIds: string[];
+    requestedQuestionCount: number;
+};
+
+export type TaskStatus = {
+    taskId: string;
+    userId: string;
+    qaSetId: string;
+    status: string;
+    stage: string;
+    errorCode: string;
+    errorMessage: string;
+    requestedQuestionCount: number;
+    createdAt: string;
+    startedAt: string;
+    completedAt: string;
+};
+
+export type TaskMessage = {
+    id: string;
+    taskId: string;
+    stage: string;
+    message: string;
+    createdAt: string;
+};
+
+export type SseEvent = {
+    taskId: string;
+    phase: string;
+    status: string;
+    message: string;
+    timestamp: number;
+    currentTokens: number;
+    totalTokens: number;
+    isCompleted: boolean;
+};
+
+export type PracticeSession = {
+    id: string;
+    qaSetId: string;
+    mode: string;
+    feedbackMode: string;
+    status: string;
+    selectedModule: string;
+    totalQuestions: number;
+    answeredCount: number;
+    score: number;
+    accuracy: number;
+    summary: string;
+    startedAt: string;
+    finishedAt: string;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type PracticeSessionItem = {
+    id: string;
+    sessionId: string;
+    qaItemId: string;
+    sortOrder: number;
+    userAnswer: string;
+    result: string;
+    score: number;
+    feedbackSummary: string;
+    answeredAt: string;
+    createdAt?: string;
+    updatedAt?: string;
 };

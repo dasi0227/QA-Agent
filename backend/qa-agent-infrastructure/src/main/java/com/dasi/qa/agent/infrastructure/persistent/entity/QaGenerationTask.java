@@ -23,7 +23,7 @@ public class QaGenerationTask {
 
     private String title;
 
-    private String note;
+    private String userPrompt;
 
     private String documentIdsJson;
 

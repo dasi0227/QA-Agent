@@ -28,8 +28,7 @@ public class UserLlmModelProvider {
     public ChatModel getUserLlmModel(String userId, ChatModelListener tokenListener) {
         UserLlmModelVO userLlmModelVO = agentRepository.getUserLlmModel(userId);
         if (isNotValid(userLlmModelVO)) {
-            throw new GenerateException(ErrorType.LLM_NOT_CONFIGURED,
-                    "用户未配置 LLM 接入信息，请先在 Profile 中填写 base_url、api_key 和 model_name");
+            throw new GenerateException(ErrorType.LLM_NOT_CONFIGURED, "用户未配置 LLM 接入信息，请先在 Profile 中填写 base_url、api_key 和 model_name");
         }
 
         return OpenAiChatModel.builder()
