@@ -31,9 +31,7 @@ public class DocumentChunk {
     private String summary;
     
     private String moduleTagsJson;
-    
-    private String embeddingVector;
-    
+
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;

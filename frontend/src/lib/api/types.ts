@@ -64,7 +64,6 @@ export type DocumentRecord = {
     fileType: string;
     filePath: string;
     rawContent: string;
-    summary: string;
     referenceCount: number;
     deleted: boolean;
     createdAt?: string;
@@ -115,10 +114,6 @@ export type UpdateQuestionSetInput = {
     questionSetId: string;
     title: string;
     description: string;
-};
-
-export type CreateQuestionItemInput = QuestionItemDraft & {
-    qaSetId: string;
 };
 
 export type UpdateQuestionItemInput = QuestionItemDraft & {

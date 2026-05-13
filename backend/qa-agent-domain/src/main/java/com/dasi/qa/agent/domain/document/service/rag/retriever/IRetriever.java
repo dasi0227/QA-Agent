@@ -1,7 +1,7 @@
-package com.dasi.qa.agent.domain.document.service.rag.search;
+package com.dasi.qa.agent.domain.document.service.rag.retriever;
 
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
-import com.dasi.qa.agent.domain.document.service.rag.search.impl.RetrieveContext;
+import com.dasi.qa.agent.domain.document.service.rag.retriever.impl.RetrieveContext;
 
 import java.util.List;
 

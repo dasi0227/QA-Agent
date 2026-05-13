@@ -18,7 +18,6 @@ import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
-import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -368,7 +367,7 @@ public class GenerateAgent implements IGenerateAgent {
         Map<String, String> evidenceMap = new LinkedHashMap<>();
         for (PlanResult.PlanItem planItem : planItems) {
             try {
-                List<SearchResult> ragEvidence = writeContext.getRagEvidenceProvider().search(
+                List<RagEvidenceProvider.EvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().search(
                         writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
                 String evidenceJson;
                 if (writeContext.getWebEvidenceProvider() != null) {

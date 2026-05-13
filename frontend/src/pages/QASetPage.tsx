@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Plus } from "lucide-react";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Tag } from "@/components/base/tag";
 import {
-    useCreateQuestionItemMutation,
     useDeleteQuestionSetMutation,
     useQuestionSetItemsQuery,
     useQuestionSetQuery,
@@ -16,15 +14,6 @@ import {
 } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 
-const emptyItemDraft = {
-    question: "",
-    knowledgeNote: "",
-    answer: "",
-    moduleTag: "",
-    difficulty: "",
-    conflictTip: "",
-    sourceChunkIdsJson: "",
-};
 
 export function QASetPage() {
     const params = useParams();
@@ -41,7 +30,6 @@ export function QASetPage() {
     const selectedSetItemsQuery = useQuestionSetItemsQuery(selectedSetId);
     const deleteQuestionSetMutation = useDeleteQuestionSetMutation();
     const updateQuestionSetMutation = useUpdateQuestionSetMutation();
-    const createQuestionItemMutation = useCreateQuestionItemMutation();
 
     const hasQuestionSets = (questionSetsQuery.data?.length ?? 0) > 0;
     const setErrorMessage = questionSetsQuery.error instanceof Error ? questionSetsQuery.error.message : "";
@@ -329,25 +317,6 @@ export function QASetPage() {
                                         <div className="repository-panel__header">
                                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                                 <h3 style={{ margin: 0, fontSize: 18 }}>题目目录</h3>
-                                                <Link
-                                                    to={`/repository/question?qaSetId=${selectedSetQuery.data.id}&mode=create`}
-                                                    aria-label="新增题目"
-                                                    title="新增题目"
-                                                    style={{
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        width: 32,
-                                                        height: 32,
-                                                        border: "1px solid var(--line)",
-                                                        borderRadius: 999,
-                                                        background: "var(--bg-pill)",
-                                                        color: "var(--ink-soft)",
-                                                        cursor: "pointer",
-                                                    }}
-                                                >
-                                                    <Plus size={16} />
-                                                </Link>
                                             </div>
                                         </div>
                                         {selectedSetItemsQuery.isLoading ? <div className="qa-text">正在加载题目列表...</div> : null}
@@ -359,7 +328,7 @@ export function QASetPage() {
                                             </div>
                                         ) : null}
                                         {!selectedSetItemsQuery.isLoading && (selectedSetItemsQuery.data?.length ?? 0) === 0 ? (
-                                            <div className="qa-text">当前问答集还没有题目，先新增一题。</div>
+                                            <div className="qa-text">当前问答集还没有题目。</div>
                                         ) : null}
                                         {selectedSetItemsQuery.data?.length ? (
                                             <div className="repository-items-scroll">
@@ -381,11 +350,7 @@ export function QASetPage() {
                                     </section>
                                 </div>
 
-                                {createQuestionItemMutation.isError ? (
-                                    <div className="page-copy" style={{ color: "var(--ink)" }}>
-                                        新增失败：{createQuestionItemMutation.error instanceof Error ? createQuestionItemMutation.error.message : "请稍后重试"}
-                                    </div>
-                                ) : null}
+
                             </>
                         ) : null}
                     </div>

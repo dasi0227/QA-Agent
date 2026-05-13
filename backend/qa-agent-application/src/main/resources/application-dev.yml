@@ -103,4 +103,8 @@ qa-agent:
             base-url: ${REWRITER_LLM_BASE_URL}
             api-key: ${REWRITER_LLM_API_KEY}
             model: ${REWRITER_LLM_MODEL}
+        summarizer:
+            base-url: ${SUMMARIZER_LLM_BASE_URL}
+            api-key: ${SUMMARIZER_LLM_API_KEY}
+            model: ${SUMMARIZER_LLM_MODEL}
 

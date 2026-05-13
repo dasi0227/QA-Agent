@@ -13,6 +13,7 @@ import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
+import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunk;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTask;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskMessage;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaItem;
@@ -20,6 +21,7 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetDocumentRef;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaSet;
 import com.dasi.qa.agent.infrastructure.persistent.entity.SourceDocument;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfile;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.DocumentChunkMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaGenerationTaskMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaGenerationTaskMessageMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
@@ -42,7 +44,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Repository
 public class AgentRepository implements IAgentRepository {
@@ -54,6 +55,7 @@ public class AgentRepository implements IAgentRepository {
     private final QaSetMapper qaSetMapper;
     private final QaItemMapper qaItemMapper;
     private final QaSetDocumentRefMapper qaSetDocumentRefMapper;
+    private final DocumentChunkMapper documentChunkMapper;
 
     public AgentRepository(QaGenerationTaskMapper taskMapper,
                            QaGenerationTaskMessageMapper taskMessageMapper,
@@ -61,7 +63,8 @@ public class AgentRepository implements IAgentRepository {
                            SourceDocumentMapper sourceDocumentMapper,
                            QaSetMapper qaSetMapper,
                            QaItemMapper qaItemMapper,
-                           QaSetDocumentRefMapper qaSetDocumentRefMapper) {
+                           QaSetDocumentRefMapper qaSetDocumentRefMapper,
+                           DocumentChunkMapper documentChunkMapper) {
         this.taskMapper = taskMapper;
         this.taskMessageMapper = taskMessageMapper;
         this.userProfileMapper = userProfileMapper;
@@ -69,6 +72,7 @@ public class AgentRepository implements IAgentRepository {
         this.qaSetMapper = qaSetMapper;
         this.qaItemMapper = qaItemMapper;
         this.qaSetDocumentRefMapper = qaSetDocumentRefMapper;
+        this.documentChunkMapper = documentChunkMapper;
     }
 
     @Override
@@ -272,11 +276,21 @@ public class AgentRepository implements IAgentRepository {
                         .in(SourceDocument::getId, documentIds)
                         .eq(SourceDocument::getUserId, userId)
                         .eq(SourceDocument::getDeleted, false));
-        return documents.stream()
-                .map(document -> "# " + document.getFileName() + "\n"
-                        + safe(document.getSummary()) + "\n"
-                        + safe(document.getRawContent()))
-                .collect(Collectors.joining("\n\n"));
+        StringBuilder sb = new StringBuilder();
+        for (SourceDocument doc : documents) {
+            sb.append("# ").append(doc.getFileName()).append("\n");
+            List<DocumentChunk> chunks = documentChunkMapper.selectList(
+                    new LambdaQueryWrapper<DocumentChunk>()
+                            .eq(DocumentChunk::getDocumentId, doc.getId())
+                            .orderByAsc(DocumentChunk::getChunkIndex));
+            for (DocumentChunk chunk : chunks) {
+                if (chunk.getSummary() != null && !chunk.getSummary().isBlank()) {
+                    sb.append(chunk.getSummary()).append("\n");
+                }
+            }
+            sb.append("\n");
+        }
+        return sb.toString().trim();
     }
 
     @Override
@@ -360,10 +374,6 @@ public class AgentRepository implements IAgentRepository {
 
     private int questionCount(CreateQaSetRequest request) {
         return request.getRequestedQuestionCount() == null ? 0 : request.getRequestedQuestionCount();
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value;
     }
 
     private String format(LocalDateTime time) {

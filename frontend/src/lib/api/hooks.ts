@@ -4,7 +4,6 @@ import { getAccessToken } from "../auth";
 import type {
     AuthSession,
     AuthUser,
-    CreateQuestionItemInput,
     DeleteQuestionItemInput,
     DocumentRecord,
     LoginInput,
@@ -162,7 +161,6 @@ export function normalizeDocument(raw: unknown): DocumentRecord {
         fileType: toStringValue(pick(raw, "fileType", "file_type")),
         filePath: toStringValue(pick(raw, "filePath", "file_path")),
         rawContent: toStringValue(pick(raw, "rawContent", "raw_content")),
-        summary: toStringValue(pick(raw, "summary")),
         referenceCount: toNumberValue(pick(raw, "referenceCount", "reference_count")),
         deleted: toBooleanValue(pick(raw, "deleted")),
         createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
@@ -403,7 +401,6 @@ export function useUpdateDocumentMutation() {
                 fileType: document.fileType,
                 filePath: document.filePath,
                 rawContent: document.rawContent,
-                summary: document.summary,
             },
         })),
         onSuccess: async (document) => {
@@ -487,21 +484,6 @@ export function useUpdateQuestionSetMutation() {
         onSuccess: async (_result, variables) => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.questionSetId) });
-        },
-    });
-}
-
-export function useCreateQuestionItemMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (input: CreateQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/create", {
-            method: "POST",
-            body: toQuestionItemPayload(input),
-        })),
-        onSuccess: async (_result, variables) => {
-            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
-            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
-            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
         },
     });
 }

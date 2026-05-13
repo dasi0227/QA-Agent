@@ -6,8 +6,13 @@ import com.dasi.qa.agent.domain.document.model.ChunkDraft;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.dashscope.IDashScopeService;
+import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -15,22 +20,28 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 资料索引服务，执行切片、向量化并同步写入 MySQL 和 PostgreSQL 检索引擎。
+ * 资料索引服务，执行切片、摘要生成、向量化并同步写入 MySQL 和 PostgreSQL 检索引擎。
  */
 @Service
 @Slf4j
 public class IndexService implements IIndexService {
 
     private final IDocumentRepository documentRepository;
-    private final MarkdownChunker chunker;
+    private final MarkdownChunker markdownChunker;
     private final IDashScopeService IDashScopeService;
+    private final ChatModel summarizerModel;
+    private final IPromptUtil promptUtil;
 
     public IndexService(IDocumentRepository documentRepository,
-                        MarkdownChunker chunker,
-                        IDashScopeService IDashScopeService) {
+                        MarkdownChunker markdownChunker,
+                        IDashScopeService IDashScopeService,
+                        @Qualifier("summarizerModel") ChatModel summarizerModel,
+                        IPromptUtil promptUtil) {
         this.documentRepository = documentRepository;
-        this.chunker = chunker;
+        this.markdownChunker = markdownChunker;
         this.IDashScopeService = IDashScopeService;
+        this.summarizerModel = summarizerModel;
+        this.promptUtil = promptUtil;
     }
 
     @Override
@@ -52,11 +63,26 @@ public class IndexService implements IIndexService {
 
         log.info("Indexing document: {}, userId: {}", documentId, userId);
 
-        List<ChunkDraft> drafts = chunker.chunk(rawContent);
+        List<ChunkDraft> drafts = markdownChunker.chunk(rawContent);
         log.info("Chunked document {} into {} drafts", documentId, drafts.size());
 
         for (ChunkDraft draft : drafts) {
             draft.setChunkId(UUID.randomUUID().toString());
+        }
+
+        // 串行生成每个切片的摘要
+        for (ChunkDraft draft : drafts) {
+            try {
+                String summary = summarizerModel.chat(
+                        SystemMessage.from(promptUtil.loadPrompt("prompt/chunk-summarize.txt")),
+                        UserMessage.from(draft.getContent())
+                ).aiMessage().text().trim();
+                draft.setSummary(summary);
+            } catch (Exception e) {
+                log.warn("Chunk summary generation failed for document {} chunk {}, using content prefix", documentId, draft.getChunkIndex());
+                String content = draft.getContent();
+                draft.setSummary(content.length() > 80 ? content.substring(0, 80) + "..." : content);
+            }
         }
 
         List<String> contents = drafts.stream().map(ChunkDraft::getContent).toList();

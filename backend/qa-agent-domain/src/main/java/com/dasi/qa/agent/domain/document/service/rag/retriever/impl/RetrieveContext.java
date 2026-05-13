@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.document.service.rag.search.impl;
+package com.dasi.qa.agent.domain.document.service.rag.retriever.impl;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

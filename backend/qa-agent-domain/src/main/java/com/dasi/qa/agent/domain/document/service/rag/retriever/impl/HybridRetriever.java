@@ -1,7 +1,7 @@
-package com.dasi.qa.agent.domain.document.service.rag.search.impl;
+package com.dasi.qa.agent.domain.document.service.rag.retriever.impl;
 
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
-import com.dasi.qa.agent.domain.document.service.rag.search.IRetriever;
+import com.dasi.qa.agent.domain.document.service.rag.retriever.IRetriever;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;

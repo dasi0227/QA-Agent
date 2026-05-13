@@ -43,10 +43,7 @@
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
-| GET | `/identity/account/detail?id=...` | 是 | `id` | 按主键查询 |
-| POST | `/identity/account/query` | 是 | `id?`, `username?`, `email?`, `status?`, `avatar?` | 条件查询 |
-| POST | `/identity/account/create` | 是 | 同上 | 创建账号，密码做 BCrypt |
-| POST | `/identity/account/update` | 是 | 同上，`id` 必填 | 更新账号 |
+| POST | `/identity/account/update` | 是 | `id?`, `username?`, `email?`, `password?`, `status?`, `avatar?` | 更新当前账号信息 |
 | POST | `/identity/account/delete` | 是 | `id` | 账号改为 `DISABLED` |
 | POST | `/identity/account/avatar` | 是 | `file` (multipart/form-data, image/*) | 上传/替换头像，旧 OSS 对象自动删除 |
 
@@ -55,10 +52,8 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/identity/profile/me` | 是 | — | 返回当前登录用户的画像 |
-| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` | 条件查询 |
-| POST | `/identity/profile/create` | 是 | 同上 | 创建当前用户画像 |
+| POST | `/identity/profile/create` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` | 创建当前用户画像 |
 | POST | `/identity/profile/update` | 是 | 同上 | 更新当前用户画像 |
-| POST | `/identity/profile/delete` | 是 | `id?` | 删除当前用户画像 |
 
 说明：V3 GenerateAgent 不使用系统默认用户模型。`/qa/set/create` 会从当前用户 `Profile` 的 `llmBaseUrl`、`llmApiKey`、`llmModelName` 读取模型配置；缺失时返回 `40902` 并将生成任务置为失败。
 
@@ -69,28 +64,16 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/document/source/detail?id=...` | 是 | `id` | 按主键查询 |
-| POST | `/document/source/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?`, `summary?` | 条件查询 |
-| POST | `/document/source/upload` | 是 | `fileName`, `fileType`, `rawContent`, `summary?` | 上传资料，自动触发异步 RAG 索引 |
+| POST | `/document/source/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?` | 条件查询 |
+| POST | `/document/source/upload` | 是 | `fileName`, `fileType`, `rawContent` | 上传资料，自动触发异步 RAG 索引 |
 | POST | `/document/source/update` | 是 | 同上，`id` 必填 | 更新资料，自动触发重新索引 |
 | POST | `/document/source/delete` | 是 | `id` | 软删除（`deleted=true`），级联清理切片和检索数据 |
-
-### 文档切片
-
-| 方法 | 路径 | 鉴权 | 请求字段 |
-| --- | --- | --- | --- |
-| GET | `/document/chunk/detail?id=...` | 是 | `id` |
-| POST | `/document/chunk/query` | 是 | `id?`, `documentId?`, `chunkIndex?`, `titlePath?`, `content?`, `summary?`, `moduleTagsJson?` |
-| POST | `/document/chunk/create` | 是 | 同上 |
-| POST | `/document/chunk/update` | 是 | 同上，`id` 必填 |
-| POST | `/document/chunk/delete` | 是 | `id` |
 
 ### V2 RAG 检索
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | POST | `/document/source/search` | 是 | `queryText`, `filterDocumentIds?` | 混合检索证据 |
-| POST | `/document/source/reindex` | 是 | `id` | 手动触发指定资料重索引 |
-| GET | `/document/source/chunks?documentId=...` | 是 | `documentId` | 查看某资料的切片列表 |
 
 #### `/document/source/search` 请求示例
 
@@ -113,6 +96,7 @@
       "documentId": "doc-uuid-1",
       "titlePath": "Redis > 五大数据结构 > 跳表",
       "content": "跳表（Skip List）是一种随机化的数据结构...",
+      "summary": "跳表是一种随机化的数据结构，通过多层索引实现 O(log n) 的查找效率",
       "moduleTags": ["Redis", "数据结构"],
       "score": 0.8912,
       "vectorScore": 0.8765,
@@ -233,7 +217,6 @@ SUMMARIZE
 | --- | --- | --- | --- |
 | GET | `/qa/item/detail?id=...` | 是 | `id` |
 | POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `conflictTip?`, `sourceChunkIdsJson?`, `sortOrder?` |
-| POST | `/qa/item/create` | 是 | 同上 |
 | POST | `/qa/item/update` | 是 | 同上，`id` 必填 |
 | POST | `/qa/item/delete` | 是 | `id` |
 

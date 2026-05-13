@@ -18,5 +18,4 @@ public class SourceDocumentRequest extends BaseRequest {
     private String fileType;
     private String filePath;
     private String rawContent;
-    private String summary;
 }

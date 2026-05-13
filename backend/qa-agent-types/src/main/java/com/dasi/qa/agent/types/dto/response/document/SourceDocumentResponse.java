@@ -18,7 +18,6 @@ public class SourceDocumentResponse extends BaseResponse {
     private String fileType;
     private String filePath;
     private String rawContent;
-    private String summary;
     private Integer referenceCount;
     private Boolean deleted;
 }

@@ -4,6 +4,10 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult.P
 import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
 import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -21,7 +25,7 @@ public class RagEvidenceProvider {
         this.searchService = searchService;
     }
 
-    public List<SearchResult> search(String userId, List<String> documentIds, PlanItem planItem) {
+    public List<EvidenceItem> search(String userId, List<String> documentIds, PlanItem planItem) {
         List<SearchResult> results = new ArrayList<>();
         String focusTopics = planItem.getFocusTopics();
         List<String> topics = (focusTopics == null || focusTopics.isBlank())
@@ -49,6 +53,25 @@ public class RagEvidenceProvider {
                 ))
                 .values()
                 .stream()
+                .map(EvidenceItem::from)
                 .toList();
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EvidenceItem {
+        private String content;
+        private String summary;
+        private List<String> moduleTags;
+
+        static EvidenceItem from(SearchResult r) {
+            return EvidenceItem.builder()
+                    .content(r.getContent())
+                    .summary(r.getSummary())
+                    .moduleTags(r.getModuleTags())
+                    .build();
+        }
     }
 }

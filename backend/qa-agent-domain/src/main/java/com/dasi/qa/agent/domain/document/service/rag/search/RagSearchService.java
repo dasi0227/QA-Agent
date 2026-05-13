@@ -2,8 +2,8 @@ package com.dasi.qa.agent.domain.document.service.rag.search;
 
 import com.dasi.qa.agent.domain.document.service.rag.dashscope.IDashScopeService;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
-import com.dasi.qa.agent.domain.document.service.rag.search.impl.HybridRetriever;
-import com.dasi.qa.agent.domain.document.service.rag.search.impl.RetrieveContext;
+import com.dasi.qa.agent.domain.document.service.rag.retriever.impl.HybridRetriever;
+import com.dasi.qa.agent.domain.document.service.rag.retriever.impl.RetrieveContext;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;

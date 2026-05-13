@@ -27,8 +27,6 @@ public class SourceDocument {
     private String filePath;
     
     private String rawContent;
-    
-    private String summary;
 
     private Integer referenceCount;
     

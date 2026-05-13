@@ -5,7 +5,6 @@ import { BaseButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, TextArea, TextInput } from "@/components/base/field";
 import {
-    useCreateQuestionItemMutation,
     useDeleteQuestionItemMutation,
     useQuestionSetItemsQuery,
     useQuestionSetQuery,
@@ -30,17 +29,15 @@ export function QuestionPage() {
     const [searchParams] = useSearchParams();
     const qaSetId = searchParams.get("qaSetId") || "";
     const itemIdParam = searchParams.get("itemId") || "";
-    const modeParam = searchParams.get("mode") as "create" | null;
 
     const questionSetsQuery = useQuestionSetsQuery();
     const selectedSetQuery = useQuestionSetQuery(qaSetId);
     const selectedSetItemsQuery = useQuestionSetItemsQuery(qaSetId);
-    const createQuestionItemMutation = useCreateQuestionItemMutation();
     const updateQuestionItemMutation = useUpdateQuestionItemMutation();
     const deleteQuestionItemMutation = useDeleteQuestionItemMutation();
 
     const [activeItemId, setActiveItemId] = useState(itemIdParam);
-    const [itemEditorMode, setItemEditorMode] = useState<"create" | "edit" | null>(modeParam);
+    const [itemEditorMode, setItemEditorMode] = useState<"edit" | null>(null);
     const [itemDraft, setItemDraft] = useState(emptyItemDraft);
 
     const itemList = selectedSetItemsQuery.data ?? [];
@@ -53,18 +50,6 @@ export function QuestionPage() {
         }
     }, [qaSetId, navigate]);
 
-    // Initialize create mode
-    useEffect(() => {
-        if (modeParam === "create") {
-            setActiveItemId("");
-            setItemDraft({
-                ...emptyItemDraft,
-                moduleTag: parseModuleTags(selectedSetQuery.data?.moduleTagsJson)[0] || "",
-            });
-            setItemEditorMode("create");
-        }
-    }, [modeParam, selectedSetQuery.data]);
-
     // Sync activeItemId from URL param
     useEffect(() => {
         if (itemIdParam && itemIdParam !== activeItemId) {
@@ -74,9 +59,6 @@ export function QuestionPage() {
 
     // Load item draft when switching items
     useEffect(() => {
-        if (itemEditorMode === "create") {
-            return;
-        }
         if (itemList.length === 0) {
             setActiveItemId("");
             setItemDraft(emptyItemDraft);
@@ -118,20 +100,7 @@ export function QuestionPage() {
     };
 
     const saveItemEditor = async () => {
-        if (!selectedSetQuery.data) return;
-
-        if (itemEditorMode === "create") {
-            const created = await createQuestionItemMutation.mutateAsync({
-                qaSetId: selectedSetQuery.data.id,
-                ...itemDraft,
-            });
-            setActiveItemId(created.id);
-            navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${created.id}`, { replace: true });
-            setItemEditorMode("edit");
-            return;
-        }
-
-        if (!activeItem) return;
+        if (!selectedSetQuery.data || !activeItem) return;
 
         await updateQuestionItemMutation.mutateAsync({
             qaSetId: selectedSetQuery.data.id,
@@ -221,7 +190,7 @@ export function QuestionPage() {
 
                             <div className="repository-detail-view__title">
                                 <h1 className="hero-title" style={{ fontSize: 34, margin: 0 }}>
-                                    {itemEditorMode === "create" ? "新增题目" : activeItem?.question || "题目详情"}
+                                    {activeItem?.question || "题目详情"}
                                 </h1>
                                 {itemEditorMode === "edit" && activeItem ? (
                                     <div className="qa-feedback">
@@ -306,8 +275,7 @@ export function QuestionPage() {
                                         variant="primary"
                                         type="button"
                                         disabled={
-                                            createQuestionItemMutation.isPending
-                                            || updateQuestionItemMutation.isPending
+                                            updateQuestionItemMutation.isPending
                                             || !itemDraft.question.trim()
                                             || !itemDraft.knowledgeNote.trim()
                                             || !itemDraft.answer.trim()
@@ -315,11 +283,9 @@ export function QuestionPage() {
                                         }
                                         onClick={saveItemEditor}
                                     >
-                                        {createQuestionItemMutation.isPending || updateQuestionItemMutation.isPending
+                                        {updateQuestionItemMutation.isPending
                                             ? "保存中"
-                                            : itemEditorMode === "create"
-                                                ? "保存新题"
-                                                : "保存修改"}
+                                            : "保存修改"}
                                     </BaseButton>
                                     <BaseButton variant="ghost" type="button" onClick={closeItemEditor}>
                                         取消
@@ -327,11 +293,6 @@ export function QuestionPage() {
                                 </div>
                             </div>
 
-                            {createQuestionItemMutation.isError ? (
-                                <div className="page-copy" style={{ color: "var(--ink)" }}>
-                                    新增失败：{createQuestionItemMutation.error instanceof Error ? createQuestionItemMutation.error.message : "请稍后重试"}
-                                </div>
-                            ) : null}
                             {updateQuestionItemMutation.isError ? (
                                 <div className="page-copy" style={{ color: "var(--ink)" }}>
                                     保存失败：{updateQuestionItemMutation.error instanceof Error ? updateQuestionItemMutation.error.message : "请稍后重试"}

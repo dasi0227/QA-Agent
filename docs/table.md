@@ -152,18 +152,16 @@
 4. `file_type`
 5. `file_path`
 6. `raw_content`
-7. `summary`
-8. `reference_count`
-9. `deleted`
-10. `created_at`
-11. `updated_at`
+7. `reference_count`
+8. `deleted`
+9. `created_at`
+10. `updated_at`
 
 说明：
 
 1. `file_type` 固定只支持 `MARKDOWN`。
-2. `summary` 表示资料级摘要。
-3. `reference_count` 是资料层唯一保留的轻量统计。
-4. 资料删除采用软删除。
+2. `reference_count` 由系统在生成题集时自动递增。
+3. 资料删除采用软删除。
 
 ### 4.4 `document_chunk`
 
@@ -179,15 +177,15 @@
 6. `content`
 7. `summary`
 8. `module_tags_json`
-9. `embedding_vector`
-10. `created_at`
-11. `updated_at`
+9. `created_at`
+10. `updated_at`
 
 说明：
 
 1. 一条记录表示一段可检索、可引用、可参与生成的证据块。
-2. `updated_at` 保留，用于资料编辑后的重切片和重建。
-3. 检索不走此表，走 PostgreSQL `chunk_search`，此表是业务真数据源。
+2. `summary` 由系统在索引时通过 summarizer LLM 自动生成。
+3. `updated_at` 保留，用于资料编辑后的重切片和重建。
+4. 检索不走此表，走 PostgreSQL `chunk_search`，此表是业务真数据源。
 
 ### 4.5 `qa_generation_task`
 
