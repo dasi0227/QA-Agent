@@ -55,7 +55,7 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/identity/profile/me` | 是 | — | 返回当前登录用户的画像 |
-| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `age?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` | 条件查询 |
+| POST | `/identity/profile/query` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` | 条件查询 |
 | POST | `/identity/profile/create` | 是 | 同上 | 创建当前用户画像 |
 | POST | `/identity/profile/update` | 是 | 同上 | 更新当前用户画像 |
 | POST | `/identity/profile/delete` | 是 | `id?` | 删除当前用户画像 |

@@ -47,9 +47,9 @@ export type Profile = {
     targetCompany: string;
     allowGeneralKnowledge: boolean;
     allowWebSearch: boolean;
+    allowFallback: boolean;
     answerStyle: string;
     feedbackStyle: string;
-    age: string;
     grade: string;
     major: string;
     stage: string;

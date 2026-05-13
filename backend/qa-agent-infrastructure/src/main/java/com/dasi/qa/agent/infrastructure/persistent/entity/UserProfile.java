@@ -36,8 +36,6 @@ public class UserProfile {
 
     private String feedbackStyle;
 
-    private String age;
-
     private String grade;
 
     private String major;

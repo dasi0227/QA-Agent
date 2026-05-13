@@ -21,7 +21,6 @@ public class UserProfileResponse extends BaseResponse {
     private Boolean allowWebSearch;
     private String answerStyle;
     private String feedbackStyle;
-    private String age;
     private String grade;
     private String major;
     private String stage;

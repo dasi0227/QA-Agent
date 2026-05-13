@@ -17,9 +17,9 @@ const profileSchema = z.object({
     targetCompany: z.string().min(1, "请输入目标公司"),
     allowGeneralKnowledge: z.boolean(),
     allowWebSearch: z.boolean(),
+    allowFallback: z.boolean(),
     answerStyle: z.string().min(1, "请输入答案风格"),
     feedbackStyle: z.string().min(1, "请输入反馈风格"),
-    age: z.string().min(1, "请输入年龄"),
     grade: z.string().min(1, "请输入年级"),
     major: z.string().min(1, "请输入专业"),
     stage: z.string().min(1, "请输入准备阶段"),
@@ -36,9 +36,9 @@ const defaultProfile: ProfileForm = {
     targetCompany: "互联网公司",
     allowGeneralKnowledge: true,
     allowWebSearch: false,
+    allowFallback: false,
     answerStyle: "口语化但逻辑清晰",
     feedbackStyle: "直接指出问题并给建议",
-    age: "22",
     grade: "大四",
     major: "计算机科学与技术",
     stage: "秋招准备",
@@ -228,7 +228,7 @@ export function ProfilePage() {
                     </section>
 
                     <section className="profile-section">
-                        <div className="profile-section__title">求职意向</div>
+                        <div className="profile-section__title">求职信息</div>
                         <div className="profile-grid profile-grid--two">
                             <Field label="目标岗位" error={form.formState.errors.targetRole?.message}>
                                 <TextInput {...form.register("targetRole")} />
@@ -239,44 +239,43 @@ export function ProfilePage() {
                             <Field label="目标公司" error={form.formState.errors.targetCompany?.message}>
                                 <TextInput {...form.register("targetCompany")} />
                             </Field>
-                            <Field label="年龄" error={form.formState.errors.age?.message}>
-                                <TextInput {...form.register("age")} />
-                            </Field>
-                            <Field label="年级" error={form.formState.errors.grade?.message}>
-                                <TextInput {...form.register("grade")} />
+                            <Field label="当前阶段" error={form.formState.errors.stage?.message}>
+                                <TextInput {...form.register("stage")} />
                             </Field>
                             <Field label="专业" error={form.formState.errors.major?.message}>
                                 <TextInput {...form.register("major")} />
                             </Field>
-                            <Field label="准备阶段" error={form.formState.errors.stage?.message}>
-                                <TextInput {...form.register("stage")} />
+                            <Field label="年级" error={form.formState.errors.grade?.message}>
+                                <TextInput {...form.register("grade")} />
                             </Field>
                         </div>
                     </section>
 
                     <section className="profile-section">
                         <div className="profile-section__title">智能体配置</div>
-                        <div className="profile-grid profile-grid--two">
-                            <Field label="答案风格" error={form.formState.errors.answerStyle?.message}>
-                                <TextInput {...form.register("answerStyle")} />
-                            </Field>
-                            <Field label="反馈风格" error={form.formState.errors.feedbackStyle?.message}>
-                                <TextInput {...form.register("feedbackStyle")} />
-                            </Field>
-                        </div>
-                    </section>
-
-                    <section className="profile-section">
-                        <div className="profile-section__title">LLM 接入信息</div>
                         <div className="profile-grid">
-                            <Field label="Base URL" hint="API 地址，例如 https://api.openai.com/v1">
+                            <Field label="Base URL">
                                 <TextInput placeholder="https://api.openai.com/v1" {...form.register("llmBaseUrl")} />
                             </Field>
                             <Field label="API Key">
                                 <TextInput type="password" placeholder="sk-..." {...form.register("llmApiKey")} />
                             </Field>
-                            <Field label="模型名称" hint="例如 gpt-4o、deepseek-chat">
+                            <Field label="模型名称">
                                 <TextInput placeholder="gpt-4o" {...form.register("llmModelName")} />
+                            </Field>
+                            <Field label="答案风格" error={form.formState.errors.answerStyle?.message}>
+                                <textarea
+                                    className="textarea profile-textarea"
+                                    rows={4}
+                                    {...form.register("answerStyle")}
+                                />
+                            </Field>
+                            <Field label="反馈风格" error={form.formState.errors.feedbackStyle?.message}>
+                                <textarea
+                                    className="textarea profile-textarea"
+                                    rows={4}
+                                    {...form.register("feedbackStyle")}
+                                />
                             </Field>
                         </div>
                     </section>
@@ -305,8 +304,23 @@ export function ProfilePage() {
                             }
                         >
                             <span className="profile-switch__copy">
-                                <strong>Web 搜索</strong>
-                                <small>后续生成链路可按配置决定是否允许补充外部搜索结果。</small>
+                                <strong>面经搜索</strong>
+                                <small>允许生成链路补充网络搜索面经结果作为额外参考。</small>
+                            </span>
+                            <span className="profile-switch__track" aria-hidden="true">
+                                <span className="profile-switch__thumb" />
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            className={cn("profile-switch", form.watch("allowFallback") && "profile-switch--active")}
+                            onClick={() =>
+                                form.setValue("allowFallback", !form.getValues("allowFallback"), { shouldDirty: true })
+                            }
+                        >
+                            <span className="profile-switch__copy">
+                                <strong>错误回退</strong>
+                                <small>审校未通过时，允许使用 LLM 补充通用知识进行回退修订。</small>
                             </span>
                             <span className="profile-switch__track" aria-hidden="true">
                                 <span className="profile-switch__thumb" />

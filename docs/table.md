@@ -124,10 +124,9 @@
 7. `allow_fallback`
 8. `answer_style`
 9. `feedback_style`
-10. `age`
-11. `grade`
-12. `major`
-13. `stage`
+10. `grade`
+11. `major`
+12. `stage`
 14. `llm_base_url`
 15. `llm_api_key`
 16. `llm_model_name`
@@ -507,7 +506,6 @@
    - `target_company`
    - `answer_style`
    - `feedback_style`
-   - `age`
    - `grade`
    - `major`
    - `stage`
