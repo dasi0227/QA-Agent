@@ -15,8 +15,11 @@ import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
 import java.util.LinkedHashMap;
@@ -46,26 +49,33 @@ public class QaRepository implements IQaRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.QA_SET_CACHE,
+            key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_DETAIL_KEY, #userId, #id)")
     public QaSetResponse detailQaSet(String id, String userId) {
         return detail(qaSetMapper, QaSet.class, QaSetResponse.class, id, userId);
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.QA_SET_CACHE,
+            key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_QUERY_KEY, #userId, #request)")
     public List<QaSetResponse> queryQaSet(QaSetRequest request, String userId) {
         return query(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
     public QaSetResponse createQaSet(QaSetRequest request, String userId) {
         return create(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
     public QaSetResponse updateQaSet(QaSetRequest request, String userId) {
         return update(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = {RedisConstant.QA_SET_CACHE, RedisConstant.QA_ITEM_CACHE}, allEntries = true)
     public void deleteQaSet(String id, String userId) {
         List<PracticeSession> sessions = practiceSessionMapper.selectList(
             new LambdaQueryWrapper<PracticeSession>().eq(PracticeSession::getQaSetId, id));
@@ -83,26 +93,33 @@ public class QaRepository implements IQaRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.QA_ITEM_CACHE,
+            key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_DETAIL_KEY, #userId, #id)")
     public QaItemResponse detailQaItem(String id, String userId) {
         return detail(qaItemMapper, QaItem.class, QaItemResponse.class, id, userId);
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.QA_ITEM_CACHE,
+            key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_QUERY_KEY, #userId, #request)")
     public List<QaItemResponse> queryQaItem(QaItemRequest request, String userId) {
         return query(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
     public QaItemResponse createQaItem(QaItemRequest request, String userId) {
         return create(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
     public QaItemResponse updateQaItem(QaItemRequest request, String userId) {
         return update(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
     public void deleteQaItem(String id, String userId) {
         qaItemMapper.deleteById(id);
     }

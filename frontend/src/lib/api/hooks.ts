@@ -600,7 +600,7 @@ export function useCreateQuestionSetStream() {
                     userPrompt: input.userPrompt,
                     documentIds: input.documentIds,
                     requestedQuestionCount: input.requestedQuestionCount,
-                    jobDescription: input.jobDescription || null,
+                    jobDescription: input.jobDescription || "暂无",
                 }),
             });
 

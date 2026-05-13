@@ -3,15 +3,12 @@ package com.dasi.qa.agent.domain.document.service.crud;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,86 +30,58 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE,
-        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_DETAIL_KEY, @contextUtil.getUserId(), #id)"
-    )
     public SourceDocumentResponse detailSourceDocument(String id) {
         return repository.detailSourceDocument(id, currentUserId());
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE,
-        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_QUERY_KEY, @contextUtil.getUserId(), #request)"
-    )
     public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request) {
-        String userId = currentUserId();
-        return repository.querySourceDocument(request, userId);
+        return repository.querySourceDocument(request, currentUserId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request) {
-        String userId = currentUserId();
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        return repository.createSourceDocument(request, userId);
+        return repository.createSourceDocument(request, currentUserId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request) {
-        String userId = currentUserId();
-        return repository.updateSourceDocument(request, userId);
+        return repository.updateSourceDocument(request, currentUserId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public void deleteSourceDocument(String id) {
         repository.deleteSourceDocument(id, currentUserId());
         indexService.remove(id);
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE,
-        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_DETAIL_KEY, @contextUtil.getUserId(), #id)"
-    )
     public DocumentChunkResponse detailDocumentChunk(String id) {
         return repository.detailDocumentChunk(id, currentUserId());
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE,
-        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_QUERY_KEY, @contextUtil.getUserId(), #request)"
-    )
     public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request) {
-        String userId = currentUserId();
-        return repository.queryDocumentChunk(request, userId);
+        return repository.queryDocumentChunk(request, currentUserId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request) {
-        String userId = currentUserId();
         if (request.getId() == null || request.getId().isBlank()) {
             request.setId(UUID.randomUUID().toString());
         }
-        return repository.createDocumentChunk(request, userId);
+        return repository.createDocumentChunk(request, currentUserId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request) {
-        String userId = currentUserId();
-        return repository.updateDocumentChunk(request, userId);
+        return repository.updateDocumentChunk(request, currentUserId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public void deleteDocumentChunk(String id) {
         repository.deleteDocumentChunk(id, currentUserId());
     }

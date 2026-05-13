@@ -19,7 +19,10 @@ import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
+import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.result.ResultCode;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
 import java.util.LinkedHashMap;
@@ -38,51 +41,62 @@ public class PracticeRepository implements IPracticeRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_DETAIL_KEY, #userId, #id)")
     public PracticeSessionResponse detailPracticeSession(String id, String userId) {
         return detail(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, id, userId);
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_QUERY_KEY, #userId, #request)")
     public List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request, String userId) {
         return query(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
     public PracticeSessionResponse createPracticeSession(PracticeSessionRequest request, String userId) {
         return create(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
     public PracticeSessionResponse updatePracticeSession(PracticeSessionRequest request, String userId) {
         return update(practiceSessionMapper, PracticeSession.class, PracticeSessionResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
     public void deletePracticeSession(String id, String userId) {
         practiceSessionMapper.deleteById(id);
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE, key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_DETAIL_KEY, #userId, #id)")
     public PracticeSessionItemResponse detailPracticeSessionItem(String id, String userId) {
         return detail(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, id, userId);
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE, key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).PRACTICE_SESSION_ITEM_QUERY_KEY, #userId, #request)")
     public List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request, String userId) {
         return query(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE, allEntries = true)
     public PracticeSessionItemResponse createPracticeSessionItem(PracticeSessionItemRequest request, String userId) {
         return create(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_ITEM_CACHE, allEntries = true)
     public PracticeSessionItemResponse updatePracticeSessionItem(PracticeSessionItemRequest request, String userId) {
         return update(practiceSessionItemMapper, PracticeSessionItem.class, PracticeSessionItemResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
+
     public void deletePracticeSessionItem(String id, String userId) {
         practiceSessionItemMapper.deleteById(id);
     }

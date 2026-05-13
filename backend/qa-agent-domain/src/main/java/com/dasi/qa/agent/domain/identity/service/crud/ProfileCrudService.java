@@ -4,15 +4,12 @@ import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -33,25 +30,16 @@ public class ProfileCrudService implements IProfileCrudService {
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
-        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_DETAIL_KEY, 'self', #id)"
-    )
     public UserAccountResponse detailUserAccount(String id) {
         return repository.detailUserAccount(id, id);
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
-        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_QUERY_KEY, 'self', #request)"
-    )
     public List<UserAccountResponse> queryUserAccount(UserAccountRequest request) {
         return repository.queryUserAccount(request, request.getId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public UserAccountResponse createUserAccount(UserAccountRequest request) {
         if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())) {
             throw new ApiException(ResultCode.BAD_REQUEST);
@@ -67,7 +55,6 @@ public class ProfileCrudService implements IProfileCrudService {
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public UserAccountResponse updateUserAccount(UserAccountRequest request) {
         if (request.getId() == null || request.getId().isBlank()) {
             throw new ApiException(ResultCode.BAD_REQUEST);
@@ -81,32 +68,21 @@ public class ProfileCrudService implements IProfileCrudService {
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public void deleteUserAccount(String id) {
         repository.deleteUserAccount(id, id);
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
-        key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_DETAIL_KEY, @contextUtil.getUserId(), #id)"
-    )
     public UserProfileResponse detailUserProfile(String id) {
         return repository.detailUserProfile(currentUserId(), currentUserId());
     }
 
     @Override
-    @Cacheable(
-        cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
-        key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_QUERY_KEY, @contextUtil.getUserId(), #request)"
-    )
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request) {
-        String userId = currentUserId();
-        return repository.queryUserProfile(request, userId);
+        return repository.queryUserProfile(request, currentUserId());
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public UserProfileResponse createUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
         request.setId(userId);
@@ -114,7 +90,6 @@ public class ProfileCrudService implements IProfileCrudService {
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public UserProfileResponse updateUserProfile(UserProfileRequest request) {
         String userId = currentUserId();
         request.setId(userId);
@@ -122,7 +97,6 @@ public class ProfileCrudService implements IProfileCrudService {
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public void deleteUserProfile(String id) {
         repository.deleteUserProfile(currentUserId(), currentUserId());
     }

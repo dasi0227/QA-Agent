@@ -9,7 +9,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Component
 public class HybridRetriever implements IRetriever {
@@ -27,16 +26,8 @@ public class HybridRetriever implements IRetriever {
 
     @Override
     public List<ChunkSearchRow> search(RetrieveContext ctx) {
-        // run both retrievers concurrently
-        CompletableFuture<List<ChunkSearchRow>> semanticFuture =
-                CompletableFuture.supplyAsync(() -> semanticRetriever.search(ctx));
-        CompletableFuture<List<ChunkSearchRow>> keywordFuture =
-                CompletableFuture.supplyAsync(() -> keywordRetriever.search(ctx));
-
-        List<ChunkSearchRow> semanticResults = semanticFuture.join();
-        List<ChunkSearchRow> keywordResults = keywordFuture.join();
-
-        // RRF fusion
+        List<ChunkSearchRow> semanticResults = semanticRetriever.search(ctx);
+        List<ChunkSearchRow> keywordResults = keywordRetriever.search(ctx);
         return rrfFuse(semanticResults, keywordResults, ctx.getTopK());
     }
 

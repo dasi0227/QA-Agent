@@ -32,6 +32,7 @@ import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -75,7 +77,7 @@ public class AgentRepository implements IAgentRepository {
         QaGenerationTask entity = new QaGenerationTask();
         entity.setId(taskId);
         entity.setUserId(userId);
-        entity.setTitle(title(request));
+        entity.setTitle(request.getTitle());
         entity.setUserPrompt(request.getUserPrompt());
         entity.setDocumentIdsJson(JSON.toJSONString(request.getDocumentIds()));
         entity.setStatus(GenerateStatus.PENDING.name());
@@ -280,6 +282,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = {"QA_SET_CACHE", "QA_ITEM_CACHE"}, allEntries = true)
     public String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
                                      PlanResult planResult, List<DraftItem> draftItems) {
         String qaSetId = UUID.randomUUID().toString();
@@ -287,7 +290,7 @@ public class AgentRepository implements IAgentRepository {
         qaSet.setId(qaSetId);
         qaSet.setUserId(userId);
         qaSet.setTaskId(taskId);
-        qaSet.setTitle(planResult.getTitle() == null || planResult.getTitle().isBlank() ? title(request) : planResult.getTitle());
+        qaSet.setTitle(title(request, planResult));
         qaSet.setDescription(planResult.getDescription());
         qaSet.setModuleTagsJson(JSON.toJSONString(moduleTags(draftItems)));
         qaSet.setQuestionCount(draftItems.size());
@@ -346,8 +349,10 @@ public class AgentRepository implements IAgentRepository {
         return new ArrayList<>(tags);
     }
 
-    private String title(CreateQaSetRequest request) {
-        return request.getTitle() == null || request.getTitle().isBlank() ? "生成问答集" : request.getTitle();
+    private String title(CreateQaSetRequest request, PlanResult planResult) {
+        boolean usePlanTitle = "未命名问答集".equals(request.getTitle())
+                && planResult != null && planResult.getTitle() != null && !planResult.getTitle().isBlank();
+        return usePlanTitle ? planResult.getTitle() : request.getTitle();
     }
 
     private int questionCount(CreateQaSetRequest request) {

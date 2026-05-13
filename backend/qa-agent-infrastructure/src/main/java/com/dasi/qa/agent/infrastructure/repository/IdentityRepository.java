@@ -8,6 +8,9 @@ import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.dasi.qa.agent.types.constant.RedisConstant;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserAccount;
@@ -38,6 +41,8 @@ public class IdentityRepository implements IIdentityRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
+            key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_DETAIL_KEY, 'self', #id)")
     public UserAccountResponse detailUserAccount(String id, String userId) {
         UserAccount entity = userAccountMapper.selectById(id);
         if (entity == null) {
@@ -47,6 +52,8 @@ public class IdentityRepository implements IIdentityRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE,
+            key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_ACCOUNT_QUERY_KEY, #userId, #request)")
     public List<UserAccountResponse> queryUserAccount(UserAccountRequest request, String userId) {
         LambdaQueryWrapper<UserAccount> wrapper = new LambdaQueryWrapper<>();
         if (request.getId() != null) {
@@ -65,12 +72,14 @@ public class IdentityRepository implements IIdentityRepository {
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public UserAccountResponse createUserAccount(UserAccountRequest request, String userId) {
         UserAccount entity = toEntity(request, UserAccount.class);
         userAccountMapper.insert(entity);
         return toUserAccountResponse(entity);
     }
 
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     @Override
     public UserAccountResponse updateUserAccount(UserAccountRequest request, String userId) {
         UserAccount entity = toEntity(request, UserAccount.class);
@@ -78,7 +87,7 @@ public class IdentityRepository implements IIdentityRepository {
         return toUserAccountResponse(entity);
     }
 
-    @Override
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public void deleteUserAccount(String id, String userId) {
         UserAccount entity = userAccountMapper.selectById(id);
         if (entity == null) {
@@ -101,6 +110,8 @@ public class IdentityRepository implements IIdentityRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
+            key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_DETAIL_KEY, #userId, #id)")
     public UserProfileResponse detailUserProfile(String id, String userId) {
         UserProfile entity = userProfileMapper.selectById(id);
         if (entity == null) {
@@ -113,6 +124,8 @@ public class IdentityRepository implements IIdentityRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE,
+            key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).IDENTITY_USER_PROFILE_QUERY_KEY, #userId, #request)")
     public List<UserProfileResponse> queryUserProfile(UserProfileRequest request, String userId) {
         QueryWrapper<UserProfile> queryWrapper = new QueryWrapper<>();
         Map<String, Object> map = BeanUtil.beanToMap(request, new LinkedHashMap<>(), CopyOptions.create().ignoreNullValue());
@@ -124,6 +137,7 @@ public class IdentityRepository implements IIdentityRepository {
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public UserProfileResponse createUserProfile(UserProfileRequest request, String userId) {
         UserProfile entity = toEntity(request, UserProfile.class);
         entity.setUserId(userId);
@@ -131,6 +145,7 @@ public class IdentityRepository implements IIdentityRepository {
         return toUserProfileResponse(entity);
     }
 
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     @Override
     public UserProfileResponse updateUserProfile(UserProfileRequest request, String userId) {
         UserProfile entity = toEntity(request, UserProfile.class);
@@ -139,7 +154,7 @@ public class IdentityRepository implements IIdentityRepository {
         return toUserProfileResponse(entity);
     }
 
-    @Override
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_PROFILE_CACHE, allEntries = true)
     public void deleteUserProfile(String id, String userId) {
         userProfileMapper.deleteById(id);
     }

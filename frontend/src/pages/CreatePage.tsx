@@ -218,7 +218,6 @@ export function CreatePage() {
         setStreamError("");
         setRecoveryTaskId(task.taskId);
         setRecoveryTrigger((n) => n + 1);
-        taskMessagesQuery.refetch();
     };
 
     const handleSubmit = form.handleSubmit(async (values) => {

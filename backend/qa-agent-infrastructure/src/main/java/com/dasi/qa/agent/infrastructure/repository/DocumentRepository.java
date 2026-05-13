@@ -23,7 +23,10 @@ import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
+import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.result.ResultCode;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -58,26 +61,31 @@ public class DocumentRepository implements IDocumentRepository {
     // ======================== existing methods ========================
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_DETAIL_KEY, #userId, #id)")
     public SourceDocumentResponse detailSourceDocument(String id, String userId) {
         return detail(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, id, userId);
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_SOURCE_DOCUMENT_QUERY_KEY, #userId, #request)")
     public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request, String userId) {
         return query(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request, String userId) {
         return create(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request, String userId) {
         return update(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public void deleteSourceDocument(String id, String userId) {
         SourceDocument entity = sourceDocumentMapper.selectById(id);
         if (entity == null) {
@@ -88,26 +96,31 @@ public class DocumentRepository implements IDocumentRepository {
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_DETAIL_KEY, #userId, #id)")
     public DocumentChunkResponse detailDocumentChunk(String id, String userId) {
         return detail(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, id, userId);
     }
 
     @Override
+    @Cacheable(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).DOCUMENT_CHUNK_QUERY_KEY, #userId, #request)")
     public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request, String userId) {
         return query(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request, String userId) {
         return create(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request, String userId) {
         return update(documentChunkMapper, DocumentChunk.class, DocumentChunkResponse.class, request, userId);
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public void deleteDocumentChunk(String id, String userId) {
         documentChunkMapper.deleteById(id);
     }
@@ -143,6 +156,7 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public void deleteDocumentChunksByDocumentId(String documentId) {
         LambdaQueryWrapper<DocumentChunk> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DocumentChunk::getDocumentId, documentId);
