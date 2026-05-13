@@ -14,7 +14,8 @@ public interface DraftAgent {
 
     @SystemMessage(fromResource = "prompt/generation-draft.txt")
     @UserMessage("""
-            模块：{{moduleTag}}
+            模块：{{module}}
+            核心考点：{{keyConcepts}}
             证据块：{{evidence}}
             用户资料：{{userProfile}}
             用户备注：{{userPrompt}}
@@ -35,7 +36,8 @@ public interface DraftAgent {
             """)
     @Agent(name = "DRAFTER", description = "根据检索证据起草结构化问答题目")
     String draft(@V("taskId") String taskId,
-                 @V("moduleTag") String moduleTag,
+                 @V("module") String module,
+                 @V("keyConcepts") String keyConcepts,
                  @V("evidence") String evidence,
                  @V("userProfile") String userProfile,
                  @V("userPrompt") String userPrompt,

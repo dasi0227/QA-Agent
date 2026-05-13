@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.application.configuration;
 
+import com.dasi.qa.agent.infrastructure.properties.RewriterLlmProperties;
 import com.dasi.qa.agent.infrastructure.properties.SupervisorLlmProperties;
 import com.dasi.qa.agent.infrastructure.properties.WebSearchLlmProperties;
 import dev.langchain4j.model.chat.ChatModel;
@@ -11,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
 
 @Configuration
-@EnableConfigurationProperties({SupervisorLlmProperties.class, WebSearchLlmProperties.class})
+@EnableConfigurationProperties({SupervisorLlmProperties.class, WebSearchLlmProperties.class, RewriterLlmProperties.class})
 public class SystemLlmModelConfiguration {
 
     @Bean("supervisorModel")
@@ -21,6 +22,11 @@ public class SystemLlmModelConfiguration {
 
     @Bean("webSearchModel")
     public ChatModel webSearchChatModel(WebSearchLlmProperties properties) {
+        return build(properties.getBaseUrl(), properties.getApiKey(), properties.getModel());
+    }
+
+    @Bean("rewriterModel")
+    public ChatModel rewriterChatModel(RewriterLlmProperties properties) {
         return build(properties.getBaseUrl(), properties.getApiKey(), properties.getModel());
     }
 

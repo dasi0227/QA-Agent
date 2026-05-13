@@ -199,7 +199,7 @@ Write 阶段采用**两阶段分离**设计：
 UntypedAgent writer = AgenticServices.parallelBuilder()
         .executor(Executors.newFixedThreadPool(3))
         .subAgents(moduleAgents)
-        .output(moduleScope -> draftItems)
+        .output(moduleScope -> draftResults)
         .build();
 ```
 
@@ -242,7 +242,7 @@ String draft(@V("taskId") String taskId,
 - 每批最多 10 题，模块内串行分批
 - 每批支持最多 2 次重试，失败后使用 `fallbackDraft()`（占位题目）
 - 批次间通过 `previousQuestions` 去重
-- 所有模块的 draftItems 汇总到 `Collections.synchronizedList`
+- 所有模块的 draftResults 汇总到 `Collections.synchronizedList`
 
 ### 5.4 Validate（审校修订）
 
@@ -296,7 +296,7 @@ String amend(@V("taskId") String taskId,
 输入 `AmendItem[]` → JSON：
 ```json
 {
-  "draftItem": { ... },
+  "draftResult": { ... },
   "reason": "审校不通过的原因",
   "suggestion": "修改建议"
 }

@@ -1,8 +1,7 @@
-package com.dasi.qa.agent.domain.document.service.rag.retrieval.impl;
+package com.dasi.qa.agent.domain.document.service.rag.search.impl;
 
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
-import com.dasi.qa.agent.domain.document.service.rag.retrieval.IRetriever;
-import com.dasi.qa.agent.domain.document.service.rag.retrieval.RetrieveContext;
+import com.dasi.qa.agent.domain.document.service.rag.search.IRetriever;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -10,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 混合检索器，融合语义检索和关键词检索结果，通过 RRF 算法加权排序。
+ */
 @Component
 public class HybridRetriever implements IRetriever {
 

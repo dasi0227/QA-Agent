@@ -269,10 +269,10 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - DecideAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, decideContext.getTaskId(), exception);
+                    log.warn("【GenerateAgent - DecideAgent】重试 {} 次后仍失败: taskId={}", MAX_RETRY, decideContext.getTaskId(), exception);
                     writeDecideResult(scope, null);
                 } else {
-                    log.warn("【GenerateAgent - DecideAgent】第{}次失败，重试中: taskId={}", attempt + 1, decideContext.getTaskId(), exception);
+                    log.warn("【GenerateAgent - DecideAgent】第 {} 次失败，重试中: taskId={}", attempt + 1, decideContext.getTaskId(), exception);
                 }
             }
         }
@@ -333,9 +333,9 @@ public class GenerateAgent implements IGenerateAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - PlanAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, planContext.getTaskId(), exception);
+                    log.warn("【GenerateAgent - PlanAgent】重试 {} 次后仍失败: taskId={}", MAX_RETRY, planContext.getTaskId(), exception);
                 } else {
-                    log.warn("【GenerateAgent - PlanAgent】第{}次失败，重试中: taskId={}", attempt + 1, planContext.getTaskId(), exception);
+                    log.warn("【GenerateAgent - PlanAgent】第 {} 次失败，重试中: taskId={}", attempt + 1, planContext.getTaskId(), exception);
                 }
             }
         }
@@ -362,11 +362,11 @@ public class GenerateAgent implements IGenerateAgent {
 
         // 2. 拿到计划结果
         PlanResult planResult = readPlanResult(scope);
-        List<PlanItem> planItems = planResult.getPlanItems();
+        List<PlanResult.PlanItem> planItems = planResult.getPlanItems();
 
         // 3. Phase 1: 串行预搜全部模块的证据（RAG + Web）
         Map<String, String> evidenceMap = new LinkedHashMap<>();
-        for (PlanItem planItem : planItems) {
+        for (PlanResult.PlanItem planItem : planItems) {
             try {
                 List<SearchResult> ragEvidence = writeContext.getRagEvidenceProvider().search(
                         writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
@@ -380,19 +380,19 @@ public class GenerateAgent implements IGenerateAgent {
                 } else {
                     evidenceJson = jsonUtil.toJsonString(ragEvidence);
                 }
-                evidenceMap.put(planItem.getModuleTag(), evidenceJson);
+                evidenceMap.put(planItem.getModule(), evidenceJson);
             } catch (Exception e) {
-                log.warn("【GenerateAgent - WriteAgent】失败: taskId={}, module={}", writeContext.getTaskId(), planItem.getModuleTag(), e);
-                evidenceMap.put(planItem.getModuleTag(), jsonUtil.toJsonString(List.of()));
+                log.warn("【GenerateAgent - WriteAgent】失败: taskId={}, module={}", writeContext.getTaskId(), planItem.getModule(), e);
+                evidenceMap.put(planItem.getModule(), jsonUtil.toJsonString(List.of()));
             }
         }
 
         // 4. Phase 2: 并行出题，agentAction 内只做纯 LLM 调用，零 DB 访问
-        List<DraftItem> draftItems = Collections.synchronizedList(new ArrayList<>());
+        List<DraftResult> draftResults = Collections.synchronizedList(new ArrayList<>());
         List<Object> moduleAgents = new ArrayList<>();
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.DRAFT);
-        for (PlanItem planItem : planItems) {
-            String evidenceJson = evidenceMap.get(planItem.getModuleTag());
+        for (PlanResult.PlanItem planItem : planItems) {
+            String evidenceJson = evidenceMap.get(planItem.getModule());
             AgenticServices.AgenticScopeAction agentAction = AgenticServices.agentAction(moduleScope -> {
                 try {
                     DraftContext draftContext = DraftContext.builder()
@@ -404,9 +404,9 @@ public class GenerateAgent implements IGenerateAgent {
                             .answerStyle(writeContext.getAnswerStyle())
                             .supervisor(writeContext.getSupervisor())
                             .build();
-                    draftItems.addAll(doDraft(draftAgent, draftContext));
+                    draftResults.addAll(doDraft(draftAgent, draftContext));
                 } catch (Exception exception) {
-                    log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}", writeContext.getTaskId(), planItem.getModuleTag(), exception);
+                    log.warn("【GenerateAgent - DraftAgent】调用智能体出错: taskId={}, module={}", writeContext.getTaskId(), planItem.getModule(), exception);
                 }
             });
             moduleAgents.add(agentAction);
@@ -418,7 +418,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .description(GeneratePhase.WRITE.getAgentDesc())
                 .executor(writeContext.getExecutor())
                 .subAgents(moduleAgents)
-                .output(moduleScope -> draftItems)
+                .output(moduleScope -> draftResults)
                 .build();
 
         // 6. 调用智能体
@@ -426,35 +426,36 @@ public class GenerateAgent implements IGenerateAgent {
             writer.invoke(Map.of());
         } catch (Exception exception) {
             log.warn("【GenerateAgent - WriteAgent】调用智能体出错: taskId={}", writeContext.getTaskId(), exception);
-            writeDraftResult(scope, draftItems);
+            writeDraftResult(scope, draftResults);
             throw new GenerateException(ErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
         }
 
         // 7. 写入共享领域
-        writeDraftResult(scope, draftItems);
+        writeDraftResult(scope, draftResults);
     }
 
     /**
      * DraftAgent 负责按模块证据分批起草结构化问答题目。
      */
-    private List<DraftItem> doDraft(DraftAgent draftAgent, DraftContext draftContext) {
+    private List<DraftResult> doDraft(DraftAgent draftAgent, DraftContext draftContext) {
         // 当前模块题数
         int remaining = draftContext.getPlanItem().getQuestionCount();
-        List<DraftItem> draftItems = new ArrayList<>();
+        List<DraftResult> draftResults = new ArrayList<>();
         while (remaining > 0) {
             // 当前批次题数
             int batchCount = Math.min(BATCH_SIZE, remaining);
-            String previousQuestions = jsonUtil.toJsonString(draftItems.stream()
+            String previousQuestions = jsonUtil.toJsonString(draftResults.stream()
                     .filter(item -> item != null && item.getQuestion() != null)
-                    .map(DraftItem::getQuestion)
+                    .map(DraftResult::getQuestion)
                     .toList());
-            List<DraftItem> batchItems = null;
+            List<DraftResult> batchItems = null;
             String retryHint = "";
             for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
                 try {
                     String response = draftAgent.draft(
                             draftContext.getTaskId(),
-                            draftContext.getPlanItem().getModuleTag(),
+                            draftContext.getPlanItem().getModule(),
+                            draftContext.getPlanItem().getKeyConcepts(),
                             draftContext.getEvidence(),
                             draftContext.getUserProfileJson(),
                             draftContext.getRequest().getUserPrompt(),
@@ -464,23 +465,23 @@ public class GenerateAgent implements IGenerateAgent {
                             draftContext.getAnswerStyle(),
                             retryHint
                     );
-                    batchItems = jsonUtil.parseJsonArray(response, DraftItem.class);
+                    batchItems = jsonUtil.parseJsonArray(response, DraftResult.class);
                     draftContext.getSupervisor().doSupervise(GeneratePhase.DRAFT, response);
                     break;
                 } catch (Exception exception) {
                     retryHint = exception.getMessage();
                     if (attempt == MAX_RETRY) {
-                        log.warn("【GenerateAgent - DraftAgent】批次重试{}次后仍失败: taskId={}, module={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception);
+                        log.warn("【GenerateAgent - DraftAgent】批次重试 {} 次后仍失败: taskId={}, module={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModule(), exception);
                         batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence());
                     } else {
-                        log.warn("【GenerateAgent - DraftAgent】第{}次失败，重试中: taskId={}, module={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModuleTag(), exception);
+                        log.warn("【GenerateAgent - DraftAgent】第 {} 次失败，重试中: taskId={}, module={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModule(), exception);
                     }
                 }
             }
-            draftItems.addAll(batchItems);
+            draftResults.addAll(batchItems);
             remaining -= batchCount;
         }
-        return draftItems;
+        return draftResults;
     }
 
     /**
@@ -491,16 +492,16 @@ public class GenerateAgent implements IGenerateAgent {
         agentRepository.updateTaskPhase(validateContext.getTaskId(), GeneratePhase.VALIDATE);
 
         // 2. 初次生成的问答集合
-        List<DraftItem> draftItems = readDraftResult(scope);
+        List<DraftResult> draftResults = readDraftResult(scope);
 
         // 3. 获取不同批次集合
-        List<List<DraftItem>> batchList = new ArrayList<>();
-        for (int i = 0; i < draftItems.size(); i += BATCH_SIZE) {
-            batchList.add(draftItems.subList(i, Math.min(i + BATCH_SIZE, draftItems.size())));
+        List<List<DraftResult>> batchList = new ArrayList<>();
+        for (int i = 0; i < draftResults.size(); i += BATCH_SIZE) {
+            batchList.add(draftResults.subList(i, Math.min(i + BATCH_SIZE, draftResults.size())));
         }
 
         // 4. 创建每个批次的异步任务
-        List<CompletableFuture<List<DraftItem>>> futureList = batchList.stream()
+        List<CompletableFuture<List<DraftResult>>> futureList = batchList.stream()
                 .map(batch -> CompletableFuture
                         .supplyAsync(() -> doValidateLoop(
                                 validateContext.getTaskId(),
@@ -513,14 +514,14 @@ public class GenerateAgent implements IGenerateAgent {
                                         .supervisor(validateContext.getSupervisor())
                                         .build()),
                                 applicationTaskExecutor)
-                        .exceptionally(ex -> {
-                            log.warn("【GenerateAgent - ValidateAgent】批次执行异常，退回原始题目: taskId={}", validateContext.getTaskId(), ex.getMessage());
+                        .exceptionally(exception -> {
+                            log.warn("【GenerateAgent - ValidateAgent】批次执行异常，退回原始题目: taskId={}", validateContext.getTaskId(), exception);
                             return batch;
                         }))
                 .toList();
 
         // 5. 等待所有批次的异步任务执行完成并汇总结果
-        List<DraftItem> validatedItems = futureList.stream()
+        List<DraftResult> validatedItems = futureList.stream()
                 .map(CompletableFuture::join)
                 .flatMap(List::stream)
                 .toList();
@@ -529,10 +530,10 @@ public class GenerateAgent implements IGenerateAgent {
         writeValidateResult(scope, validatedItems);
     }
 
-    private List<DraftItem> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateLoopContext loopContext) {
-        List<DraftItem> passItems = new ArrayList<>();
-        AtomicReference<List<DraftItem>> evaluateItems = new AtomicReference<>(loopContext.getBatch());
-        AtomicReference<List<AmendItem>> amendItems = new AtomicReference<>(List.of());
+    private List<DraftResult> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateLoopContext loopContext) {
+        List<DraftResult> passItems = new ArrayList<>();
+        AtomicReference<List<DraftResult>> evaluateItems = new AtomicReference<>(loopContext.getBatch());
+        AtomicReference<List<AmendResult>> amendItems = new AtomicReference<>(List.of());
         AtomicBoolean flag = new AtomicBoolean(false);
 
         UntypedAgent validateAgent = AgenticServices.loopBuilder()
@@ -543,7 +544,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .subAgents(
                         // 校验
                         AgenticServices.agentAction(scope -> {
-                            List<EvaluateItem> evaluates = doEvaluate(taskId,
+                            List<EvaluateResult> evaluates = doEvaluate(taskId,
                                     evaluateAgent,
                                     EvaluateContext.builder()
                                             .drafts(evaluateItems.get())
@@ -553,17 +554,17 @@ public class GenerateAgent implements IGenerateAgent {
                                             .build()
                             );
 
-                            List<AmendItem> amends = new ArrayList<>();
+                            List<AmendResult> amends = new ArrayList<>();
                             for (int i = 0; i < Math.min(evaluateItems.get().size(), evaluates.size()); i++) {
                                 if (VerdictType.PASS.name().equals(evaluates.get(i).getVerdict())) {
                                     passItems.add(evaluateItems.get().get(i));
                                 } else {
-                                    AmendItem amendItem = AmendItem.builder()
-                                            .draftItem(evaluateItems.get().get(i))
+                                    AmendResult amendResult = AmendResult.builder()
+                                            .draftResult(evaluateItems.get().get(i))
                                             .reason(evaluates.get(i).getReason())
                                             .suggestion(evaluates.get(i).getSuggestion())
                                             .build();
-                                    amends.add(amendItem);
+                                    amends.add(amendResult);
                                 }
                             }
 
@@ -576,7 +577,7 @@ public class GenerateAgent implements IGenerateAgent {
                             if (amendItems.get().isEmpty()) {
                                 return;
                             }
-                            List<DraftItem> amended = doAmend(taskId, amendAgent,
+                            List<DraftResult> amended = doAmend(taskId, amendAgent,
                                     AmendContext.builder()
                                             .items(amendItems.get())
                                             .userPrompt(loopContext.getUserPrompt())
@@ -602,44 +603,44 @@ public class GenerateAgent implements IGenerateAgent {
         return passItems;
     }
 
-    private List<EvaluateItem> doEvaluate(String taskId, EvaluateAgent evaluateAgent, EvaluateContext evaluateContext) {
+    private List<EvaluateResult> doEvaluate(String taskId, EvaluateAgent evaluateAgent, EvaluateContext evaluateContext) {
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = evaluateAgent.evaluate(taskId, jsonUtil.toJsonString(evaluateContext.getDrafts()),
                         evaluateContext.getUserPrompt(), evaluateContext.getJobDescription(), retryHint);
-                List<EvaluateItem> results = jsonUtil.parseJsonArray(response, EvaluateItem.class);
+                List<EvaluateResult> results = jsonUtil.parseJsonArray(response, EvaluateResult.class);
                 evaluateContext.getSupervisor().doSupervise(GeneratePhase.EVALUATE, response);
                 return results;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - EvaluateAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, taskId, exception);
+                    log.warn("【GenerateAgent - EvaluateAgent】重试 {} 次后仍失败: taskId={}", MAX_RETRY, taskId, exception);
                     return fallbackEvaluate(evaluateContext.getDrafts());
                 }
-                log.warn("【GenerateAgent - EvaluateAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId, exception);
+                log.warn("【GenerateAgent - EvaluateAgent】第 {} 次失败，重试中: taskId={}", attempt + 1, taskId, exception);
             }
         }
         return fallbackEvaluate(evaluateContext.getDrafts());
     }
 
-    private List<DraftItem> doAmend(String taskId, AmendAgent amendAgent, AmendContext amendContext) {
+    private List<DraftResult> doAmend(String taskId, AmendAgent amendAgent, AmendContext amendContext) {
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = amendAgent.amend(taskId, jsonUtil.toJsonString(amendContext.getItems()),
                         amendContext.getUserPrompt(), amendContext.getJobDescription(),
                         amendContext.getAnswerStyle(), retryHint);
-                List<DraftItem> results = jsonUtil.parseJsonArray(response, DraftItem.class);
+                List<DraftResult> results = jsonUtil.parseJsonArray(response, DraftResult.class);
                 amendContext.getSupervisor().doSupervise(GeneratePhase.AMEND, response);
                 return results;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【GenerateAgent - AmendAgent】重试{}次后仍失败: taskId={}", MAX_RETRY, taskId, exception);
+                    log.warn("【GenerateAgent - AmendAgent】重试 {} 次后仍失败: taskId={}", MAX_RETRY, taskId, exception);
                     return fallbackAmend(amendContext.getItems());
                 }
-                log.warn("【GenerateAgent - AmendAgent】第{}次失败，重试中: taskId={}", attempt + 1, taskId, exception);
+                log.warn("【GenerateAgent - AmendAgent】第 {} 次失败，重试中: taskId={}", attempt + 1, taskId, exception);
             }
         }
         return fallbackAmend(amendContext.getItems());
@@ -656,7 +657,7 @@ public class GenerateAgent implements IGenerateAgent {
         PlanResult planResult = readPlanResult(scope);
 
         // 3. 生成结果
-        List<DraftItem> validatedResult = readValidateResult(scope);
+        List<DraftResult> validatedResult = readValidateResult(scope);
 
         // 4. 保存 QA Set
         String qaSetId = agentRepository.saveGeneratedQaSet(
@@ -671,12 +672,12 @@ public class GenerateAgent implements IGenerateAgent {
         int requiredCount = summarizeContext.getRequest().getRequestedQuestionCount();
         int generatedCount = validatedResult.size();
         String modules = planResult.getPlanItems().stream()
-                .map(item -> item.getModuleTag() == null ? "" : item.getModuleTag())
+                .map(item -> item.getModule() == null ? "" : item.getModule())
                 .filter(tag -> !tag.isBlank())
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
         String tags = validatedResult.stream()
-                .map(DraftItem::getTag)
+                .map(DraftResult::getTag)
                 .filter(tag -> tag != null && !tag.isBlank())
                 .distinct()
                 .reduce((a, b) -> a + ", " + b)
@@ -716,20 +717,20 @@ public class GenerateAgent implements IGenerateAgent {
         return new PlanResult(
                 request.getTitle(),
                 "根据用户资料生成的技术面试问答集",
-                List.of(new PlanItem("General", request.getRequestedQuestionCount(),
-                        "核心知识点", "概念题, 场景题"))
+                List.of(new PlanResult.PlanItem("General", request.getRequestedQuestionCount(),
+                        "核心知识点", "核心考点描述"))
         );
     }
 
-    private List<DraftItem> fallbackDraft(PlanItem planItem, String evidence) {
+    private List<DraftResult> fallbackDraft(PlanResult.PlanItem planItem, String evidence) {
         int count = Math.max(1, planItem.getQuestionCount());
-        List<DraftItem> drafts = new ArrayList<>();
+        List<DraftResult> drafts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            drafts.add(new DraftItem(
-                    planItem.getModuleTag() + " 的核心问题 " + (i + 1),
+            drafts.add(new DraftResult(
+                    planItem.getModule() + " 的核心问题 " + (i + 1),
                     evidence,
                     evidence,
-                    planItem.getModuleTag(),
+                    planItem.getModule(),
                     "MEDIUM",
                     evidence.isEmpty() ? "资料证据不足" : "",
                     evidence
@@ -738,18 +739,18 @@ public class GenerateAgent implements IGenerateAgent {
         return drafts;
     }
 
-    private List<DraftItem> fallbackAmend(List<AmendItem> items) {
-        List<DraftItem> results = new ArrayList<>();
-        for (AmendItem item : items) {
-            results.add(item.getDraftItem());
+    private List<DraftResult> fallbackAmend(List<AmendResult> items) {
+        List<DraftResult> results = new ArrayList<>();
+        for (AmendResult item : items) {
+            results.add(item.getDraftResult());
         }
         return results;
     }
 
-    private List<EvaluateItem> fallbackEvaluate(List<DraftItem> drafts) {
-        List<EvaluateItem> results = new ArrayList<>();
+    private List<EvaluateResult> fallbackEvaluate(List<DraftResult> drafts) {
+        List<EvaluateResult> results = new ArrayList<>();
         for (int i = 0; i < drafts.size(); i++) {
-            results.add(new EvaluateItem(VerdictType.PASS.name(), "fallback pass", ""));
+            results.add(new EvaluateResult(VerdictType.PASS.name(), "fallback pass", ""));
         }
         return results;
     }
@@ -767,13 +768,13 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     @SuppressWarnings("unchecked")
-    private List<DraftItem> readValidateResult(AgenticScope scope) {
-        return (List<DraftItem>) scope.readState(GeneratePhase.VALIDATE.getScopeKey());
+    private List<DraftResult> readValidateResult(AgenticScope scope) {
+        return (List<DraftResult>) scope.readState(GeneratePhase.VALIDATE.getScopeKey());
     }
 
     @SuppressWarnings("unchecked")
-    private List<DraftItem> readDraftResult(AgenticScope scope) {
-        return (List<DraftItem>) scope.readState(GeneratePhase.WRITE.getScopeKey());
+    private List<DraftResult> readDraftResult(AgenticScope scope) {
+        return (List<DraftResult>) scope.readState(GeneratePhase.WRITE.getScopeKey());
     }
 
     private void writeDecideResult(AgenticScope scope, DecideResult result) {
@@ -784,11 +785,11 @@ public class GenerateAgent implements IGenerateAgent {
         scope.writeState(GeneratePhase.PLAN.getScopeKey(), result != null ? result : fallbackPlan(request));
     }
 
-    private void writeDraftResult(AgenticScope scope, List<DraftItem> result) {
+    private void writeDraftResult(AgenticScope scope, List<DraftResult> result) {
         scope.writeState(GeneratePhase.WRITE.getScopeKey(), result != null ? result : List.of());
     }
 
-    private void writeValidateResult(AgenticScope scope, List<DraftItem> result) {
+    private void writeValidateResult(AgenticScope scope, List<DraftResult> result) {
         scope.writeState(GeneratePhase.VALIDATE.getScopeKey(), result != null ? result : List.of());
     }
 

@@ -28,12 +28,8 @@ public class SourceDocument {
     
     private String rawContent;
     
-    private String normalizedContent;
-    
     private String summary;
-    
-    private String moduleTagsJson;
-    
+
     private Integer referenceCount;
     
     private Boolean deleted;

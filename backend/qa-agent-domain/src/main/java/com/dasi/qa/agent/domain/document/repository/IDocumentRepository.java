@@ -46,8 +46,8 @@ public interface IDocumentRepository {
     void deleteChunkSearchByDocumentId(String documentId);
 
     List<ChunkSearchRow> semanticSearch(float[] queryVector, String userId,
-            List<String> docIds, List<String> tags, String pathPrefix, int limit);
+            List<String> docIds, int limit);
 
     List<ChunkSearchRow> keywordSearch(String queryText, String userId,
-            List<String> docIds, List<String> tags, String pathPrefix, int limit);
+            List<String> docIds, int limit);
 }

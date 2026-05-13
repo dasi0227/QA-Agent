@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 将 Markdown 正文按标题层级拆分为多个切片，每段不超过 {@value #MAX_CHUNK_LENGTH} 字符。
+ */
 @Component
 public class MarkdownChunker {
 

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 
 import static com.dasi.qa.agent.types.constant.StringConstant.AVATAR_ROOT_PATH;
@@ -34,21 +33,6 @@ public class IdentityController {
         this.contextUtil = contextUtil;
     }
 
-    @GetMapping("/account/detail")
-    public Result<UserAccountResponse> userAccountDetail(@RequestParam("id") String id) {
-        return Result.success(identityService.detailUserAccount(id));
-    }
-
-    @PostMapping("/account/query")
-    public Result<List<UserAccountResponse>> userAccountQuery(@RequestBody UserAccountRequest request) {
-        return Result.success(identityService.queryUserAccount(request));
-    }
-
-    @PostMapping("/account/create")
-    public Result<UserAccountResponse> userAccountCreate(@RequestBody UserAccountRequest request) {
-        return Result.success(identityService.createUserAccount(request));
-    }
-
     @PostMapping("/account/update")
     public Result<UserAccountResponse> userAccountUpdate(@RequestBody UserAccountRequest request) {
         return Result.success(identityService.updateUserAccount(request));
@@ -65,11 +49,6 @@ public class IdentityController {
         return Result.success(identityService.detailUserProfile("self"));
     }
 
-    @PostMapping("/profile/query")
-    public Result<List<UserProfileResponse>> userProfileQuery(@RequestBody UserProfileRequest request) {
-        return Result.success(identityService.queryUserProfile(request));
-    }
-
     @PostMapping("/profile/create")
     public Result<UserProfileResponse> userProfileCreate(@RequestBody UserProfileRequest request) {
         return Result.success(identityService.createUserProfile(request));
@@ -78,12 +57,6 @@ public class IdentityController {
     @PostMapping("/profile/update")
     public Result<UserProfileResponse> userProfileUpdate(@RequestBody UserProfileRequest request) {
         return Result.success(identityService.updateUserProfile(request));
-    }
-
-    @PostMapping("/profile/delete")
-    public Result<Void> userProfileDelete(@RequestBody UserProfileRequest request) {
-        identityService.deleteUserProfile(request.getId());
-        return Result.success();
     }
 
     @PostMapping("/account/avatar")

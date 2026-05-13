@@ -64,12 +64,6 @@ public class QaRepository implements IQaRepository {
 
     @Override
     @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
-    public QaSetResponse createQaSet(QaSetRequest request, String userId) {
-        return create(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
-    }
-
-    @Override
-    @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
     public QaSetResponse updateQaSet(QaSetRequest request, String userId) {
         return update(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
     }

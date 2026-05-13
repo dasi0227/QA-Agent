@@ -2,7 +2,8 @@ package com.dasi.qa.agent.infrastructure.repository;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
@@ -40,7 +41,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -275,7 +275,6 @@ public class AgentRepository implements IAgentRepository {
         return documents.stream()
                 .map(document -> "# " + document.getFileName() + "\n"
                         + safe(document.getSummary()) + "\n"
-                        + safe(document.getNormalizedContent()) + "\n"
                         + safe(document.getRawContent()))
                 .collect(Collectors.joining("\n\n"));
     }
@@ -284,7 +283,7 @@ public class AgentRepository implements IAgentRepository {
     @Transactional(transactionManager = "mysqlTransactionManager")
     @CacheEvict(cacheNames = {"QA_SET_CACHE", "QA_ITEM_CACHE"}, allEntries = true)
     public String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
-                                     PlanResult planResult, List<DraftItem> draftItems) {
+                                     PlanResult planResult, List<DraftResult> draftResults) {
         String qaSetId = UUID.randomUUID().toString();
         QaSet qaSet = new QaSet();
         qaSet.setId(qaSetId);
@@ -292,23 +291,23 @@ public class AgentRepository implements IAgentRepository {
         qaSet.setTaskId(taskId);
         qaSet.setTitle(title(request, planResult));
         qaSet.setDescription(planResult.getDescription());
-        qaSet.setModuleTagsJson(JSON.toJSONString(moduleTags(draftItems)));
-        qaSet.setQuestionCount(draftItems.size());
+        qaSet.setModuleTagsJson(JSON.toJSONString(moduleTags(draftResults)));
+        qaSet.setQuestionCount(draftResults.size());
         qaSet.setPracticeCount(0);
         qaSetMapper.insert(qaSet);
 
         int sortOrder = 1;
-        for (DraftItem draftItem : draftItems) {
+        for (DraftResult draftResult : draftResults) {
             QaItem item = new QaItem();
             item.setId(UUID.randomUUID().toString());
             item.setQaSetId(qaSetId);
             item.setUserId(userId);
-            item.setQuestion(draftItem.getQuestion());
-            item.setKnowledgeNote(draftItem.getKnowledgeNote());
-            item.setAnswer(draftItem.getAnswer());
-            item.setModuleTag(draftItem.getTag());
-            item.setDifficulty(draftItem.getDifficulty());
-            item.setConflictTip(draftItem.getConflictTip());
+            item.setQuestion(draftResult.getQuestion());
+            item.setKnowledgeNote(draftResult.getKnowledgeNote());
+            item.setAnswer(draftResult.getAnswer());
+            item.setModuleTag(draftResult.getTag());
+            item.setDifficulty(draftResult.getDifficulty());
+            item.setConflictTip(draftResult.getConflictTip());
             item.setSourceChunkIdsJson(JSON.toJSONString(List.of()));
             item.setSortOrder(sortOrder++);
             qaItemMapper.insert(item);
@@ -321,6 +320,10 @@ public class AgentRepository implements IAgentRepository {
             ref.setDocumentId(documentId);
             ref.setCreatedAt(LocalDateTime.now());
             qaSetDocumentRefMapper.insert(ref);
+            sourceDocumentMapper.update(null,
+                    new LambdaUpdateWrapper<SourceDocument>()
+                            .setSql("reference_count = reference_count + 1")
+                            .eq(SourceDocument::getId, documentId));
         }
         return qaSetId;
     }
@@ -339,11 +342,11 @@ public class AgentRepository implements IAgentRepository {
         }
     }
 
-    private List<String> moduleTags(List<DraftItem> draftItems) {
+    private List<String> moduleTags(List<DraftResult> draftResults) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
-        for (DraftItem draftItem : draftItems) {
-            if (draftItem.getTag() != null && !draftItem.getTag().isBlank()) {
-                tags.add(draftItem.getTag());
+        for (DraftResult draftResult : draftResults) {
+            if (draftResult.getTag() != null && !draftResult.getTag().isBlank()) {
+                tags.add(draftResult.getTag());
             }
         }
         return new ArrayList<>(tags);

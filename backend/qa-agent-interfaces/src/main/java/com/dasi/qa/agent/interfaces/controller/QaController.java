@@ -119,11 +119,6 @@ public class QaController {
         return Result.success(qaService.queryQaItem(request));
     }
 
-    @PostMapping("/item/create")
-    public Result<QaItemResponse> qaItemCreate(@RequestBody QaItemRequest request) {
-        return Result.success(qaService.createQaItem(request));
-    }
-
     @PostMapping("/item/update")
     public Result<QaItemResponse> qaItemUpdate(@RequestBody QaItemRequest request) {
         return Result.success(qaService.updateQaItem(request));

@@ -90,7 +90,6 @@ qa-agent:
         api-key: ${DASHSCOPE_API_KEY}
         embedding-model: ${DASHSCOPE_EMBEDDING_MODEL}
         rerank-model: ${DASHSCOPE_RERANK_MODEL}
-        llm-model: ${DASHSCOPE_LLM_MODEL:qwen-turbo}
     llm:
         supervisor:
             base-url: ${SUPERVISOR_LLM_BASE_URL}
@@ -100,4 +99,8 @@ qa-agent:
             base-url: ${WEB_SEARCH_LLM_BASE_URL}
             api-key: ${WEB_SEARCH_LLM_API_KEY}
             model: ${WEB_SEARCH_LLM_MODEL}
+        rewriter:
+            base-url: ${REWRITER_LLM_BASE_URL}
+            api-key: ${REWRITER_LLM_API_KEY}
+            model: ${REWRITER_LLM_MODEL}
 

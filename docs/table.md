@@ -152,13 +152,11 @@
 4. `file_type`
 5. `file_path`
 6. `raw_content`
-7. `normalized_content`
-8. `summary`
-9. `module_tags_json`
-10. `reference_count`
-11. `deleted`
-12. `created_at`
-13. `updated_at`
+7. `summary`
+8. `reference_count`
+9. `deleted`
+10. `created_at`
+11. `updated_at`
 
 说明：
 
@@ -513,11 +511,10 @@
 
 ### 7.3 使用 JSON 的字段
 
-1. `source_document.module_tags_json`
-2. `document_chunk.module_tags_json`
-3. `qa_generation_task.document_ids_json`
-4. `qa_set.module_tags_json`
-5. `qa_item.source_chunk_ids_json`
+1. `document_chunk.module_tags_json`
+2. `qa_generation_task.document_ids_json`
+3. `qa_set.module_tags_json`
+4. `qa_item.source_chunk_ids_json`
 
 ### 7.4 不建议的做法
 

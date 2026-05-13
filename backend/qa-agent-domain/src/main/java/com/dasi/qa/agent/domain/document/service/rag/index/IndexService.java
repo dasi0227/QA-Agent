@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.dasi.qa.agent.domain.document.model.ChunkDraft;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
-import com.dasi.qa.agent.domain.document.adapter.ISemanticAdapter;
+import com.dasi.qa.agent.domain.document.service.rag.dashscope.IDashScopeService;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import org.springframework.stereotype.Service;
@@ -14,20 +14,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 资料索引服务，执行切片、向量化并同步写入 MySQL 和 PostgreSQL 检索引擎。
+ */
 @Service
 @Slf4j
 public class IndexService implements IIndexService {
 
     private final IDocumentRepository documentRepository;
     private final MarkdownChunker chunker;
-    private final ISemanticAdapter semanticAdapter;
+    private final IDashScopeService IDashScopeService;
 
     public IndexService(IDocumentRepository documentRepository,
                         MarkdownChunker chunker,
-                        ISemanticAdapter semanticAdapter) {
+                        IDashScopeService IDashScopeService) {
         this.documentRepository = documentRepository;
         this.chunker = chunker;
-        this.semanticAdapter = semanticAdapter;
+        this.IDashScopeService = IDashScopeService;
     }
 
     @Override
@@ -57,7 +60,7 @@ public class IndexService implements IIndexService {
         }
 
         List<String> contents = drafts.stream().map(ChunkDraft::getContent).toList();
-        List<float[]> embeddings = semanticAdapter.embed(contents);
+        List<float[]> embeddings = IDashScopeService.embed(contents);
 
         documentRepository.replaceDocumentChunks(documentId, userId, drafts);
 

@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
-import com.dasi.qa.agent.domain.agent.service.generate.model.result.AmendItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.AmendResult;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class AmendContext {
 
-    private List<AmendItem> items;
+    private List<AmendResult> items;
     private String userPrompt;
     private String jobDescription;
     private String answerStyle;

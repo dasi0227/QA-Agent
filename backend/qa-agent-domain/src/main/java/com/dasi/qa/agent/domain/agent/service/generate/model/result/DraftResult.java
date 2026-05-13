@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DraftItem {
+public class DraftResult {
 
         @Description("面试场景的问题表述，口语化提问方式")
         private String question;

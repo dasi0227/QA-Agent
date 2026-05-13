@@ -22,4 +22,23 @@ public class PlanResult {
 
     @Description("模块规划列表")
     private List<PlanItem> planItems;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PlanItem {
+
+        @Description("技术模块标签")
+        private String module;
+
+        @Description("该模块题目数")
+        private int questionCount;
+
+        @Description("重点考察话题，逗号分隔，用于 RAG 检索")
+        private String focusTopics;
+
+        @Description("本模块必须覆盖的核心考点与生成边界")
+        private String keyConcepts;
+    }
 }

@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EvaluateItem {
+public class EvaluateResult {
 
-    @Description("校验结论，必须是 PASS / AMEND / REJECT 之一")
+    @Description("校验结论，必须是 PASS / AMEND 之一")
     private String verdict;
 
     @Description("判定原因")

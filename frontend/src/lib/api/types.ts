@@ -64,9 +64,7 @@ export type DocumentRecord = {
     fileType: string;
     filePath: string;
     rawContent: string;
-    normalizedContent: string;
     summary: string;
-    moduleTagsJson: string;
     referenceCount: number;
     deleted: boolean;
     createdAt?: string;

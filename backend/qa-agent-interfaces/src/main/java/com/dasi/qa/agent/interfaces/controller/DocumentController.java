@@ -2,14 +2,11 @@ package com.dasi.qa.agent.interfaces.controller;
 
 import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.document.service.crud.IDocumentCrudService;
-import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
 import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
-import com.dasi.qa.agent.types.dto.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
-import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.result.Result;
@@ -27,20 +24,17 @@ public class DocumentController {
 
     private final IDocumentCrudService documentService;
     private final IRagSearchService searchService;
-    private final IIndexService indexService;
     private final IContextUtil contextUtil;
     private final IMqUtil mqUtil;
     private final String indexingTopic;
 
     public DocumentController(IDocumentCrudService documentService,
                               IRagSearchService searchService,
-                              IIndexService indexService,
                               IContextUtil contextUtil,
                               IMqUtil mqUtil,
                               @Value("${qa-agent.kafka.topic-document-index}") String indexingTopic) {
         this.documentService = documentService;
         this.searchService = searchService;
-        this.indexService = indexService;
         this.contextUtil = contextUtil;
         this.mqUtil = mqUtil;
         this.indexingTopic = indexingTopic;
@@ -82,52 +76,11 @@ public class DocumentController {
         return Result.success();
     }
 
-    // ======================== document-chunk CRUD ========================
-
-    @GetMapping("/chunk/detail")
-    public Result<DocumentChunkResponse> documentChunkDetail(@RequestParam("id") String id) {
-        return Result.success(documentService.detailDocumentChunk(id));
-    }
-
-    @PostMapping("/chunk/query")
-    public Result<List<DocumentChunkResponse>> documentChunkQuery(@RequestBody DocumentChunkRequest request) {
-        return Result.success(documentService.queryDocumentChunk(request));
-    }
-
-    @PostMapping("/chunk/create")
-    public Result<DocumentChunkResponse> documentChunkCreate(@RequestBody DocumentChunkRequest request) {
-        return Result.success(documentService.createDocumentChunk(request));
-    }
-
-    @PostMapping("/chunk/update")
-    public Result<DocumentChunkResponse> documentChunkUpdate(@RequestBody DocumentChunkRequest request) {
-        return Result.success(documentService.updateDocumentChunk(request));
-    }
-
-    @PostMapping("/chunk/delete")
-    public Result<Void> documentChunkDelete(@RequestBody DocumentChunkRequest request) {
-        documentService.deleteDocumentChunk(request.getId());
-        return Result.success();
-    }
-
     // ======================== V2 RAG endpoints ========================
 
     @PostMapping("/source/search")
     public Result<List<SearchResult>> sourceDocumentSearch(@RequestBody RagSearchRequest request) {
         request.setUserId(contextUtil.getUserId());
         return Result.success(searchService.execute(request));
-    }
-
-    @PostMapping("/source/reindex")
-    public Result<Void> sourceDocumentReindex(@RequestBody SourceDocumentRequest request) {
-        indexService.index(request.getId());
-        return Result.success();
-    }
-
-    @GetMapping("/source/chunks")
-    public Result<List<DocumentChunkResponse>> sourceDocumentChunks(@RequestParam("documentId") String documentId) {
-        DocumentChunkRequest query = new DocumentChunkRequest();
-        query.setDocumentId(documentId);
-        return Result.success(documentService.queryDocumentChunk(query));
     }
 }

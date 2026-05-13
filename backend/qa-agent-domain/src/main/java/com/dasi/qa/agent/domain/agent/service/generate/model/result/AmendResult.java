@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AmendItem {
+public class AmendResult {
 
     @Description("原题对象")
-    private DraftItem draftItem;
+    private DraftResult draftResult;
 
     @Description("审校不通过的原因")
     private String reason;

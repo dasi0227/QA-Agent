@@ -5,10 +5,10 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static com.dasi.qa.agent.types.constant.DefaultConstant.MAX_MESSAGE;
-
 @Configuration
 public class AgentConfiguration {
+
+    public static final int MAX_MESSAGE = 20;
 
     @Bean
     public ChatMemoryProvider qaGenerationChatMemoryProvider() {

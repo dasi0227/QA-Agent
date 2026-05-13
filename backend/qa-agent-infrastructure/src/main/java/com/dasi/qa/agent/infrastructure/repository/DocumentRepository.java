@@ -209,7 +209,7 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     public List<ChunkSearchRow> semanticSearch(float[] queryVector, String userId,
-            List<String> docIds, List<String> tags, String pathPrefix, int limit) {
+            List<String> docIds, int limit) {
         StringBuilder sql = new StringBuilder("""
                 SELECT chunk_id, document_id, user_id, chunk_index, title_path,
                        content, summary, module_tags_json,
@@ -221,7 +221,7 @@ public class DocumentRepository implements IDocumentRepository {
         List<Object> params = new ArrayList<>();
         params.add(vectorToString(queryVector));
         params.add(userId);
-        appendFilters(sql, params, docIds, tags, pathPrefix);
+        appendDocumentFilter(sql, params, docIds);
         sql.append(" ORDER BY embedding <=> ?::vector LIMIT ?");
         params.add(vectorToString(queryVector));
         params.add(limit);
@@ -231,7 +231,7 @@ public class DocumentRepository implements IDocumentRepository {
 
     @Override
     public List<ChunkSearchRow> keywordSearch(String queryText, String userId,
-            List<String> docIds, List<String> tags, String pathPrefix, int limit) {
+            List<String> docIds, int limit) {
         StringBuilder sql = new StringBuilder("""
                 SELECT chunk_id, document_id, user_id, chunk_index, title_path,
                        content, summary, module_tags_json,
@@ -245,27 +245,19 @@ public class DocumentRepository implements IDocumentRepository {
         params.add(toTsquery(queryText));
         params.add(userId);
         params.add(toTsquery(queryText));
-        appendFilters(sql, params, docIds, tags, pathPrefix);
+        appendDocumentFilter(sql, params, docIds);
         sql.append(" ORDER BY keyword_score DESC LIMIT ?");
         params.add(limit);
 
         return postgresJdbc.query(sql.toString(), new ChunkSearchRowMapper(), params.toArray());
     }
 
-    private void appendFilters(StringBuilder sql, List<Object> params,
-                               List<String> docIds, List<String> tags, String pathPrefix) {
+    private void appendDocumentFilter(StringBuilder sql, List<Object> params,
+                                      List<String> docIds) {
         if (docIds != null && !docIds.isEmpty()) {
             sql.append(" AND document_id = ANY(?::varchar[])");
             params.add(postgresJdbc.getDataSource() != null
                     ? createSqlArray(docIds) : docIds.toArray(new String[0]));
-        }
-        if (tags != null && !tags.isEmpty()) {
-            sql.append(" AND module_tags_json @> ?::jsonb");
-            params.add(toJsonArray(tags));
-        }
-        if (pathPrefix != null && !pathPrefix.isBlank()) {
-            sql.append(" AND title_path LIKE ?");
-            params.add(pathPrefix + "%");
         }
     }
 

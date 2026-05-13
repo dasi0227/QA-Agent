@@ -29,6 +29,4 @@ public class SearchResult {
     private float vectorScore;
 
     private float keywordScore;
-
-    private String source;
 }

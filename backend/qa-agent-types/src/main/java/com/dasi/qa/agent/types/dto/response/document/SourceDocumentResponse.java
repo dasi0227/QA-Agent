@@ -18,9 +18,7 @@ public class SourceDocumentResponse extends BaseResponse {
     private String fileType;
     private String filePath;
     private String rawContent;
-    private String normalizedContent;
     private String summary;
-    private String moduleTagsJson;
     private Integer referenceCount;
     private Boolean deleted;
 }

@@ -13,8 +13,6 @@ public interface IQaRepository {
 
     List<QaSetResponse> queryQaSet(QaSetRequest request, String userId);
 
-    QaSetResponse createQaSet(QaSetRequest request, String userId);
-
     QaSetResponse updateQaSet(QaSetRequest request, String userId);
 
     void deleteQaSet(String id, String userId);

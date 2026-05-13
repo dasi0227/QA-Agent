@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.repository;
 
-import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
@@ -48,6 +48,6 @@ public interface IAgentRepository {
 
     String getDocumentsSummary(List<String> documentIds, String userId);
 
-    String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request, PlanResult planResult, List<DraftItem> draftItems);
+    String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request, PlanResult planResult, List<DraftResult> draftResults);
 
 }

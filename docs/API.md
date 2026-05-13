@@ -69,8 +69,8 @@
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
 | GET | `/document/source/detail?id=...` | 是 | `id` | 按主键查询 |
-| POST | `/document/source/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?`, `summary?`, `moduleTagsJson?` | 条件查询 |
-| POST | `/document/source/upload` | 是 | `fileName`, `fileType`, `rawContent`, `summary?`, `moduleTagsJson?` | 上传资料，自动触发异步 RAG 索引 |
+| POST | `/document/source/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?`, `summary?` | 条件查询 |
+| POST | `/document/source/upload` | 是 | `fileName`, `fileType`, `rawContent`, `summary?` | 上传资料，自动触发异步 RAG 索引 |
 | POST | `/document/source/update` | 是 | 同上，`id` 必填 | 更新资料，自动触发重新索引 |
 | POST | `/document/source/delete` | 是 | `id` | 软删除（`deleted=true`），级联清理切片和检索数据 |
 
@@ -88,7 +88,7 @@
 
 | 方法 | 路径 | 鉴权 | 请求字段 | 说明 |
 | --- | --- | --- | --- | --- |
-| POST | `/document/source/search` | 是 | `queryText`, `strategy`(SEMANTIC/KEYWORD/HYBRID), `filterDocumentIds?`, `filterModuleTags?`, `filterTitlePathPrefix?`, `topK?`(默认10), `agentType?`(GENERATION/FEEDBACK/SCORING) | 混合检索证据 |
+| POST | `/document/source/search` | 是 | `queryText`, `filterDocumentIds?` | 混合检索证据 |
 | POST | `/document/source/reindex` | 是 | `id` | 手动触发指定资料重索引 |
 | GET | `/document/source/chunks?documentId=...` | 是 | `documentId` | 查看某资料的切片列表 |
 
@@ -97,12 +97,7 @@
 ```json
 {
   "queryText": "Redis 跳表的数据结构和应用场景",
-  "strategy": "HYBRID",
-  "filterDocumentIds": ["uuid-1"],
-  "filterModuleTags": ["Redis"],
-  "filterTitlePathPrefix": "Redis > 数据结构",
-  "topK": 10,
-  "agentType": "GENERATION"
+  "filterDocumentIds": ["uuid-1"]
 }
 ```
 
@@ -121,8 +116,7 @@
       "moduleTags": ["Redis", "数据结构"],
       "score": 0.8912,
       "vectorScore": 0.8765,
-      "keywordScore": 0.7234,
-      "source": "HYBRID"
+      "keywordScore": 0.7234
     }
   ]
 }

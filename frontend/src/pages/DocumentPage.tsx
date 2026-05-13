@@ -65,7 +65,7 @@ export function DocumentPage() {
             setDocumentEditorMode("view");
             return;
         }
-        setDocumentDraft(selectedDocumentQuery.data.rawContent || selectedDocumentQuery.data.normalizedContent || "");
+        setDocumentDraft(selectedDocumentQuery.data.rawContent || "");
         setDocumentEditorMode("view");
     }, [selectedDocumentId]);
 
@@ -73,17 +73,17 @@ export function DocumentPage() {
     const selectedDocumentUseCount = selectedDocumentQuery.data?.referenceCount ?? 0;
     const documentBody = documentEditorMode === "edit"
         ? documentDraft
-        : (selectedDocumentQuery.data?.rawContent || selectedDocumentQuery.data?.normalizedContent || "");
+        : (selectedDocumentQuery.data?.rawContent || "");
 
     const handleStartDocumentEdit = () => {
         if (!selectedDocumentQuery.data) return;
-        setDocumentDraft(selectedDocumentQuery.data.rawContent || selectedDocumentQuery.data.normalizedContent || "");
+        setDocumentDraft(selectedDocumentQuery.data.rawContent || "");
         setDocumentEditorMode("edit");
     };
 
     const handleCancelDocumentEdit = () => {
         if (!selectedDocumentQuery.data) return;
-        setDocumentDraft(selectedDocumentQuery.data.rawContent || selectedDocumentQuery.data.normalizedContent || "");
+        setDocumentDraft(selectedDocumentQuery.data.rawContent || "");
         setDocumentEditorMode("view");
     };
 
@@ -92,7 +92,6 @@ export function DocumentPage() {
         await updateDocumentMutation.mutateAsync({
             ...selectedDocumentQuery.data,
             rawContent: documentDraft,
-            normalizedContent: documentDraft,
         });
         setDocumentEditorMode("view");
     };

@@ -1,8 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanItem;
-import com.dasi.qa.agent.domain.agent.shared.enumeration.AgentType;
-import com.dasi.qa.agent.domain.document.model.enumeration.SearchStrategy;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult.PlanItem;
 import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
 import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
@@ -27,7 +25,7 @@ public class RagEvidenceProvider {
         List<SearchResult> results = new ArrayList<>();
         String focusTopics = planItem.getFocusTopics();
         List<String> topics = (focusTopics == null || focusTopics.isBlank())
-                ? List.of(planItem.getModuleTag())
+                ? List.of(planItem.getModule())
                 : List.of(focusTopics.split(","));
         for (String topic : topics) {
             topic = topic.trim();
@@ -36,12 +34,8 @@ public class RagEvidenceProvider {
             }
             RagSearchRequest request = RagSearchRequest.builder()
                     .queryText(topic)
-                    .strategy(SearchStrategy.HYBRID.name())
                     .userId(userId)
                     .filterDocumentIds(documentIds)
-                    .filterModuleTags(List.of(planItem.getModuleTag()))
-                    .topK(8)
-                    .agentType(AgentType.GENERATION.name())
                     .build();
             results.addAll(searchService.execute(request));
         }

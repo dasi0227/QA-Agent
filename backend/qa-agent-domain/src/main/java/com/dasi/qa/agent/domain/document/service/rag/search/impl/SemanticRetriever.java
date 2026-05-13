@@ -1,30 +1,30 @@
-package com.dasi.qa.agent.domain.document.service.rag.retrieval.impl;
+package com.dasi.qa.agent.domain.document.service.rag.search.impl;
 
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
-import com.dasi.qa.agent.domain.document.service.rag.retrieval.IRetriever;
-import com.dasi.qa.agent.domain.document.service.rag.retrieval.RetrieveContext;
+import com.dasi.qa.agent.domain.document.service.rag.search.IRetriever;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * 语义检索器，基于向量余弦距离在 HNSW 索引上做近似最近邻检索。
+ */
 @Component
-public class KeywordRetriever implements IRetriever {
+public class SemanticRetriever implements IRetriever {
 
     private final IDocumentRepository documentRepository;
 
-    public KeywordRetriever(IDocumentRepository documentRepository) {
+    public SemanticRetriever(IDocumentRepository documentRepository) {
         this.documentRepository = documentRepository;
     }
 
     @Override
     public List<ChunkSearchRow> search(RetrieveContext ctx) {
-        return documentRepository.keywordSearch(
-                ctx.getQueryText(),
+        return documentRepository.semanticSearch(
+                ctx.getQueryVector(),
                 ctx.getUserId(),
                 ctx.getFilterDocumentIds(),
-                ctx.getFilterModuleTags(),
-                ctx.getFilterTitlePathPrefix(),
                 ctx.getTopK()
         );
     }

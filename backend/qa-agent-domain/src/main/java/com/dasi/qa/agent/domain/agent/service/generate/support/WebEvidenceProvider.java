@@ -2,7 +2,7 @@ package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.InterviewInsights;
-import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult.PlanItem;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -31,7 +31,7 @@ public class WebEvidenceProvider {
     public List<InterviewInsights> search(String company, String role, PlanItem planItem) {
         String focusTopics = planItem.getFocusTopics();
         List<String> topics = (focusTopics == null || focusTopics.isBlank())
-                ? List.of(planItem.getModuleTag())
+                ? List.of(planItem.getModule())
                 : List.of(focusTopics.split(","));
         List<InterviewInsights> results = new ArrayList<>();
         for (String topic : topics) {

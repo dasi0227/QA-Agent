@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
-import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftItem;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ValidateLoopContext {
 
-    private List<DraftItem> batch;
+    private List<DraftResult> batch;
     private String userPrompt;
     private String jobDescription;
     private String answerStyle;
