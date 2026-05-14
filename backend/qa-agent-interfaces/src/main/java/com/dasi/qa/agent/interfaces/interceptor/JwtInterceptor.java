@@ -32,12 +32,12 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authorization == null || !authorization.startsWith(AUTH_BEARER_PREFIX)) {
-            log.error("【鉴权】缺少令牌：uri={}", request.getRequestURI());
+            log.error("【鉴权】请求缺少令牌: uri={}", request.getRequestURI());
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
         String token = authorization.substring(7);
         if (!IJwtUtil.isAccessTokenValid(token)) {
-            log.error("【鉴权】令牌非法：uri={}", request.getRequestURI());
+            log.error("【鉴权】令牌校验失败: uri={}", request.getRequestURI());
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
         contextUtil.setUserId(IJwtUtil.parseUserId(token));

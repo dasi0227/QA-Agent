@@ -31,7 +31,7 @@ public class EmailUtil implements IEmailUtil {
             ClassPathResource resource = new ClassPathResource("templates/verify-code-email.html");
             return resource.getContentAsString(StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.error("Failed to load verify code email template", e);
+            log.error("【邮件】验证码模板加载失败", e);
             return "<html><body><p>你的验证码是：{{code}}</p></body></html>";
         }
     }
@@ -46,9 +46,9 @@ public class EmailUtil implements IEmailUtil {
             helper.setSubject("QA Agent 邮箱验证码");
             helper.setText(template.replace("{{code}}", code), true);
             mailSender.send(message);
-            log.info("Verification code sent to {}", toEmail);
+            log.info("【邮件】验证码发送成功: toEmail={}", toEmail);
         } catch (Exception e) {
-            log.error("Failed to send verification code to {}", toEmail, e);
+            log.error("【邮件】验证码发送失败: toEmail={}", toEmail, e);
         }
     }
 }

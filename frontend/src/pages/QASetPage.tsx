@@ -92,8 +92,8 @@ export function QASetPage() {
                     </div>
                 </aside>
 
-                <GlassCard className="panel repository-main-panel" style={{ padding: 24 }}>
-                    <div className="fade-in">
+                <GlassCard className="panel repository-main-panel" style={{ padding: 24, overflow: "hidden" }}>
+                    <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
                         {selectedSetQuery.isLoading ? (
                             <div className="qa-feedback">
                                 <strong>正在加载问答集</strong>

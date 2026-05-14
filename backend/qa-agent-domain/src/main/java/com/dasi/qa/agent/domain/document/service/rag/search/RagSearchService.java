@@ -92,7 +92,7 @@ public class RagSearchService implements IRagSearchService {
             ).aiMessage().text().trim();
             return rewritten;
         } catch (Exception exception) {
-            log.warn("【重写】失败: query={}", query, exception);
+            log.warn("【文本嵌入】查询改写失败，回退原始查询: query={}", query, exception);
             return query;
         }
     }

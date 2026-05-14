@@ -56,7 +56,7 @@ public class MqUtil implements IMqUtil {
         }
 
         kafkaTemplate.send(topic, content);
-        log.info("MQ message sent: topic={}, jobId={}", topic, jobId);
+        log.info("【消息队列生产者】消息发送: topic={}, jobId={}", topic, jobId);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class MqUtil implements IMqUtil {
             existing.setJobStatus(JobStatus.SUCCESS.name());
             existing.setUpdatedAt(LocalDateTime.now());
             messageJobMapper.updateById(existing);
-            log.info("MQ job marked SUCCESS: jobId={}", jobId);
+            log.info("【消息队列生产者】任务标记成功: jobId={}", jobId);
         }
     }
 
@@ -77,7 +77,7 @@ public class MqUtil implements IMqUtil {
             existing.setJobStatus(JobStatus.FAIL.name());
             existing.setUpdatedAt(LocalDateTime.now());
             messageJobMapper.updateById(existing);
-            log.info("MQ job marked FAIL: jobId={}", jobId);
+            log.info("【消息队列生产者】任务标记失败: jobId={}", jobId);
         }
     }
 

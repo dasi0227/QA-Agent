@@ -29,6 +29,7 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetDocumentRef
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
+import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
@@ -295,7 +296,7 @@ public class AgentRepository implements IAgentRepository {
 
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
-    @CacheEvict(cacheNames = {"QA_SET_CACHE", "QA_ITEM_CACHE"}, allEntries = true)
+    @CacheEvict(cacheNames = {RedisConstant.QA_SET_CACHE, RedisConstant.QA_ITEM_CACHE}, allEntries = true)
     public String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
                                      PlanResult planResult, List<DraftResult> draftResults) {
         String qaSetId = UUID.randomUUID().toString();

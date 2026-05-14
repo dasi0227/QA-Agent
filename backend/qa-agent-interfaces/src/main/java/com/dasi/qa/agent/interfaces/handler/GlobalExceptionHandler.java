@@ -18,28 +18,28 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleApiException(ApiException exception) {
-        log.error("【全局捕获】API 调用错误：error={}", exception.getMessage(), exception);
+        log.error("【全局异常】API调用错误: error={}", exception.getMessage(), exception);
         return Result.fail(exception.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleInvalidArgument(Exception exception) {
-        log.error("【全局捕获】参数非法：error={}", exception.getMessage(), exception);
+        log.error("【全局异常】参数校验失败: error={}", exception.getMessage(), exception);
         return Result.fail(ResultCode.BAD_REQUEST.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler({BindException.class, IllegalArgumentException.class})
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleBadRequest(Exception exception) {
-        log.error("【全局捕获】请求错误：error={}", exception.getMessage(), exception);
+        log.error("【全局异常】请求处理异常: error={}", exception.getMessage(), exception);
         return Result.fail(ResultCode.INVALID_PARAM.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleException(Exception exception) {
-        log.error("【全局捕获】未知错误：error={}", exception.getMessage(), exception);
+        log.error("【全局异常】未知错误: error={}", exception.getMessage(), exception);
         return Result.fail(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }
 }

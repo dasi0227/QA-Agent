@@ -33,11 +33,11 @@ public class IndexConsumer {
             documentId = json.getString("documentId");
             jobId = INDEX_JOB_ID_PREFIX + documentId;
 
-            log.info("IndexConsumer received: documentId={}, jobId={}", documentId, jobId);
+            log.info("【消息队列消费者】收到资料索引任务: documentId={}, jobId={}", documentId, jobId);
             indexService.index(documentId);
             mqUtil.markSuccess(jobId);
         } catch (Exception e) {
-            log.error("IndexConsumer failed: documentId={}, jobId={}", documentId, jobId, e);
+            log.error("【消息队列消费者】资料索引任务执行失败: documentId={}, jobId={}", documentId, jobId, e);
             if (jobId != null) {
                 mqUtil.markFail(jobId);
             }

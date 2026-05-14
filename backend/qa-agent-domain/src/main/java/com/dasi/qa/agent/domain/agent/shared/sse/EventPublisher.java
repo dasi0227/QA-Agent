@@ -45,7 +45,7 @@ public class EventPublisher {
                 .totalTokens(totalTokens.get())
                 .isCompleted(status.isTerminated())
                 .build();
-        log.info("【发送事件】阶段 {} : {}", phase.getGenerateStage(), message);
+        log.info("【SSE事件】事件已发送: stage={}, message={}", phase.getGenerateStage(), message);
         agentRepository.appendTaskMessage(taskId, userId, phase, message, jsonUtil.toJsonString(sseEvent));
         eventSink.accept(sseEvent);
     }

@@ -24,7 +24,7 @@ import java.util.List;
 @Service
 public class DashScopeService implements IDashScopeService {
 
-    private static final int EMBED_BATCH_SIZE = 25;
+    private static final int EMBED_BATCH_SIZE = 10;
     private static final int MAX_RETRIES = 3;
     private static final long[] RETRY_DELAYS_MS = {1000, 2000, 4000};
     private static final int RERANK_LIMIT = 20;
@@ -88,7 +88,7 @@ public class DashScopeService implements IDashScopeService {
             } catch (Exception e) {
                 if (attempt < MAX_RETRIES - 1) {
                     long delay = RETRY_DELAYS_MS[attempt];
-                    log.warn("【嵌入向量】第 {} 次尝试失败，过 {}ms 重试: {}", attempt + 1, delay, e.getMessage());
+                    log.warn("【文本嵌入】嵌入请求失败，重试: attempt={}, delayMs={}, errorMessage={}", attempt + 1, delay, e.getMessage());
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
@@ -96,7 +96,7 @@ public class DashScopeService implements IDashScopeService {
                         throw new ApiException(ResultCode.INTERNAL_ERROR.getCode(), "Embedding interrupted");
                     }
                 } else {
-                    log.error("【嵌入向量】经过 {} 次尝试后失败，返回原排序", MAX_RETRIES, e);
+                    log.error("【文本嵌入】嵌入请求最终失败: maxRetries={}", MAX_RETRIES, e);
                     throw new ApiException(ResultCode.INTERNAL_ERROR.getCode(), "Embedding failed: " + e.getMessage());
                 }
             }
@@ -138,7 +138,7 @@ public class DashScopeService implements IDashScopeService {
             }
             return topCandidates;
         } catch (Exception e) {
-            log.error("【重排序】失败，返回原排序", e);
+            log.error("【文本嵌入】重排序失败，返回原排序", e);
             return candidates;
         }
     }

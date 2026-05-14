@@ -28,24 +28,23 @@ public class MessageRetryJob {
 
     @XxlJob("messageJobRetryHandler")
     public void execute() {
-        log.info("MessageRetryJob started");
+        log.info("【定时任务】消息重试任务启动");
         LambdaQueryWrapper<MessageJob> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(MessageJob::getJobStatus, JobStatus.UNSOLVED.name());
         List<MessageJob> unsolvedJobs = messageJobMapper.selectList(wrapper);
 
         if (unsolvedJobs.isEmpty()) {
-            log.info("No UNSOLVED message jobs found");
+            log.info("【定时任务】无待重试消息");
             return;
         }
 
-        log.info("Found {} UNSOLVED message jobs", unsolvedJobs.size());
+        log.info("【定时任务】发现待重试消息: count={}", unsolvedJobs.size());
         for (MessageJob job : unsolvedJobs) {
             if (job.getJobRetry() < MAX_RETRY) {
-                log.info("Retrying job: jobId={}, retry={}/{}", job.getJobId(), job.getJobRetry() + 1, MAX_RETRY);
+                log.info("【定时任务】重试消息发送: jobId={}, retry={}/{}", job.getJobId(), job.getJobRetry() + 1, MAX_RETRY);
                 mqUtil.send(job.getMessageTopic(), job.getJobId(), job.getMessageContent());
             } else {
-                log.warn("Job exceeded max retries, sending to DLQ: jobId={}, retry={}",
-                        job.getJobId(), job.getJobRetry());
+                log.warn("【定时任务】消息超出最大重试次数，移入死信: jobId={}, retry={}", job.getJobId(), job.getJobRetry());
                 String dlqTopic = job.getMessageTopic() + ".dlq";
                 mqUtil.send(dlqTopic, job.getJobId() + "_dlq", job.getMessageContent());
                 mqUtil.markFail(job.getJobId());

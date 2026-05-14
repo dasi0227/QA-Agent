@@ -502,6 +502,7 @@ button {
   gap: 16px;
   min-width: 0;
   min-height: 0;
+  flex: 1;
 }
 
 .repository-detail-view {
@@ -773,11 +774,12 @@ button {
 }
 
 .repository-items-panel {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
   min-height: 0;
-  max-height: none;
-  padding-top: 6px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .repository-editor-inline {
@@ -843,9 +845,8 @@ button {
 }
 
 .repository-items-scroll {
-  flex: none;
+  flex: 1;
   min-height: 0;
-  max-height: 50dvh;
   overflow-y: auto;
   padding-right: 6px;
   margin-right: -6px;

@@ -256,8 +256,7 @@ public class DocumentRepository implements IDocumentRepository {
                                       List<String> docIds) {
         if (docIds != null && !docIds.isEmpty()) {
             sql.append(" AND document_id = ANY(?::varchar[])");
-            params.add(postgresJdbc.getDataSource() != null
-                    ? createSqlArray(docIds) : docIds.toArray(new String[0]));
+            params.add(docIds.toArray(new String[0]));
         }
     }
 
@@ -297,15 +296,6 @@ public class DocumentRepository implements IDocumentRepository {
         if (queryText == null || queryText.isBlank()) return "";
         String[] words = queryText.trim().split("\\s+");
         return String.join(" & ", words);
-    }
-
-    private java.sql.Array createSqlArray(List<String> items) {
-        try {
-            return postgresJdbc.getDataSource().getConnection()
-                    .createArrayOf("varchar", items.toArray());
-        } catch (SQLException e) {
-            throw new ApiException(ResultCode.INTERNAL_ERROR.getCode(), "Failed to create SQL array: " + e.getMessage());
-        }
     }
 
     // ======================== generic helpers (existing) ========================
