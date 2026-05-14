@@ -2,13 +2,13 @@ package com.dasi.qa.agent.domain.agent.repository;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
-import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
-import com.dasi.qa.agent.domain.agent.shared.vo.UserLlmModelVO;
-import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
-import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileInfoVO;
-import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileStyleVO;
+import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
+import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
+import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
+import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;

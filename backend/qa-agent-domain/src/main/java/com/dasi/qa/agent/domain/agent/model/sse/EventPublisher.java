@@ -1,6 +1,6 @@
-package com.dasi.qa.agent.domain.agent.shared.sse;
+package com.dasi.qa.agent.domain.agent.model.sse;
 
-import com.dasi.qa.agent.domain.agent.shared.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;

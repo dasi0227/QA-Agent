@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.handler;
 
-import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
+import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.function.Consumer;

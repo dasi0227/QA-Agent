@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.shared.sse;
+package com.dasi.qa.agent.domain.agent.model.sse;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.shared.vo;
+package com.dasi.qa.agent.domain.agent.model.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

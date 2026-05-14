@@ -12,7 +12,7 @@ import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
-import com.dasi.qa.agent.domain.agent.shared.sse.SseEvent;
+import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;

@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
-import com.dasi.qa.agent.domain.agent.shared.vo.UserProfileAllowVO;
+import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import lombok.AllArgsConstructor;

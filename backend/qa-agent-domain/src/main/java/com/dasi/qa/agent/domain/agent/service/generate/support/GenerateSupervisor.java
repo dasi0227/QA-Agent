@@ -2,7 +2,7 @@ package com.dasi.qa.agent.domain.agent.service.generate.support;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
-import com.dasi.qa.agent.domain.agent.shared.sse.EventPublisher;
+import com.dasi.qa.agent.domain.agent.model.sse.EventPublisher;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -55,7 +55,7 @@ public class GenerateSupervisor {
         }
         int total = totalTokens.get();
         int current = total - lastPublishedTokens.getAndSet(total);
-        log.info("【GenerateAgent - {}】调用成功: taskId={}, message={}", phase.getAgentName(), taskId, message);
+        log.info("【生成问答集】Agent调用成功: agent={}, taskId={}, message={}", phase.getAgentName(), taskId, message);
         eventPublisher.publishEvent(phase, GenerateStatus.PROCESSING, message, current);
     }
 
