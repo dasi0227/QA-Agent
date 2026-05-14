@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class SseEvent {
 
     private String taskId;
-    private String phase;
+    private String stage;
     private String status;
     private String message;
     private long timestamp;

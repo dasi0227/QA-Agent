@@ -62,12 +62,14 @@ public class RagEvidenceProvider {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class EvidenceItem {
+        private String chunkId;
         private String content;
         private String summary;
         private List<String> moduleTags;
 
         static EvidenceItem from(SearchResult r) {
             return EvidenceItem.builder()
+                    .chunkId(r.getChunkId())
                     .content(r.getContent())
                     .summary(r.getSummary())
                     .moduleTags(r.getModuleTags())

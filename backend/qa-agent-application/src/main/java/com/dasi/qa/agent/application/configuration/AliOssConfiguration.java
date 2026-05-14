@@ -3,16 +3,19 @@ package com.dasi.qa.agent.application.configuration;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.dasi.qa.agent.infrastructure.properties.AliOssProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@Slf4j
 @Configuration
 @EnableConfigurationProperties(AliOssProperties.class)
 public class AliOssConfiguration {
 
     @Bean(destroyMethod = "shutdown")
     public OSS ossClient(AliOssProperties properties) {
+        log.info("【配置】OSS: endpoint={}, bucket={}", properties.getEndpoint(), properties.getBucketName());
         return new OSSClientBuilder().build(
             properties.getEndpoint(),
             properties.getAccessKeyId(),

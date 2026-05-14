@@ -1,5 +1,11 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
+import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.model.sse.EventPublisher;
+import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
+import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
+import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
+import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.model.context.*;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
@@ -9,12 +15,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateE
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
 import com.dasi.qa.agent.domain.agent.service.generate.support.*;
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
-import com.dasi.qa.agent.domain.agent.model.sse.EventPublisher;
-import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
-import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
-import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
-import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
@@ -256,6 +256,7 @@ public class GenerateAgent implements IGenerateAgent {
     private void doDecide(AgenticScope scope, DecideAgent decideAgent, DecideContext decideContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(decideContext.getTaskId(), GeneratePhase.DECIDE);
+        decideContext.getSupervisor().getEventPublisher().publishProgress("💭 需求分析", "正在分析需求是否符合生成场景...");
 
         // 2. 调用智能体
         String retryHint = "";
@@ -307,6 +308,7 @@ public class GenerateAgent implements IGenerateAgent {
     private void doPlan(AgenticScope scope, PlanAgent planAgent, PlanContext planContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(planContext.getTaskId(), GeneratePhase.PLAN);
+        planContext.getSupervisor().getEventPublisher().publishProgress("🧭 模块规划", "正在分析资料结构，规划模块分配...");
 
         // 2. 拿到资料摘要
         String documentsSummary = agentRepository.getDocumentsSummary(
@@ -364,7 +366,9 @@ public class GenerateAgent implements IGenerateAgent {
         List<PlanResult.PlanItem> planItems = planResult.getPlanItems();
 
         // 3. Phase 1: 串行预搜全部模块的证据（RAG + Web）
+        writeContext.getSupervisor().getEventPublisher().publishProgress("📚 证据检索", "开始检索资料证据，共覆盖 " + planItems.size() + " 个模块...");
         Map<String, String> evidenceMap = new LinkedHashMap<>();
+        Map<String, List<String>> chunkIdsMap = new LinkedHashMap<>();
         for (PlanResult.PlanItem planItem : planItems) {
             try {
                 List<RagEvidenceProvider.EvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().search(
@@ -380,18 +384,27 @@ public class GenerateAgent implements IGenerateAgent {
                     evidenceJson = jsonUtil.toJsonString(ragEvidence);
                 }
                 evidenceMap.put(planItem.getModule(), evidenceJson);
+                chunkIdsMap.put(planItem.getModule(), ragEvidence.stream()
+                        .map(RagEvidenceProvider.EvidenceItem::getChunkId)
+                        .filter(id -> id != null && !id.isBlank())
+                        .distinct()
+                        .toList());
+                writeContext.getSupervisor().getEventPublisher().publishProgress("📚 证据检索", "已完成「" + planItem.getModule() + "」证据检索");
             } catch (Exception e) {
                 log.warn("【生成问答集】证据预搜失败: taskId={}, module={}", writeContext.getTaskId(), planItem.getModule(), e);
                 evidenceMap.put(planItem.getModule(), jsonUtil.toJsonString(List.of()));
+                chunkIdsMap.put(planItem.getModule(), List.of());
             }
         }
 
         // 4. Phase 2: 并行出题，agentAction 内只做纯 LLM 调用，零 DB 访问
+        writeContext.getSupervisor().getEventPublisher().publishProgress("️️✏️ 题目起草", "证据收集完毕，开始起草 " + planItems.size() + " 个模块的题目...");
         List<DraftResult> draftResults = Collections.synchronizedList(new ArrayList<>());
         List<Object> moduleAgents = new ArrayList<>();
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.DRAFT);
         for (PlanResult.PlanItem planItem : planItems) {
             String evidenceJson = evidenceMap.get(planItem.getModule());
+            List<String> sourceChunkIds = chunkIdsMap.get(planItem.getModule());
             AgenticServices.AgenticScopeAction agentAction = AgenticServices.agentAction(moduleScope -> {
                 try {
                     DraftContext draftContext = DraftContext.builder()
@@ -402,6 +415,7 @@ public class GenerateAgent implements IGenerateAgent {
                             .userProfileJson(writeContext.getUserProfileJson())
                             .answerStyle(writeContext.getAnswerStyle())
                             .supervisor(writeContext.getSupervisor())
+                            .sourceChunkIds(sourceChunkIds)
                             .build();
                     draftResults.addAll(doDraft(draftAgent, draftContext));
                 } catch (Exception exception) {
@@ -465,13 +479,16 @@ public class GenerateAgent implements IGenerateAgent {
                             retryHint
                     );
                     batchItems = jsonUtil.parseJsonArray(response, DraftResult.class);
+                    for (DraftResult item : batchItems) {
+                        item.setSourceChunkIds(draftContext.getSourceChunkIds());
+                    }
                     draftContext.getSupervisor().doSupervise(GeneratePhase.DRAFT, response);
                     break;
                 } catch (Exception exception) {
                     retryHint = exception.getMessage();
                     if (attempt == MAX_RETRY) {
                         log.warn("【生成问答集】出题批次最终失败: maxRetries={}, taskId={}, module={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModule(), exception);
-                        batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence());
+                        batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence(), draftContext.getSourceChunkIds());
                     } else {
                         log.warn("【生成问答集】出题批次失败，重试: attempt={}, taskId={}, module={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModule(), exception);
                     }
@@ -489,6 +506,7 @@ public class GenerateAgent implements IGenerateAgent {
     private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext validateContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(validateContext.getTaskId(), GeneratePhase.VALIDATE);
+        validateContext.getSupervisor().getEventPublisher().publishProgress("🔬 审校修订", "开始审校已生成的题目...");
 
         // 2. 初次生成的问答集合
         List<DraftResult> draftResults = readDraftResult(scope);
@@ -526,6 +544,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .toList();
 
         // 6. 写入共享领域
+        validateContext.getSupervisor().getEventPublisher().publishProgress("🔬 审校修订", "审校完成，" + validatedItems.size() + " 题通过");
         writeValidateResult(scope, validatedItems);
     }
 
@@ -631,6 +650,9 @@ public class GenerateAgent implements IGenerateAgent {
                         amendContext.getUserPrompt(), amendContext.getJobDescription(),
                         amendContext.getAnswerStyle(), retryHint);
                 List<DraftResult> results = jsonUtil.parseJsonArray(response, DraftResult.class);
+                for (int i = 0; i < results.size() && i < amendContext.getItems().size(); i++) {
+                    results.get(i).setSourceChunkIds(amendContext.getItems().get(i).getDraftResult().getSourceChunkIds());
+                }
                 amendContext.getSupervisor().doSupervise(GeneratePhase.AMEND, response);
                 return results;
             } catch (Exception exception) {
@@ -651,6 +673,7 @@ public class GenerateAgent implements IGenerateAgent {
     private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext summarizeContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(summarizeContext.getTaskId(), GeneratePhase.SUMMARIZE);
+        summarizeContext.getEventPublisher().publishEvent(GeneratePhase.SUMMARIZE, GenerateStatus.PROCESSING, "💾 正在保存问答集...", 0);
 
         // 2. 计划结果
         PlanResult planResult = readPlanResult(scope);
@@ -721,19 +744,19 @@ public class GenerateAgent implements IGenerateAgent {
         );
     }
 
-    private List<DraftResult> fallbackDraft(PlanResult.PlanItem planItem, String evidence) {
+    private List<DraftResult> fallbackDraft(PlanResult.PlanItem planItem, String evidence, List<String> sourceChunkIds) {
         int count = Math.max(1, planItem.getQuestionCount());
         List<DraftResult> drafts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            drafts.add(new DraftResult(
-                    planItem.getModule() + " 的核心问题 " + (i + 1),
-                    evidence,
-                    evidence,
-                    planItem.getModule(),
-                    "MEDIUM",
-                    evidence.isEmpty() ? "资料证据不足" : "",
-                    evidence
-            ));
+            drafts.add(DraftResult.builder()
+                    .question(planItem.getModule() + " 的核心问题 " + (i + 1))
+                    .knowledgeNote(evidence)
+                    .answer(evidence)
+                    .tag(planItem.getModule())
+                    .difficulty("MEDIUM")
+                    .tip(evidence.isEmpty() ? "资料证据不足" : "")
+                    .sourceChunkIds(sourceChunkIds)
+                    .build());
         }
         return drafts;
     }
@@ -741,7 +764,8 @@ public class GenerateAgent implements IGenerateAgent {
     private List<DraftResult> fallbackAmend(List<AmendResult> items) {
         List<DraftResult> results = new ArrayList<>();
         for (AmendResult item : items) {
-            results.add(item.getDraftResult());
+            DraftResult amended = item.getDraftResult();
+            results.add(amended);
         }
         return results;
     }

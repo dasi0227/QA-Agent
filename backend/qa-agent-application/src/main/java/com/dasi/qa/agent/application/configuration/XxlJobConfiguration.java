@@ -20,7 +20,7 @@ public class XxlJobConfiguration {
             @Value("${qa-agent.xxl-job.access-token}") String accessToken,
             @Value("${qa-agent.xxl-job.log-path}") String logPath,
             @Value("${qa-agent.xxl-job.log-retention-days}") int logRetentionDays) {
-        log.info("【启动】xxl-job 启动: adminAddresses={}, appName={}, port={}", adminAddresses, appName, port);
+        log.info("【配置】xxl-job: address={}, port={}, appName={}", adminAddresses, port, appName);
         XxlJobSpringExecutor executor = new XxlJobSpringExecutor();
         executor.setAdminAddresses(adminAddresses);
         executor.setAppname(appName);

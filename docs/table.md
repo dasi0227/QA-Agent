@@ -295,7 +295,7 @@
 6. `answer`
 7. `module_tag`
 8. `difficulty`
-9. `conflict_tip`
+9. `tip`
 10. `source_chunk_ids_json`
 11. `sort_order`
 12. `created_at`

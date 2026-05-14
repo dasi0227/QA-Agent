@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,4 +23,5 @@ public class DraftContext {
     private String userProfileJson;
     private String answerStyle;
     private GenerateSupervisor supervisor;
+    private List<String> sourceChunkIds;
 }

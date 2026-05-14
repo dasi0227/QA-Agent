@@ -196,7 +196,7 @@ export function normalizeQuestionItem(raw: unknown): QuestionItem {
         answer: toStringValue(pick(raw, "answer")),
         moduleTag: toStringValue(pick(raw, "moduleTag", "module_tag")),
         difficulty: toStringValue(pick(raw, "difficulty")),
-        conflictTip: toStringValue(pick(raw, "conflictTip", "conflict_tip")),
+        tip: toStringValue(pick(raw, "tip")),
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
         sortOrder: toNumberValue(pick(raw, "sortOrder", "sort_order")),
     };
@@ -250,7 +250,7 @@ function toQuestionItemPayload(input: QuestionItemDraft & { qaSetId?: string; qu
         answer: input.answer,
         moduleTag: input.moduleTag,
         difficulty: input.difficulty,
-        conflictTip: input.conflictTip,
+        tip: input.tip,
         sourceChunkIdsJson: input.sourceChunkIdsJson,
     };
 }

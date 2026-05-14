@@ -128,12 +128,12 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void appendTaskMessage(String taskId, String userId, GeneratePhase phase, String message, String content) {
+    public void appendTaskMessage(String taskId, String userId, String stage, String message, String content) {
         QaGenerationTaskMessage entity = new QaGenerationTaskMessage();
         entity.setId(UUID.randomUUID().toString());
         entity.setUserId(userId);
         entity.setTaskId(taskId);
-        entity.setStage(phase.getGenerateStage());
+        entity.setStage(stage);
         entity.setMessage(message);
         entity.setContent(content);
         entity.setCreatedAt(LocalDateTime.now());
@@ -322,8 +322,8 @@ public class AgentRepository implements IAgentRepository {
             item.setAnswer(draftResult.getAnswer());
             item.setModuleTag(draftResult.getTag());
             item.setDifficulty(draftResult.getDifficulty());
-            item.setConflictTip(draftResult.getConflictTip());
-            item.setSourceChunkIdsJson(JSON.toJSONString(List.of()));
+            item.setTip(draftResult.getTip());
+            item.setSourceChunkIdsJson(JSON.toJSONString(draftResult.getSourceChunkIds() != null ? draftResult.getSourceChunkIds() : List.of()));
             item.setSortOrder(sortOrder++);
             qaItemMapper.insert(item);
         }
@@ -361,7 +361,12 @@ public class AgentRepository implements IAgentRepository {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (DraftResult draftResult : draftResults) {
             if (draftResult.getTag() != null && !draftResult.getTag().isBlank()) {
-                tags.add(draftResult.getTag());
+                for (String tag : draftResult.getTag().split(",")) {
+                    String trimmed = tag.trim();
+                    if (!trimmed.isEmpty()) {
+                        tags.add(trimmed);
+                    }
+                }
             }
         }
         return new ArrayList<>(tags);

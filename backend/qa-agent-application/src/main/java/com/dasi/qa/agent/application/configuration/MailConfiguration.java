@@ -1,6 +1,7 @@
 package com.dasi.qa.agent.application.configuration;
 
 import com.dasi.qa.agent.infrastructure.properties.MailProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,12 +10,14 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import java.util.Properties;
 
+@Slf4j
 @Configuration
 @EnableConfigurationProperties(MailProperties.class)
 public class MailConfiguration {
 
     @Bean
     public JavaMailSender javaMailSender(MailProperties properties) {
+        log.info("【配置】MailSender: host={}, port={}, username={}", properties.getHost(), properties.getPort(), properties.getUsername());
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(properties.getHost());
         sender.setPort(properties.getPort());

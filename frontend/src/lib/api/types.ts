@@ -95,7 +95,7 @@ export type QuestionItem = {
     answer: string;
     moduleTag: string;
     difficulty: string;
-    conflictTip: string;
+    tip: string;
     sourceChunkIdsJson: string;
     sortOrder: number;
 };
@@ -106,7 +106,7 @@ export type QuestionItemDraft = {
     answer: string;
     moduleTag: string;
     difficulty: string;
-    conflictTip: string;
+    tip: string;
     sourceChunkIdsJson: string;
 };
 
@@ -172,7 +172,7 @@ export type TaskListItem = {
 
 export type SseEvent = {
     taskId: string;
-    phase: string;
+    stage: string;
     status: string;
     message: string;
     timestamp: number;

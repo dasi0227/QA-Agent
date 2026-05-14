@@ -216,7 +216,7 @@ SUMMARIZE
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
 | GET | `/qa/item/detail?id=...` | 是 | `id` |
-| POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `conflictTip?`, `sourceChunkIdsJson?`, `sortOrder?` |
+| POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `tip?`, `sourceChunkIdsJson?`, `sortOrder?` |
 | POST | `/qa/item/update` | 是 | 同上，`id` 必填 |
 | POST | `/qa/item/delete` | 是 | `id` |
 

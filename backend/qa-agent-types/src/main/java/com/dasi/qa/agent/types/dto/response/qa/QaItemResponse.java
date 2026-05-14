@@ -20,7 +20,7 @@ public class QaItemResponse extends BaseResponse {
     private String answer;
     private String moduleTag;
     private String difficulty;
-    private String conflictTip;
+    private String tip;
     private String sourceChunkIdsJson;
     private Integer sortOrder;
 }

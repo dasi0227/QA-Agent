@@ -20,7 +20,7 @@ const emptyItemDraft = {
     answer: "",
     moduleTag: "",
     difficulty: "",
-    conflictTip: "",
+    tip: "",
     sourceChunkIdsJson: "",
 };
 
@@ -74,7 +74,7 @@ export function QuestionPage() {
                 answer: found.answer,
                 moduleTag: found.moduleTag,
                 difficulty: found.difficulty || "",
-                conflictTip: found.conflictTip || "",
+                tip: found.tip || "",
                 sourceChunkIdsJson: found.sourceChunkIdsJson || "",
             });
         }
@@ -89,7 +89,7 @@ export function QuestionPage() {
             answer: item.answer,
             moduleTag: item.moduleTag,
             difficulty: item.difficulty || "",
-            conflictTip: item.conflictTip || "",
+            tip: item.tip || "",
             sourceChunkIdsJson: item.sourceChunkIdsJson || "",
         });
         setItemEditorMode("edit");
@@ -245,8 +245,8 @@ export function QuestionPage() {
                                 </Field>
                                 <Field label="冲突提示" hint="可选">
                                     <TextArea
-                                        value={itemDraft.conflictTip}
-                                        onChange={(event) => setItemDraft((current) => ({ ...current, conflictTip: event.target.value }))}
+                                        value={itemDraft.tip}
+                                        onChange={(event) => setItemDraft((current) => ({ ...current, tip: event.target.value }))}
                                         rows={3}
                                     />
                                 </Field>

@@ -340,7 +340,15 @@ export function QASetPage() {
                                                             className={cn("repository-item-card")}
                                                         >
                                                             <strong>{item.question}</strong>
-                                                            <span>{item.moduleTag}</span>
+                                                            {item.moduleTag?.trim() ? (
+                                                                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                                                    {item.moduleTag.split(",").map((tag) => tag.trim()).filter(Boolean).map((tag) => (
+                                                                        <Tag key={tag}>{tag}</Tag>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <span>{item.moduleTag}</span>
+                                                            )}
                                                             <small>{item.difficulty || "未标注难度"}</small>
                                                         </Link>
                                                     ))}

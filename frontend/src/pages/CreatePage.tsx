@@ -58,7 +58,7 @@ function formatTaskTime(createdAt?: string) {
 }
 
 type TimelineNode = {
-    phase: string;
+    stage: string;
     events: SseEvent[];
 };
 
@@ -66,11 +66,11 @@ function buildTimelineNodes(events: SseEvent[]): TimelineNode[] {
     const nodes: TimelineNode[] = [];
     for (const event of events) {
         const last = nodes[nodes.length - 1];
-        if (last && last.phase === event.phase) {
+        if (last && last.stage === event.stage) {
             last.events.push(event);
         } else {
             nodes.push({
-                phase: event.phase,
+                stage: event.stage,
                 events: [event],
             });
         }
@@ -115,7 +115,7 @@ export function CreatePage() {
         if (events.length > 0) {
             setSseEvents(events);
             if (events[events.length - 1].isCompleted
-                || /完成|COMPLETED|失败|FAILED/i.test(events[events.length - 1].phase)) {
+                || /完成|COMPLETED|失败|FAILED/i.test(events[events.length - 1].stage)) {
                 setRecoveryTrigger(0);
             }
         }
@@ -174,7 +174,7 @@ export function CreatePage() {
     const isCompleted = taskTerminal
         || (sseEvents.length > 0 && (
             sseEvents[sseEvents.length - 1].isCompleted
-            || /完成|COMPLETED|失败|FAILED/i.test(sseEvents[sseEvents.length - 1].phase)
+            || /完成|COMPLETED|失败|FAILED/i.test(sseEvents[sseEvents.length - 1].stage)
         ));
 
     // Persist draft on changes
@@ -327,22 +327,25 @@ export function CreatePage() {
                                     const isActive = isLastNode && !isCompleted;
                                     return (
                                         <div
-                                            key={`${node.phase}-${nodeIdx}`}
+                                            key={`${node.stage}-${nodeIdx}`}
                                             className={`sse-timeline__node${isActive ? " sse-timeline__node--active" : ""}`}
                                         >
                                             <div className="sse-timeline__phase-header">
                                                 <span className="sse-timeline__phase-label">
-                                                    {node.phase}
+                                                    {node.stage}
                                                 </span>
                                                 <span className="sse-timeline__phase-tags">
                                                     <span className="sse-timeline__phase-tag">
                                                         {formatTime(node.events[0].timestamp)}
                                                     </span>
-                                                    {node.events[0].currentTokens > 0 ? (
-                                                        <span className="sse-timeline__phase-tag">
-                                                            {node.events[0].currentTokens} tokens
-                                                        </span>
-                                                    ) : null}
+                                                    {(() => {
+                                                        const total = node.events.reduce((sum, e) => sum + e.currentTokens, 0);
+                                                        return total > 0 ? (
+                                                            <span className="sse-timeline__phase-tag">
+                                                                {total} tokens
+                                                            </span>
+                                                        ) : null;
+                                                    })()}
                                                 </span>
                                             </div>
 

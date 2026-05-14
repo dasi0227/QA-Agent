@@ -59,4 +59,8 @@ public class GenerateSupervisor {
         eventPublisher.publishEvent(phase, GenerateStatus.PROCESSING, message, current);
     }
 
+    public EventPublisher getEventPublisher() {
+        return eventPublisher;
+    }
+
 }

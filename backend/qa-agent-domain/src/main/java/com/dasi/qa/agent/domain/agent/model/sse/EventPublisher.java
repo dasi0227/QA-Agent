@@ -37,7 +37,7 @@ public class EventPublisher {
     public void publishEvent(GeneratePhase phase, GenerateStatus status, String message, int currentTokens) {
         SseEvent sseEvent = SseEvent.builder()
                 .taskId(taskId)
-                .phase(phase.getGenerateStage())
+                .stage(phase.getGenerateStage())
                 .status(status.name())
                 .message(message)
                 .timestamp(System.currentTimeMillis())
@@ -46,7 +46,7 @@ public class EventPublisher {
                 .isCompleted(status.isTerminated())
                 .build();
         log.info("【SSE事件】事件已发送: stage={}, message={}", phase.getGenerateStage(), message);
-        agentRepository.appendTaskMessage(taskId, userId, phase, message, jsonUtil.toJsonString(sseEvent));
+        agentRepository.appendTaskMessage(taskId, userId, phase.getGenerateStage(), message, jsonUtil.toJsonString(sseEvent));
         eventSink.accept(sseEvent);
     }
 
@@ -58,6 +58,22 @@ public class EventPublisher {
     public void publishCanceled(ErrorType errorType, String errorMessage) {
         agentRepository.markTaskFailed(taskId, errorType, errorMessage);
         publishEvent(GeneratePhase.FAIL, GenerateStatus.CANCELED, errorMessage, 0);
+    }
+
+    public void publishProgress(String stage, String message) {
+        SseEvent sseEvent = SseEvent.builder()
+                .taskId(taskId)
+                .stage(stage)
+                .status(GenerateStatus.PROCESSING.name())
+                .message(message)
+                .timestamp(System.currentTimeMillis())
+                .currentTokens(0)
+                .totalTokens(totalTokens.get())
+                .isCompleted(false)
+                .build();
+        log.info("【SSE事件】事件已发送: stage={}, message={}", stage, message);
+        agentRepository.appendTaskMessage(taskId, userId, stage, message, jsonUtil.toJsonString(sseEvent));
+        eventSink.accept(sseEvent);
     }
 
 }
