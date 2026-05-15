@@ -33,6 +33,8 @@ public class PracticeSessionItem {
     private Integer score;
     
     private String feedbackSummary;
+
+    private String feedbackDetailJson;
     
     private LocalDateTime answeredAt;
     

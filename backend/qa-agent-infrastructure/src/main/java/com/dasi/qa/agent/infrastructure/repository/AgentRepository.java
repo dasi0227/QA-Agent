@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
@@ -14,6 +16,8 @@ import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunk;
+import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSession;
+import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItem;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTask;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaGenerationTaskMessage;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaItem;
@@ -22,6 +26,8 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.QaSet;
 import com.dasi.qa.agent.infrastructure.persistent.entity.SourceDocument;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfile;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.DocumentChunkMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaGenerationTaskMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaGenerationTaskMessageMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
@@ -31,6 +37,7 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMa
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
+import com.dasi.qa.agent.types.dto.response.practice.FeedbackSourceChunk;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
@@ -42,8 +49,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Repository
@@ -57,6 +66,8 @@ public class AgentRepository implements IAgentRepository {
     private final QaItemMapper qaItemMapper;
     private final QaSetDocumentRefMapper qaSetDocumentRefMapper;
     private final DocumentChunkMapper documentChunkMapper;
+    private final PracticeSessionMapper practiceSessionMapper;
+    private final PracticeSessionItemMapper practiceSessionItemMapper;
 
     public AgentRepository(QaGenerationTaskMapper taskMapper,
                            QaGenerationTaskMessageMapper taskMessageMapper,
@@ -65,7 +76,9 @@ public class AgentRepository implements IAgentRepository {
                            QaSetMapper qaSetMapper,
                            QaItemMapper qaItemMapper,
                            QaSetDocumentRefMapper qaSetDocumentRefMapper,
-                           DocumentChunkMapper documentChunkMapper) {
+                           DocumentChunkMapper documentChunkMapper,
+                           PracticeSessionMapper practiceSessionMapper,
+                           PracticeSessionItemMapper practiceSessionItemMapper) {
         this.taskMapper = taskMapper;
         this.taskMessageMapper = taskMessageMapper;
         this.userProfileMapper = userProfileMapper;
@@ -74,6 +87,8 @@ public class AgentRepository implements IAgentRepository {
         this.qaItemMapper = qaItemMapper;
         this.qaSetDocumentRefMapper = qaSetDocumentRefMapper;
         this.documentChunkMapper = documentChunkMapper;
+        this.practiceSessionMapper = practiceSessionMapper;
+        this.practiceSessionItemMapper = practiceSessionItemMapper;
     }
 
     @Override
@@ -343,6 +358,64 @@ public class AgentRepository implements IAgentRepository {
         return qaSetId;
     }
 
+    @Override
+    public FeedbackContext getFeedbackContext(String sessionItemId, String userId) {
+        PracticeSessionItem sessionItem = requirePracticeSessionItem(sessionItemId);
+        PracticeSession session = requirePracticeSession(sessionItem.getSessionId());
+        if (!userId.equals(session.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        QaItem qaItem = qaItemMapper.selectById(sessionItem.getQaItemId());
+        if (qaItem == null || !userId.equals(qaItem.getUserId())) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        UserProfileStyleVO style = getUserProfileStyle(userId);
+        List<FeedbackSourceChunk> sourceChunks = feedbackSourceChunks(qaItem.getSourceChunkIdsJson(), userId);
+        return FeedbackContext.builder()
+                .sessionItemId(sessionItem.getId())
+                .sessionId(sessionItem.getSessionId())
+                .qaItemId(qaItem.getId())
+                .question(qaItem.getQuestion())
+                .standardAnswer(qaItem.getAnswer())
+                .knowledgeNote(qaItem.getKnowledgeNote())
+                .tip(qaItem.getTip())
+                .answerStyle(style == null ? "" : style.getAnswerStyle())
+                .feedbackStyle(style == null ? "" : style.getFeedbackStyle())
+                .sourceChunks(sourceChunks)
+                .previousAnsweredAt(sessionItem.getAnsweredAt())
+                .build();
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = {RedisConstant.PRACTICE_SESSION_CACHE, RedisConstant.PRACTICE_SESSION_ITEM_CACHE}, allEntries = true)
+    public LocalDateTime saveFeedbackResult(String sessionItemId, String userId, FeedbackSaveCommand command) {
+        PracticeSessionItem sessionItem = requirePracticeSessionItem(sessionItemId);
+        PracticeSession session = requirePracticeSession(sessionItem.getSessionId());
+        if (!userId.equals(session.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        practiceSessionItemMapper.update(null,
+                new LambdaUpdateWrapper<PracticeSessionItem>()
+                        .set(PracticeSessionItem::getUserAnswer, command.getUserAnswer())
+                        .set(PracticeSessionItem::getResult, command.getResult().name())
+                        .set(PracticeSessionItem::getScore, command.getScore())
+                        .set(PracticeSessionItem::getFeedbackSummary, command.getFeedbackSummary())
+                        .set(PracticeSessionItem::getFeedbackDetailJson, JSON.toJSONString(command.getDetailPayload()))
+                        .set(PracticeSessionItem::getAnsweredAt, now)
+                        .set(PracticeSessionItem::getUpdatedAt, now)
+                        .eq(PracticeSessionItem::getId, sessionItemId));
+        if (sessionItem.getAnsweredAt() == null) {
+            practiceSessionMapper.update(null,
+                    new LambdaUpdateWrapper<PracticeSession>()
+                            .setSql("answered_count = answered_count + 1")
+                            .set(PracticeSession::getUpdatedAt, now)
+                            .eq(PracticeSession::getId, session.getId()));
+        }
+        return now;
+    }
+
     private QaGenerationTask requireTask(String taskId) {
         QaGenerationTask entity = taskMapper.selectById(taskId);
         if (entity == null) {
@@ -354,6 +427,62 @@ public class AgentRepository implements IAgentRepository {
     private void checkUser(QaGenerationTask entity, String userId) {
         if (!userId.equals(entity.getUserId())) {
             throw new ApiException(ResultCode.FORBIDDEN);
+        }
+    }
+
+    private PracticeSessionItem requirePracticeSessionItem(String sessionItemId) {
+        PracticeSessionItem entity = practiceSessionItemMapper.selectById(sessionItemId);
+        if (entity == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        return entity;
+    }
+
+    private PracticeSession requirePracticeSession(String sessionId) {
+        PracticeSession entity = practiceSessionMapper.selectById(sessionId);
+        if (entity == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        return entity;
+    }
+
+    private List<FeedbackSourceChunk> feedbackSourceChunks(String sourceChunkIdsJson, String userId) {
+        List<String> chunkIds = parseChunkIds(sourceChunkIdsJson);
+        if (chunkIds.isEmpty()) {
+            return List.of();
+        }
+        List<DocumentChunk> chunks = documentChunkMapper.selectList(
+                new LambdaQueryWrapper<DocumentChunk>()
+                        .in(DocumentChunk::getId, chunkIds)
+                        .eq(DocumentChunk::getUserId, userId));
+        Map<String, DocumentChunk> chunkMap = new LinkedHashMap<>();
+        for (DocumentChunk chunk : chunks) {
+            chunkMap.put(chunk.getId(), chunk);
+        }
+        List<FeedbackSourceChunk> results = new ArrayList<>();
+        for (String chunkId : chunkIds) {
+            DocumentChunk chunk = chunkMap.get(chunkId);
+            if (chunk != null) {
+                results.add(FeedbackSourceChunk.builder()
+                        .chunkId(chunk.getId())
+                        .documentId(chunk.getDocumentId())
+                        .titlePath(chunk.getTitlePath())
+                        .summary(chunk.getSummary())
+                        .content(chunk.getContent())
+                        .build());
+            }
+        }
+        return results;
+    }
+
+    private List<String> parseChunkIds(String sourceChunkIdsJson) {
+        if (sourceChunkIdsJson == null || sourceChunkIdsJson.isBlank()) {
+            return List.of();
+        }
+        try {
+            return JSON.parseArray(sourceChunkIdsJson, String.class);
+        } catch (Exception exception) {
+            return List.of();
         }
     }
 

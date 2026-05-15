@@ -2,6 +2,7 @@ package com.dasi.qa.agent.infrastructure.repository;
 
 import static com.dasi.qa.agent.types.constant.StringConstant.DB_USER_ID;
 
+import com.alibaba.fastjson2.JSON;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
@@ -17,6 +18,7 @@ import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
+import com.dasi.qa.agent.types.dto.response.practice.FeedbackDetailPayload;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.constant.RedisConstant;
@@ -150,6 +152,16 @@ public class PracticeRepository implements IPracticeRepository {
     private <E, R extends BaseResponse> R toResponse(E entity, Class<R> responseType) {
         R response = ReflectUtil.newInstance(responseType);
         BeanUtil.copyProperties(entity, response, CopyOptions.create().ignoreNullValue());
+        if (response instanceof PracticeSessionItemResponse itemResponse
+                && entity instanceof PracticeSessionItem itemEntity
+                && itemEntity.getFeedbackDetailJson() != null
+                && !itemEntity.getFeedbackDetailJson().isBlank()) {
+            FeedbackDetailPayload payload = JSON.parseObject(itemEntity.getFeedbackDetailJson(), FeedbackDetailPayload.class);
+            if (payload != null) {
+                itemResponse.setJudgeDetail(payload.getJudgeDetail());
+                itemResponse.setHintDetail(payload.getHintDetail());
+            }
+        }
         if ((response.getId() == null || response.getId().isBlank()) && BeanUtil.getProperty(entity, "userId") != null) {
             response.setId(String.valueOf(BeanUtil.getProperty(entity, "userId")));
         }

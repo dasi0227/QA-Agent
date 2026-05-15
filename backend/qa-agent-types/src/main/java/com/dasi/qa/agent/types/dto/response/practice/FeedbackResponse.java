@@ -1,29 +1,27 @@
 package com.dasi.qa.agent.types.dto.response.practice;
 
-import com.dasi.qa.agent.types.dto.response.BaseResponse;
+import com.dasi.qa.agent.types.enumeration.FeedbackResultType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-public class PracticeSessionItemResponse extends BaseResponse {
+public class FeedbackResponse {
 
-    private String sessionId;
+    private String sessionItemId;
     private String qaItemId;
-    private Integer sortOrder;
-    private String userAnswer;
-    private String result;
+    private FeedbackResultType result;
     private Integer score;
     private String feedbackSummary;
     private JudgeFeedbackDetail judgeDetail;
     private HintFeedbackDetail hintDetail;
+    private List<FeedbackSourceChunk> sourceChunks;
     private LocalDateTime answeredAt;
 }

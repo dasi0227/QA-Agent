@@ -241,6 +241,81 @@ SUMMARIZE
 | POST | `/practice/session-item/create` | 是 | 同上 |
 | POST | `/practice/session-item/update` | 是 | 同上，`id` 必填 |
 | POST | `/practice/session-item/delete` | 是 | `id` |
+| POST | `/practice/session-item/feedback` | 是 | `sessionItemId`, `userAnswer?`, `unknown?` |
+
+说明：`/practice/session-item/feedback` 为 V4 单题同步反馈接口，不使用 SSE、轮询或后台任务。`unknown=true` 或 `userAnswer` 为空白时进入不会提示分支，后端固定 `result=UNKNOWN`、`score=0`。
+
+#### `/practice/session-item/feedback` 请求示例
+
+```json
+{
+  "sessionItemId": "99999999-9999-9999-9999-999999999991",
+  "userAnswer": "Starter 负责依赖收敛，自动配置负责按条件装配 Bean。",
+  "unknown": false
+}
+```
+
+#### `/practice/session-item/feedback` 响应字段
+
+| 字段 | 说明 |
+| --- | --- |
+| `sessionItemId` | 练习题目结果 ID |
+| `qaItemId` | 对应题目 ID |
+| `result` | `CORRECT` / `DEFICIENT` / `WRONG` / `UNKNOWN` |
+| `score` | 单题离散分数 |
+| `feedbackSummary` | 单题反馈摘要 |
+| `judgeDetail` | 有效回答分支详情，包含 `missingPoints`、`wrongPoints`、`improvementAdvice`、`betterAnswer` |
+| `hintDetail` | 不会分支详情，包含 `memoryTip`、`encouragement` |
+| `sourceChunks` | 根据 `qa_item.source_chunk_ids_json` 回查的资料切片，供前端折叠展示，不传给 Agent |
+| `answeredAt` | 最近一次作答时间 |
+
+#### 有效回答响应示例
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "sessionItemId": "99999999-9999-9999-9999-999999999991",
+    "qaItemId": "77777777-7777-7777-7777-777777777771",
+    "result": "DEFICIENT",
+    "score": 60,
+    "feedbackSummary": "你答到了依赖收敛和条件装配，但缺少二者协作关系。",
+    "judgeDetail": {
+      "missingPoints": ["没有说明 Starter 和自动配置如何配合降低接入成本"],
+      "wrongPoints": [],
+      "improvementAdvice": "先区分职责，再说明二者如何配合完成开箱即用。",
+      "betterAnswer": "Starter 负责收敛依赖，自动配置负责在条件满足时装配 Bean，两者配合让 Spring Boot 能以较少配置完成能力接入。"
+    },
+    "hintDetail": null,
+    "sourceChunks": [],
+    "answeredAt": "2026-05-16T01:00:00"
+  }
+}
+```
+
+#### 不会分支响应示例
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "sessionItemId": "99999999-9999-9999-9999-999999999991",
+    "qaItemId": "77777777-7777-7777-7777-777777777771",
+    "result": "UNKNOWN",
+    "score": 0,
+    "feedbackSummary": "这题已标记为不会。",
+    "judgeDetail": null,
+    "hintDetail": {
+      "memoryTip": "把 Starter 记成依赖包，把自动配置记成装配开关。",
+      "encouragement": "暂时不会也没关系，能把卡住的题标出来，本身就是一次有效练习。"
+    },
+    "sourceChunks": [],
+    "answeredAt": "2026-05-16T01:00:00"
+  }
+}
+```
 
 ## 错误码
 

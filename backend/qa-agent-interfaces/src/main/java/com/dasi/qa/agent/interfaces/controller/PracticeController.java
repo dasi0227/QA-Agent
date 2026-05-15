@@ -1,8 +1,11 @@
 package com.dasi.qa.agent.interfaces.controller;
 
+import com.dasi.qa.agent.domain.agent.service.feedback.IFeedbackAgent;
 import com.dasi.qa.agent.domain.practice.service.crud.IPracticeCrudService;
+import com.dasi.qa.agent.types.dto.request.practice.FeedbackRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
+import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.Result;
@@ -15,9 +18,11 @@ import java.util.List;
 public class PracticeController {
 
     private final IPracticeCrudService practiceService;
+    private final IFeedbackAgent feedbackAgent;
 
-    public PracticeController(IPracticeCrudService practiceService) {
+    public PracticeController(IPracticeCrudService practiceService, IFeedbackAgent feedbackAgent) {
         this.practiceService = practiceService;
+        this.feedbackAgent = feedbackAgent;
     }
 
     @GetMapping("/session/detail")
@@ -70,5 +75,10 @@ public class PracticeController {
     public Result<Void> practiceSessionItemDelete(@RequestBody PracticeSessionItemRequest request) {
         practiceService.deletePracticeSessionItem(request.getId());
         return Result.success();
+    }
+
+    @PostMapping("/session-item/feedback")
+    public Result<FeedbackResponse> practiceSessionItemFeedback(@RequestBody FeedbackRequest request) {
+        return Result.success(feedbackAgent.execute(request));
     }
 }

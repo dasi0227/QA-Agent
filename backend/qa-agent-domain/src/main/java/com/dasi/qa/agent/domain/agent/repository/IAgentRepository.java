@@ -5,6 +5,8 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
@@ -15,6 +17,7 @@ import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 public interface IAgentRepository {
 
@@ -49,5 +52,9 @@ public interface IAgentRepository {
     String getDocumentsSummary(List<String> documentIds, String userId);
 
     String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request, PlanResult planResult, List<DraftResult> draftResults);
+
+    FeedbackContext getFeedbackContext(String sessionItemId, String userId);
+
+    LocalDateTime saveFeedbackResult(String sessionItemId, String userId, FeedbackSaveCommand command);
 
 }

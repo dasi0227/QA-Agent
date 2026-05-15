@@ -350,14 +350,19 @@
 6. `result`
 7. `score`
 8. `feedback_summary`
-9. `answered_at`
-10. `created_at`
-11. `updated_at`
+9. `feedback_detail_json`
+10. `answered_at`
+11. `created_at`
+12. `updated_at`
 
 说明：
 
 1. 保留用户作答文本 `user_answer`。
-2. 不保留 `is_unknown`，由 `result` 承载"不会"语义。
+2. 不保留 `is_unknown`，由 `result=UNKNOWN` 承载"不会"语义。
+3. `result` 取值为 `CORRECT`、`DEFICIENT`、`WRONG`、`UNKNOWN`。
+4. `score` 使用离散分数：`CORRECT` 为 80/90/100，`DEFICIENT` 为 40/50/60/70，`WRONG` 为 0/10/20/30，`UNKNOWN` 固定 0。
+5. `feedback_summary` 存单题反馈摘要，供列表和题卡快速展示。
+6. `feedback_detail_json` 存结构化反馈详情。`JUDGE` 分支存 `judgeDetail`，`HINT` 分支存 `hintDetail`；API 返回时拆成结构化对象，不直接返回 JSON 字符串。
 
 ### 4.12 `message_job`
 
@@ -513,6 +518,7 @@
 2. `qa_generation_task.document_ids_json`
 3. `qa_set.module_tags_json`
 4. `qa_item.source_chunk_ids_json`
+5. `practice_session_item.feedback_detail_json`
 
 ### 7.4 不建议的做法
 
@@ -526,12 +532,12 @@
 
 `practice_session.accuracy` 定义为：
 
-`(CORRECT + NEEDS_IMPROVEMENT) / 已作答题数`
+`(CORRECT + DEFICIENT) / 已作答题数`
 
 即：
 
 1. `CORRECT` 算命中
-2. `NEEDS_IMPROVEMENT` 算命中
+2. `DEFICIENT` 算命中
 3. `WRONG` 不算命中
 4. `UNKNOWN` 不算命中
 
