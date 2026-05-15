@@ -10,7 +10,7 @@ import dev.langchain4j.service.V;
  */
 public interface HintAgent {
 
-    @SystemMessage(fromResource = "prompt/feedback-hint.txt")
+    @SystemMessage(fromResource = "prompt/feedback/feedback-hint.txt")
     @UserMessage("""
             题目：{{question}}
             标准答案：{{standardAnswer}}

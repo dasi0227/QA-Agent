@@ -466,7 +466,7 @@ domain/agent/service/generate/
       WebEvidenceProvider.java     ← 联网面经预搜
       UserLlmModelProvider.java    ← 用户模型构建
 
-application/src/main/resources/prompt/
+application/src/main/resources/prompt/generate/
   generation-decide.txt
   generation-abort.txt
   generation-plan.txt
@@ -475,7 +475,7 @@ application/src/main/resources/prompt/
   generation-amend.txt
   generation-summarize.txt
   supervisor-summary.txt
-  web-search-system.txt
+  web-search.txt
 
 interfaces/controller/
   QaController.java               ← SSE 端点

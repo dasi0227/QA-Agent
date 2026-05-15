@@ -12,7 +12,7 @@ import dev.langchain4j.service.V;
  */
 public interface DraftAgent {
 
-    @SystemMessage(fromResource = "prompt/generation-draft.txt")
+    @SystemMessage(fromResource = "prompt/generate/generation-draft.txt")
     @UserMessage("""
             模块：{{module}}
             核心考点：{{keyConcepts}}

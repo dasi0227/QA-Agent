@@ -285,7 +285,7 @@ domain/agent/service/feedback/
     FeedbackScorePolicy.java
     FeedbackLlmModelProvider.java
 
-application/src/main/resources/prompt/
+application/src/main/resources/prompt/feedback/
   feedback-judge.txt
   feedback-hint.txt
 ```

@@ -12,7 +12,7 @@ import dev.langchain4j.service.V;
  */
 public interface AmendAgent {
 
-    @SystemMessage(fromResource = "prompt/generation-amend.txt")
+    @SystemMessage(fromResource = "prompt/generate/generation-amend.txt")
     @UserMessage("""
             待修订题目与审校意见：{{amendItemsJson}}
             用户备注：{{userPrompt}}

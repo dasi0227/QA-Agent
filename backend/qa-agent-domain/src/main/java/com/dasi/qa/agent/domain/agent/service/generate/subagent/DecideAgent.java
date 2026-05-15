@@ -13,7 +13,7 @@ import dev.langchain4j.service.V;
  */
 public interface DecideAgent {
 
-    @SystemMessage(fromResource = "prompt/generation-decide.txt")
+    @SystemMessage(fromResource = "prompt/generate/generation-decide.txt")
     @UserMessage("""
             用户要求：{{userPrompt}}
 

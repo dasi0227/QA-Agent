@@ -10,7 +10,7 @@ import dev.langchain4j.service.V;
  */
 public interface JudgeAgent {
 
-    @SystemMessage(fromResource = "prompt/feedback-judge.txt")
+    @SystemMessage(fromResource = "prompt/feedback/feedback-judge.txt")
     @UserMessage("""
             题目：{{question}}
             标准答案：{{standardAnswer}}
