@@ -3,6 +3,9 @@ package com.dasi.qa.agent.infrastructure.repository;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.dasi.qa.agent.domain.agent.service.assess.model.AssessSaveCommand;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItem;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
@@ -37,7 +40,10 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMa
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
+import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
+import com.dasi.qa.agent.types.dto.response.practice.FeedbackDetailPayload;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackSourceChunk;
+import com.dasi.qa.agent.types.dto.response.practice.JudgeFeedbackDetail;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
@@ -47,6 +53,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -416,6 +424,98 @@ public class AgentRepository implements IAgentRepository {
         return now;
     }
 
+    @Override
+    public AssessContext getAssessContext(String sessionId, String userId) {
+        PracticeSession session = requirePracticeSession(sessionId);
+        if (!userId.equals(session.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        QaSet qaSet = qaSetMapper.selectById(session.getQaSetId());
+        if (qaSet == null || !userId.equals(qaSet.getUserId())) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        List<PracticeSessionItem> sessionItems = practiceSessionItemMapper.selectList(
+                new LambdaQueryWrapper<PracticeSessionItem>()
+                        .eq(PracticeSessionItem::getSessionId, sessionId)
+                        .orderByAsc(PracticeSessionItem::getSortOrder));
+        List<AssessItem> items = new ArrayList<>();
+        for (PracticeSessionItem sessionItem : sessionItems) {
+            QaItem qaItem = qaItemMapper.selectById(sessionItem.getQaItemId());
+            if (qaItem == null || !userId.equals(qaItem.getUserId())) {
+                throw new ApiException(ResultCode.NOT_FOUND);
+            }
+            JudgeFeedbackDetail judgeDetail = judgeDetail(sessionItem.getFeedbackDetailJson());
+            items.add(AssessItem.builder()
+                    .itemId(sessionItem.getId())
+                    .question(qaItem.getQuestion())
+                    .moduleTag(qaItem.getModuleTag())
+                    .difficulty(qaItem.getDifficulty())
+                    .standardAnswer(qaItem.getAnswer())
+                    .userAnswer(sessionItem.getUserAnswer())
+                    .result(sessionItem.getResult())
+                    .score(sessionItem.getScore())
+                    .feedbackSummary(sessionItem.getFeedbackSummary())
+                    .missingPoints(judgeDetail == null || judgeDetail.getMissingPoints() == null ? List.of() : judgeDetail.getMissingPoints())
+                    .wrongPoints(judgeDetail == null || judgeDetail.getWrongPoints() == null ? List.of() : judgeDetail.getWrongPoints())
+                    .answeredAt(sessionItem.getAnsweredAt())
+                    .build());
+        }
+        return AssessContext.builder()
+                .sessionId(session.getId())
+                .qaSetId(session.getQaSetId())
+                .qaSetTitle(qaSet.getTitle())
+                .totalQuestions(session.getTotalQuestions())
+                .items(items)
+                .build();
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = {RedisConstant.PRACTICE_SESSION_CACHE, RedisConstant.QA_SET_CACHE}, allEntries = true)
+    public AssessResponse saveAssessResult(String sessionId, String userId, AssessSaveCommand command) {
+        PracticeSession session = requirePracticeSession(sessionId);
+        if (!userId.equals(session.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime finishedAt = session.getFinishedAt() == null ? now : session.getFinishedAt();
+        String assessmentDetailJson = JSON.toJSONString(command.getAssessmentDetail());
+        String memoryClueJson = JSON.toJSONString(command.getRecordResult() == null || command.getRecordResult().getClues() == null
+                ? List.of()
+                : command.getRecordResult().getClues());
+
+        practiceSessionMapper.update(null,
+                new LambdaUpdateWrapper<PracticeSession>()
+                        .set(PracticeSession::getStatus, "FINISHED")
+                        .set(PracticeSession::getScore, command.getMetrics().getScore())
+                        .set(PracticeSession::getAccuracy, command.getMetrics().getAccuracy())
+                        .set(PracticeSession::getCorrectCount, command.getMetrics().getCorrectCount())
+                        .set(PracticeSession::getDeficientCount, command.getMetrics().getDeficientCount())
+                        .set(PracticeSession::getWrongCount, command.getMetrics().getWrongCount())
+                        .set(PracticeSession::getUnknownCount, command.getMetrics().getUnknownCount())
+                        .set(PracticeSession::getSummary, command.getAssessmentDetail().getOverallComment())
+                        .set(PracticeSession::getAssessmentDetailJson, assessmentDetailJson)
+                        .set(PracticeSession::getMemoryClueJson, memoryClueJson)
+                        .set(PracticeSession::getFinishedAt, finishedAt)
+                        .set(PracticeSession::getUpdatedAt, now)
+                        .eq(PracticeSession::getId, sessionId)
+                        .eq(PracticeSession::getUserId, userId));
+        refreshQaSetPracticeStats(session.getQaSetId(), now);
+        return AssessResponse.builder()
+                .sessionId(session.getId())
+                .qaSetId(session.getQaSetId())
+                .score(command.getMetrics().getScore())
+                .accuracy(command.getMetrics().getAccuracy())
+                .correctCount(command.getMetrics().getCorrectCount())
+                .deficientCount(command.getMetrics().getDeficientCount())
+                .wrongCount(command.getMetrics().getWrongCount())
+                .unknownCount(command.getMetrics().getUnknownCount())
+                .summary(command.getAssessmentDetail().getOverallComment())
+                .assessmentDetail(command.getAssessmentDetail())
+                .finishedAt(finishedAt)
+                .build();
+    }
+
     private QaGenerationTask requireTask(String taskId) {
         QaGenerationTask entity = taskMapper.selectById(taskId);
         if (entity == null) {
@@ -444,6 +544,68 @@ public class AgentRepository implements IAgentRepository {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
         return entity;
+    }
+
+    private JudgeFeedbackDetail judgeDetail(String feedbackDetailJson) {
+        if (feedbackDetailJson == null || feedbackDetailJson.isBlank()) {
+            return null;
+        }
+        try {
+            FeedbackDetailPayload payload = JSON.parseObject(feedbackDetailJson, FeedbackDetailPayload.class);
+            return payload == null ? null : payload.getJudgeDetail();
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private void refreshQaSetPracticeStats(String qaSetId, LocalDateTime now) {
+        List<PracticeSession> sessions = practiceSessionMapper.selectList(
+                new LambdaQueryWrapper<PracticeSession>()
+                        .eq(PracticeSession::getQaSetId, qaSetId)
+                        .eq(PracticeSession::getStatus, "FINISHED"));
+        int practiceCount = sessions.size();
+        Integer averageScore = null;
+        Integer bestScore = null;
+        BigDecimal averageAccuracy = null;
+        BigDecimal bestAccuracy = null;
+        LocalDateTime lastPracticedAt = null;
+        if (!sessions.isEmpty()) {
+            List<PracticeSession> scoredSessions = sessions.stream()
+                    .filter(session -> session.getScore() != null && session.getAccuracy() != null)
+                    .toList();
+            if (!scoredSessions.isEmpty()) {
+                averageScore = Math.round((float) scoredSessions.stream()
+                        .mapToInt(PracticeSession::getScore)
+                        .sum() / scoredSessions.size());
+                bestScore = scoredSessions.stream()
+                        .map(PracticeSession::getScore)
+                        .max(Integer::compareTo)
+                        .orElse(null);
+                averageAccuracy = scoredSessions.stream()
+                        .map(PracticeSession::getAccuracy)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(scoredSessions.size()), 2, RoundingMode.HALF_UP);
+                bestAccuracy = scoredSessions.stream()
+                        .map(PracticeSession::getAccuracy)
+                        .max(BigDecimal::compareTo)
+                        .orElse(null);
+            }
+            lastPracticedAt = sessions.stream()
+                    .map(PracticeSession::getFinishedAt)
+                    .filter(time -> time != null)
+                    .max(LocalDateTime::compareTo)
+                    .orElse(null);
+        }
+        qaSetMapper.update(null,
+                new LambdaUpdateWrapper<QaSet>()
+                        .set(QaSet::getPracticeCount, practiceCount)
+                        .set(QaSet::getAverageScore, averageScore)
+                        .set(QaSet::getBestScore, bestScore)
+                        .set(QaSet::getAverageAccuracy, averageAccuracy)
+                        .set(QaSet::getBestAccuracy, bestAccuracy)
+                        .set(QaSet::getLastPracticedAt, lastPracticedAt)
+                        .set(QaSet::getUpdatedAt, now)
+                        .eq(QaSet::getId, qaSetId));
     }
 
     private List<FeedbackSourceChunk> feedbackSourceChunks(String sourceChunkIdsJson, String userId) {

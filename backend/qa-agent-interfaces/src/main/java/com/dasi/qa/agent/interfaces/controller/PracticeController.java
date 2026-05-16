@@ -1,10 +1,13 @@
 package com.dasi.qa.agent.interfaces.controller;
 
+import com.dasi.qa.agent.domain.agent.service.assess.IAssessAgent;
 import com.dasi.qa.agent.domain.agent.service.feedback.IFeedbackAgent;
 import com.dasi.qa.agent.domain.practice.service.crud.IPracticeCrudService;
+import com.dasi.qa.agent.types.dto.request.practice.AssessRequest;
 import com.dasi.qa.agent.types.dto.request.practice.FeedbackRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
+import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
@@ -19,10 +22,12 @@ public class PracticeController {
 
     private final IPracticeCrudService practiceService;
     private final IFeedbackAgent feedbackAgent;
+    private final IAssessAgent assessAgent;
 
-    public PracticeController(IPracticeCrudService practiceService, IFeedbackAgent feedbackAgent) {
+    public PracticeController(IPracticeCrudService practiceService, IFeedbackAgent feedbackAgent, IAssessAgent assessAgent) {
         this.practiceService = practiceService;
         this.feedbackAgent = feedbackAgent;
+        this.assessAgent = assessAgent;
     }
 
     @GetMapping("/session/detail")
@@ -38,6 +43,11 @@ public class PracticeController {
     @PostMapping("/session/create")
     public Result<PracticeSessionResponse> practiceSessionCreate(@RequestBody PracticeSessionRequest request) {
         return Result.success(practiceService.createPracticeSession(request));
+    }
+
+    @PostMapping("/session/assess")
+    public Result<AssessResponse> practiceSessionAssess(@RequestBody AssessRequest request) {
+        return Result.success(assessAgent.execute(request));
     }
 
     @PostMapping("/session/update")

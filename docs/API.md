@@ -227,10 +227,74 @@ SUMMARIZE
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
 | GET | `/practice/session/detail?id=...` | 是 | `id` |
-| POST | `/practice/session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?` |
+| POST | `/practice/session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `correctCount?`, `deficientCount?`, `wrongCount?`, `unknownCount?`, `summary?` |
 | POST | `/practice/session/create` | 是 | 同上 |
 | POST | `/practice/session/update` | 是 | 同上，`id` 必填 |
 | POST | `/practice/session/delete` | 是 | `id` |
+| POST | `/practice/session/assess` | 是 | `sessionId` |
+
+说明：`/practice/session/assess` 为 V5 整轮同步评估接口，只允许当前练习会话全部题目完成后调用。不使用 SSE、轮询或后台任务；不返回内部 `memory_clue_json`。
+
+#### `/practice/session/assess` 请求示例
+
+```json
+{
+  "sessionId": "88888888-8888-8888-8888-888888888881"
+}
+```
+
+#### `/practice/session/assess` 响应字段
+
+| 字段 | 说明 |
+| --- | --- |
+| `sessionId` | 练习会话 ID |
+| `qaSetId` | 对应问答集 ID |
+| `score` | 本轮平均分，Java 根据单题分数计算 |
+| `accuracy` | 本轮达标率，`(CORRECT + DEFICIENT) / totalQuestions * 100` |
+| `correctCount` | `CORRECT` 题数 |
+| `deficientCount` | `DEFICIENT` 题数 |
+| `wrongCount` | `WRONG` 题数 |
+| `unknownCount` | `UNKNOWN` 题数 |
+| `summary` | 本轮整体摘要，等同于 `assessmentDetail.overallComment` |
+| `assessmentDetail` | 用户可读整轮评估详情 |
+| `finishedAt` | 练习首次完成时间，重复评估不刷新 |
+
+#### `/practice/session/assess` 响应示例
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "sessionId": "88888888-8888-8888-8888-888888888881",
+    "qaSetId": "55555555-5555-5555-5555-555555555541",
+    "score": 75,
+    "accuracy": 100.00,
+    "correctCount": 1,
+    "deficientCount": 1,
+    "wrongCount": 0,
+    "unknownCount": 0,
+    "summary": "本轮 Spring Boot 练习整体完成度较好，能答出自动配置与事务代理的主要方向，但代理机制边界仍需要补充。",
+    "assessmentDetail": {
+      "overallComment": "本轮 Spring Boot 练习整体完成度较好，能答出自动配置与事务代理的主要方向，但代理机制边界仍需要补充。",
+      "reviewGuidance": "下一轮先重答事务自调用题，补充代理增强生效条件和调用路径，再用自动配置题保持依赖收敛与条件装配的表达稳定性。",
+      "strengths": [
+        {
+          "title": "自动配置理解稳定",
+          "analysis": "Starter 与自动配置关系题回答准确，能覆盖依赖收敛和条件装配两个核心点。"
+        }
+      ],
+      "weaknesses": [
+        {
+          "title": "代理边界仍需补充",
+          "analysis": "事务自调用题能答到没有经过代理，但缺少代理增强生效条件和同类内部调用绕过代理的完整说明。"
+        }
+      ]
+    },
+    "finishedAt": "2026-05-17T10:00:00"
+  }
+}
+```
 
 ### 练习题目
 
@@ -335,5 +399,6 @@ SUMMARIZE
 | `40903` | PlanAgent 规划失败 |
 | `40904` | WriteAgent 出题失败 |
 | `40905` | 所有题目均未通过审校（ALL_REJECTED） |
+| `40906` | 练习会话尚未完成，不能生成整轮评估 |
 | `42900` | verify code rate limited |
 | `50000` | internal error |

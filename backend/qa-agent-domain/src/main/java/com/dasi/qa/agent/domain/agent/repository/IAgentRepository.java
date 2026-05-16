@@ -5,6 +5,8 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
+import com.dasi.qa.agent.domain.agent.service.assess.model.AssessSaveCommand;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
@@ -15,6 +17,7 @@ import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
+import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
 
 import java.util.List;
 import java.time.LocalDateTime;
@@ -56,5 +59,9 @@ public interface IAgentRepository {
     FeedbackContext getFeedbackContext(String sessionItemId, String userId);
 
     LocalDateTime saveFeedbackResult(String sessionItemId, String userId, FeedbackSaveCommand command);
+
+    AssessContext getAssessContext(String sessionId, String userId);
+
+    AssessResponse saveAssessResult(String sessionId, String userId, AssessSaveCommand command);
 
 }

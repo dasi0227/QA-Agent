@@ -1,0 +1,31 @@
+package com.dasi.qa.agent.domain.agent.service.assess.subagent;
+
+import dev.langchain4j.agentic.Agent;
+import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
+
+public interface RecordAgent {
+
+    @SystemMessage(fromResource = "prompt/assess/assessment-record.txt")
+    @UserMessage("""
+            题集标题：{{qaSetTitle}}
+            本轮统计：{{metrics}}
+            单题作答摘要：{{items}}
+
+            输出要求：
+            1. 只输出一个合法 JSON 数组，以 [ 开头，以 ] 结尾。
+            2. 不要输出 Markdown，不要使用 ```json 代码块。
+            3. 不要输出解释文字或任何非 JSON 内容。
+            4. 数组最多 3 个元素；无高价值线索时输出 []。
+            5. 每个元素必须包含 type、observation、importance 三个字段。
+            6. 不允许添加未定义字段。
+
+            重试提示（首次为空）：{{retryHint}}
+            """)
+    @Agent(name = "RECORD", description = "提炼供 V6 Memory 使用的内部记忆线索")
+    String record(@V("qaSetTitle") String qaSetTitle,
+                  @V("metrics") String metrics,
+                  @V("items") String items,
+                  @V("retryHint") String retryHint);
+}

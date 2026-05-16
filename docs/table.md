@@ -324,17 +324,26 @@
 9. `answered_count`
 10. `score`
 11. `accuracy`
-12. `summary`
-13. `started_at`
-14. `finished_at`
-15. `created_at`
-16. `updated_at`
+12. `correct_count`
+13. `deficient_count`
+14. `wrong_count`
+15. `unknown_count`
+16. `summary`
+17. `assessment_detail_json`
+18. `memory_clue_json`
+19. `started_at`
+20. `finished_at`
+21. `created_at`
+22. `updated_at`
 
 说明：
 
 1. 保留 `status`。
 2. 不保留 `module_results_json`。
 3. `accuracy` 定义见第 7 节。
+4. `correct_count`、`deficient_count`、`wrong_count`、`unknown_count` 由 V5 AssessAgent 在整轮评估时写入，作为高频展示和后续统计字段。
+5. `assessment_detail_json` 存用户可读整轮评估详情，结构固定为 `overallComment`、`reviewGuidance`、`strengths`、`weaknesses`。
+6. `memory_clue_json` 存 V6 Memory 使用的内部线索，根节点直接为数组，不返回前端。
 
 ### 4.11 `practice_session_item`
 
@@ -519,6 +528,59 @@
 3. `qa_set.module_tags_json`
 4. `qa_item.source_chunk_ids_json`
 5. `practice_session_item.feedback_detail_json`
+6. `practice_session.assessment_detail_json`
+7. `practice_session.memory_clue_json`
+
+### 7.3.1 `assessment_detail_json`
+
+用于保存 V5 整轮用户可读评估详情：
+
+```json
+{
+  "overallComment": "",
+  "reviewGuidance": "",
+  "strengths": [
+    {
+      "title": "",
+      "analysis": ""
+    }
+  ],
+  "weaknesses": [
+    {
+      "title": "",
+      "analysis": ""
+    }
+  ]
+}
+```
+
+### 7.3.2 `memory_clue_json`
+
+用于保存 V6 Memory 使用的内部记忆线索，根节点直接是数组：
+
+```json
+[
+  {
+    "type": "CONCEPT_WEAKNESS",
+    "observation": "",
+    "importance": "HIGH"
+  }
+]
+```
+
+`type` 允许：
+
+1. `CONCEPT_WEAKNESS`
+2. `EXPRESSION_WEAKNESS`
+3. `MISTAKE_PATTERN`
+4. `UNKNOWN_PATTERN`
+5. `STABLE_STRENGTH`
+
+`importance` 允许：
+
+1. `HIGH`
+2. `MEDIUM`
+3. `LOW`
 
 ### 7.4 不建议的做法
 
@@ -540,6 +602,16 @@
 2. `DEFICIENT` 算命中
 3. `WRONG` 不算命中
 4. `UNKNOWN` 不算命中
+
+V5 AssessAgent 只允许完整练习会话评估，因此正式写入时等价于：
+
+`(CORRECT + DEFICIENT) / total_questions * 100`
+
+### 8.1.1 单轮练习分数
+
+`practice_session.score` 定义为：
+
+`practice_session_item.score` 的平均值，四舍五入为整数。
 
 ### 8.2 问答集聚合准确率
 

@@ -18,6 +18,7 @@ import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
+import com.dasi.qa.agent.types.dto.response.practice.AssessmentDetail;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackDetailPayload;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
@@ -161,6 +162,13 @@ public class PracticeRepository implements IPracticeRepository {
                 itemResponse.setJudgeDetail(payload.getJudgeDetail());
                 itemResponse.setHintDetail(payload.getHintDetail());
             }
+        }
+        if (response instanceof PracticeSessionResponse sessionResponse
+                && entity instanceof PracticeSession sessionEntity
+                && sessionEntity.getAssessmentDetailJson() != null
+                && !sessionEntity.getAssessmentDetailJson().isBlank()) {
+            AssessmentDetail detail = JSON.parseObject(sessionEntity.getAssessmentDetailJson(), AssessmentDetail.class);
+            sessionResponse.setAssessmentDetail(detail);
         }
         if ((response.getId() == null || response.getId().isBlank()) && BeanUtil.getProperty(entity, "userId") != null) {
             response.setId(String.valueOf(BeanUtil.getProperty(entity, "userId")));

@@ -26,7 +26,13 @@ public class PracticeSessionRequest extends BaseRequest {
     private Integer answeredCount;
     private Integer score;
     private BigDecimal accuracy;
+    private Integer correctCount;
+    private Integer deficientCount;
+    private Integer wrongCount;
+    private Integer unknownCount;
     private String summary;
+    private String assessmentDetailJson;
+    private String memoryClueJson;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
 }
