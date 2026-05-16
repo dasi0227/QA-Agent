@@ -259,13 +259,13 @@ application/job/
 
 ## 九、与下游 Agent 的关系
 
-RAG 是统一证据底座，各 Agent 通过 `/document/source/search` 调用：
+RAG 是统一证据底座，生成链路会通过 `/document/source/search` 获取资料证据。V4/V5 的当前实现不直接发起新的 RAG 检索：V4 使用题目已关联的 `source_chunk_ids_json` 回显来源，V5 只基于已落库的单题结果和反馈摘要做整轮评估。
 
 | Agent | 阶段 | 调用参数 | 预期结果 |
 |-------|------|---------|---------|
 | 生成 Agent（V3） | SEARCH | `queryText=题目主题`, `agentType=GENERATION` | Top-10 证据 → 生成问答 |
-| 反馈 Agent（V4） | 单题判定 | `queryText=qa_item.question`, `agentType=FEEDBACK` | Top-3 证据 → 判定答案正确性 |
-| 评分 Agent（V5） | 薄弱分析 | `queryText=薄弱模块标签`, `agentType=SCORING` | Top-5 证据 → 复习建议 |
+| 反馈 Agent（V4） | 单题反馈 | 不调用 `/document/source/search` | 使用题目标准答案、提示和已关联来源生成反馈 |
+| 评估 Agent（V5） | 整轮评估 | 不调用 `/document/source/search` | 使用单题结果、分数和反馈摘要生成整轮评估 |
 
 ## 十、V2 边界（不做的事）
 

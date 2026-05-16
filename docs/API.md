@@ -227,7 +227,7 @@ SUMMARIZE
 | 方法 | 路径 | 鉴权 | 请求字段 |
 | --- | --- | --- | --- |
 | GET | `/practice/session/detail?id=...` | 是 | `id` |
-| POST | `/practice/session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `correctCount?`, `deficientCount?`, `wrongCount?`, `unknownCount?`, `summary?` |
+| POST | `/practice/session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?` |
 | POST | `/practice/session/create` | 是 | 同上 |
 | POST | `/practice/session/update` | 是 | 同上，`id` 必填 |
 | POST | `/practice/session/delete` | 是 | `id` |

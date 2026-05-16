@@ -73,10 +73,11 @@ public class AssessAgent implements IAssessAgent {
         String userId = currentUserId();
         validateRequest(request);
         try {
+            AssessContext context = prepareContext(userId, request);
             ChatModel userModel = assessLlmModelProvider.getUserLlmModel(userId);
             AssessWorkflowContext workflowContext = AssessWorkflowContext.builder()
                     .userModel(userModel)
-                    .prepareStep(scope -> doPrepare(scope, userId, request))
+                    .prepareStep(scope -> doPrepare(scope, context))
                     .diagnosisStep(this::doDiagnosis)
                     .adviceStep(this::doAdvice)
                     .recordStep(this::doRecord)
@@ -90,18 +91,23 @@ public class AssessAgent implements IAssessAgent {
         }
     }
 
+    private AssessContext prepareContext(String userId, AssessRequest request) {
+        AssessContext context = agentRepository.getAssessContext(request.getSessionId(), userId);
+        AssessMetrics metrics = assessmentMetricCalculator.calculate(context);
+        context.setMetrics(metrics);
+        return context;
+    }
+
     private void validateRequest(AssessRequest request) {
         if (request == null || request.getSessionId() == null || request.getSessionId().isBlank()) {
             throw new ApiException(ResultCode.INVALID_PARAM);
         }
     }
 
-    private void doPrepare(AgenticScope scope, String userId, AssessRequest request) {
-        AssessContext context = agentRepository.getAssessContext(request.getSessionId(), userId);
-        AssessMetrics metrics = assessmentMetricCalculator.calculate(context);
-        context.setMetrics(metrics);
+    private void doPrepare(AgenticScope scope, AssessContext context) {
         writeAssessContext(scope, context);
-        log.info("【整轮评估】准备完成: sessionId={}, score={}, accuracy={}", context.getSessionId(), metrics.getScore(), metrics.getAccuracy());
+        log.info("【整轮评估】准备完成: sessionId={}, score={}, accuracy={}",
+                context.getSessionId(), context.getMetrics().getScore(), context.getMetrics().getAccuracy());
     }
 
     private void doDiagnosis(AgenticScope scope, DiagnosisAgent diagnosisAgent) {
