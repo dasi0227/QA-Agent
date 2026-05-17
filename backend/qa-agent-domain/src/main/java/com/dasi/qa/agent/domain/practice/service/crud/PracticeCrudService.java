@@ -2,13 +2,12 @@ package com.dasi.qa.agent.domain.practice.service.crud;
 
 import com.dasi.qa.agent.domain.practice.repository.IPracticeRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
-import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +35,7 @@ public class PracticeCrudService implements IPracticeCrudService {
 
     @Override
     public PracticeSessionResponse createPracticeSession(PracticeSessionRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             request.setId(UUID.randomUUID().toString());
         }
         return repository.createPracticeSession(request, currentUserId());
@@ -64,7 +63,7 @@ public class PracticeCrudService implements IPracticeCrudService {
 
     @Override
     public PracticeSessionItemResponse createPracticeSessionItem(PracticeSessionItemRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             request.setId(UUID.randomUUID().toString());
         }
         return repository.createPracticeSessionItem(request, currentUserId());
@@ -81,10 +80,6 @@ public class PracticeCrudService implements IPracticeCrudService {
     }
 
     private String currentUserId() {
-        String userId = contextUtil.getUserId();
-        if (userId == null) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
-        return userId;
+        return contextUtil.getUserId();
     }
 }

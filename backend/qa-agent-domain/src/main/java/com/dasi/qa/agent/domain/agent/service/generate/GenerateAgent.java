@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -386,7 +387,7 @@ public class GenerateAgent implements IGenerateAgent {
                 evidenceMap.put(planItem.getModule(), evidenceJson);
                 chunkIdsMap.put(planItem.getModule(), ragEvidence.stream()
                         .map(RagEvidenceProvider.EvidenceItem::getChunkId)
-                        .filter(id -> id != null && !id.isBlank())
+                        .filter(StringUtils::hasText)
                         .distinct()
                         .toList());
                 writeContext.getSupervisor().getEventPublisher().publishProgress("📚 证据检索", "已完成「" + planItem.getModule() + "」证据检索");
@@ -695,12 +696,12 @@ public class GenerateAgent implements IGenerateAgent {
         int generatedCount = validatedResult.size();
         String modules = planResult.getPlanItems().stream()
                 .map(item -> item.getModule() == null ? "" : item.getModule())
-                .filter(tag -> !tag.isBlank())
+                .filter(StringUtils::hasText)
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
         String tags = validatedResult.stream()
                 .map(DraftResult::getTag)
-                .filter(tag -> tag != null && !tag.isBlank())
+                .filter(StringUtils::hasText)
                 .distinct()
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");

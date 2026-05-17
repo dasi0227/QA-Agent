@@ -1,5 +1,7 @@
 package com.dasi.qa.agent.domain.agent.service.assess.model.enumeration;
 
+import org.springframework.util.StringUtils;
+
 /**
  * 内部记忆线索的类型枚举。
  */
@@ -15,7 +17,7 @@ public enum MemoryClueType {
      */
     public static MemoryClueType fromValue(String value) {
         // 空值不参与记忆线索落库
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             return null;
         }
         try {

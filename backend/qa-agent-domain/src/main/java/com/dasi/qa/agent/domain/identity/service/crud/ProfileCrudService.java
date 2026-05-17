@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.domain.identity.service.crud;
 
-import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
@@ -12,6 +11,7 @@ import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -41,14 +41,14 @@ public class ProfileCrudService implements IProfileCrudService {
 
     @Override
     public UserAccountResponse createUserAccount(UserAccountRequest request) {
-        if (StrUtil.isBlank(request.getUsername()) || StrUtil.isBlank(request.getPassword())) {
+        if (!StringUtils.hasText(request.getUsername()) || !StringUtils.hasText(request.getPassword())) {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             request.setId(UUID.randomUUID().toString());
         }
-        request.setStatus(StrUtil.isBlank(request.getStatus()) ? AccountStatus.ACTIVE.name() : request.getStatus());
-        if (StrUtil.isNotBlank(request.getPassword())) {
+        request.setStatus(StringUtils.hasText(request.getStatus()) ? request.getStatus() : AccountStatus.ACTIVE.name());
+        if (StringUtils.hasText(request.getPassword())) {
             request.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         return repository.createUserAccount(request, request.getId());
@@ -56,10 +56,10 @@ public class ProfileCrudService implements IProfileCrudService {
 
     @Override
     public UserAccountResponse updateUserAccount(UserAccountRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
-        if (StrUtil.isBlank(request.getPassword())) {
+        if (!StringUtils.hasText(request.getPassword())) {
             request.setPassword(null);
         } else {
             request.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -102,10 +102,6 @@ public class ProfileCrudService implements IProfileCrudService {
     }
 
     private String currentUserId() {
-        String userId = contextUtil.getUserId();
-        if (userId == null) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
-        return userId;
+        return contextUtil.getUserId();
     }
 }

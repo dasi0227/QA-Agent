@@ -14,6 +14,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 
@@ -64,7 +65,7 @@ public class LlmTest {
     }
 
     private boolean hasText(String value) {
-        return value != null && !value.isBlank();
+        return StringUtils.hasText(value);
     }
 
     @Configuration

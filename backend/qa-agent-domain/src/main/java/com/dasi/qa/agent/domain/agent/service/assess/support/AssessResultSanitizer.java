@@ -13,6 +13,7 @@ import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.dto.response.practice.AssessmentDetail;
 import com.dasi.qa.agent.types.dto.response.practice.AssessmentPoint;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,12 +88,10 @@ public class AssessResultSanitizer {
         if (result == null) {
             return fallbackAdvice(metrics);
         }
-        String overallComment = value(result.getOverallComment());
-        String reviewGuidance = value(result.getReviewGuidance());
         AdviceResult fallback = fallbackAdvice(metrics);
         return AdviceResult.builder()
-                .overallComment(overallComment.isBlank() ? fallback.getOverallComment() : overallComment)
-                .reviewGuidance(reviewGuidance.isBlank() ? fallback.getReviewGuidance() : reviewGuidance)
+                .overallComment(StringUtils.hasText(result.getOverallComment()) ? result.getOverallComment().trim() : fallback.getOverallComment())
+                .reviewGuidance(StringUtils.hasText(result.getReviewGuidance()) ? result.getReviewGuidance().trim() : fallback.getReviewGuidance())
                 .build();
     }
 
@@ -106,7 +105,7 @@ public class AssessResultSanitizer {
         List<MemoryClueResult> clues = new ArrayList<>();
         // 逐条过滤空观察、非法类型和超长列表
         for (MemoryClueResult clue : result.getClues()) {
-            if (clue == null || value(clue.getObservation()).isBlank()) {
+            if (clue == null || !StringUtils.hasText(clue.getObservation())) {
                 continue;
             }
             MemoryClueType type = MemoryClueType.fromValue(clue.getType());
@@ -115,7 +114,7 @@ public class AssessResultSanitizer {
             }
             clues.add(MemoryClueResult.builder()
                     .type(type.name())
-                    .observation(value(clue.getObservation()))
+                    .observation(clue.getObservation().trim())
                     .importance(MemoryClueImportance.normalize(clue.getImportance()).name())
                     .build());
             if (clues.size() == MAX_POINTS) {
@@ -130,8 +129,8 @@ public class AssessResultSanitizer {
      */
     public AssessmentDetail toAssessmentDetail(AdviceResult advice, DiagnosisResult diagnosis) {
         return AssessmentDetail.builder()
-                .overallComment(value(advice.getOverallComment()))
-                .reviewGuidance(value(advice.getReviewGuidance()))
+                .overallComment(StringUtils.hasText(advice.getOverallComment()) ? advice.getOverallComment().trim() : "")
+                .reviewGuidance(StringUtils.hasText(advice.getReviewGuidance()) ? advice.getReviewGuidance().trim() : "")
                 .strengths(toStrengthPoints(diagnosis.getStrengths()))
                 .weaknesses(toWeaknessPoints(diagnosis.getWeaknesses()))
                 .build();
@@ -163,12 +162,12 @@ public class AssessResultSanitizer {
         }
         List<StrengthResult> results = new ArrayList<>();
         for (StrengthResult value : values) {
-            if (value == null || value(value.getTitle()).isBlank() || value(value.getAnalysis()).isBlank()) {
+            if (value == null || !StringUtils.hasText(value.getTitle()) || !StringUtils.hasText(value.getAnalysis())) {
                 continue;
             }
             results.add(StrengthResult.builder()
-                    .title(value(value.getTitle()))
-                    .analysis(value(value.getAnalysis()))
+                    .title(value.getTitle().trim())
+                    .analysis(value.getAnalysis().trim())
                     .build());
             if (results.size() == MAX_POINTS) {
                 break;
@@ -183,12 +182,12 @@ public class AssessResultSanitizer {
         }
         List<WeaknessResult> results = new ArrayList<>();
         for (WeaknessResult value : values) {
-            if (value == null || value(value.getTitle()).isBlank() || value(value.getAnalysis()).isBlank()) {
+            if (value == null || !StringUtils.hasText(value.getTitle()) || !StringUtils.hasText(value.getAnalysis())) {
                 continue;
             }
             results.add(WeaknessResult.builder()
-                    .title(value(value.getTitle()))
-                    .analysis(value(value.getAnalysis()))
+                    .title(value.getTitle().trim())
+                    .analysis(value.getAnalysis().trim())
                     .build());
             if (results.size() == MAX_POINTS) {
                 break;
@@ -203,8 +202,8 @@ public class AssessResultSanitizer {
         }
         return values.stream()
                 .map(value -> AssessmentPoint.builder()
-                        .title(value(value.getTitle()))
-                        .analysis(value(value.getAnalysis()))
+                        .title(StringUtils.hasText(value.getTitle()) ? value.getTitle().trim() : "")
+                        .analysis(StringUtils.hasText(value.getAnalysis()) ? value.getAnalysis().trim() : "")
                         .build())
                 .toList();
     }
@@ -215,13 +214,9 @@ public class AssessResultSanitizer {
         }
         return values.stream()
                 .map(value -> AssessmentPoint.builder()
-                        .title(value(value.getTitle()))
-                        .analysis(value(value.getAnalysis()))
+                        .title(StringUtils.hasText(value.getTitle()) ? value.getTitle().trim() : "")
+                        .analysis(StringUtils.hasText(value.getAnalysis()) ? value.getAnalysis().trim() : "")
                         .build())
                 .toList();
-    }
-
-    private String value(String value) {
-        return value == null ? "" : value.trim();
     }
 }

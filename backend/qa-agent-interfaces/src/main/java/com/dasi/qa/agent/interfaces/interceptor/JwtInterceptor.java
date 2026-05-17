@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
@@ -40,7 +41,12 @@ public class JwtInterceptor implements HandlerInterceptor {
             log.error("【鉴权】令牌校验失败: uri={}", request.getRequestURI());
             throw new ApiException(ResultCode.UNAUTHORIZED);
         }
-        contextUtil.setUserId(IJwtUtil.parseUserId(token));
+        String userId = IJwtUtil.parseUserId(token);
+        if (!StringUtils.hasText(userId)) {
+            log.error("【鉴权】令牌缺少用户标识: uri={}", request.getRequestURI());
+            throw new ApiException(ResultCode.UNAUTHORIZED);
+        }
+        contextUtil.setUserId(userId);
         return true;
     }
 

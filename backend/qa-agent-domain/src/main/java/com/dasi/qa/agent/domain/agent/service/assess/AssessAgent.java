@@ -33,6 +33,7 @@ import dev.langchain4j.agentic.scope.ResultWithAgenticScope;
 import dev.langchain4j.model.chat.ChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -73,9 +74,8 @@ public class AssessAgent implements IAssessAgent {
 
     @Override
     public AssessResponse execute(AssessRequest request) {
-        // 1. 校验请求、用户和练习完成状态
+        // 1. 读取当前用户，参数完整性由 Controller Validation 处理
         String userId = currentUserId();
-        validateRequest(request);
         try {
             AssessContext context = prepareContext(userId, request);
             // 2. 构建用户模型和整轮评估 DAG 上下文
@@ -109,12 +109,6 @@ public class AssessAgent implements IAssessAgent {
         return context;
     }
 
-    private void validateRequest(AssessRequest request) {
-        if (request == null || request.getSessionId() == null || request.getSessionId().isBlank()) {
-            throw new ApiException(ResultCode.INVALID_PARAM);
-        }
-    }
-
     /**
      * PREPARE 阶段负责把已校验的上下文写入 Scope。
      */
@@ -137,7 +131,7 @@ public class AssessAgent implements IAssessAgent {
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = diagnosisAgent.diagnose(
-                        value(context.getQaSetTitle()),
+                        StringUtils.hasText(context.getQaSetTitle()) ? context.getQaSetTitle() : "",
                         jsonUtil.toJsonString(context.getMetrics()),
                         jsonUtil.toJsonString(context.getItems()),
                         retryHint
@@ -166,7 +160,7 @@ public class AssessAgent implements IAssessAgent {
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = adviceAgent.advise(
-                        value(context.getQaSetTitle()),
+                        StringUtils.hasText(context.getQaSetTitle()) ? context.getQaSetTitle() : "",
                         jsonUtil.toJsonString(context.getMetrics()),
                         jsonUtil.toJsonString(diagnosis),
                         jsonUtil.toJsonString(itemBriefs(context.getItems())),
@@ -195,7 +189,7 @@ public class AssessAgent implements IAssessAgent {
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = recordAgent.record(
-                        value(context.getQaSetTitle()),
+                        StringUtils.hasText(context.getQaSetTitle()) ? context.getQaSetTitle() : "",
                         jsonUtil.toJsonString(context.getMetrics()),
                         jsonUtil.toJsonString(context.getItems()),
                         retryHint
@@ -239,12 +233,12 @@ public class AssessAgent implements IAssessAgent {
         }
         return items.stream()
                 .map(item -> AssessItemBrief.builder()
-                        .question(value(item.getQuestion()))
-                        .standardAnswer(value(item.getStandardAnswer()))
-                        .userAnswer(value(item.getUserAnswer()))
-                        .result(value(item.getResult()))
+                        .question(StringUtils.hasText(item.getQuestion()) ? item.getQuestion() : "")
+                        .standardAnswer(StringUtils.hasText(item.getStandardAnswer()) ? item.getStandardAnswer() : "")
+                        .userAnswer(StringUtils.hasText(item.getUserAnswer()) ? item.getUserAnswer() : "")
+                        .result(StringUtils.hasText(item.getResult()) ? item.getResult() : "")
                         .score(item.getScore())
-                        .feedbackSummary(value(item.getFeedbackSummary()))
+                        .feedbackSummary(StringUtils.hasText(item.getFeedbackSummary()) ? item.getFeedbackSummary() : "")
                         .build())
                 .toList();
     }
@@ -291,11 +285,7 @@ public class AssessAgent implements IAssessAgent {
     }
 
     private String currentUserId() {
-        String userId = contextUtil.getUserId();
-        if (userId == null) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
-        return userId;
+        return contextUtil.getUserId();
     }
 
     private ApiException toApiException(AssessException exception) {
@@ -305,7 +295,4 @@ public class AssessAgent implements IAssessAgent {
         return new ApiException(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }
 
-    private String value(String value) {
-        return value == null ? "" : value;
-    }
 }

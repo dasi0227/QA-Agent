@@ -24,6 +24,7 @@ import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -174,7 +175,7 @@ public class IdentityRepository implements IIdentityRepository {
     private UserProfileResponse toUserProfileResponse(UserProfile entity) {
         UserProfileResponse response = ReflectUtil.newInstance(UserProfileResponse.class);
         BeanUtil.copyProperties(entity, response, CopyOptions.create().ignoreNullValue());
-        if (response.getId() == null || response.getId().isBlank()) {
+        if (!StringUtils.hasText(response.getId())) {
             response.setId(entity.getUserId());
         }
         return response;

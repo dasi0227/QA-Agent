@@ -12,6 +12,7 @@ import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.Result;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -46,7 +47,7 @@ public class PracticeController {
     }
 
     @PostMapping("/session/assess")
-    public Result<AssessResponse> practiceSessionAssess(@RequestBody AssessRequest request) {
+    public Result<AssessResponse> practiceSessionAssess(@RequestBody @Valid AssessRequest request) {
         return Result.success(assessAgent.execute(request));
     }
 
@@ -88,7 +89,7 @@ public class PracticeController {
     }
 
     @PostMapping("/session-item/feedback")
-    public Result<FeedbackResponse> practiceSessionItemFeedback(@RequestBody FeedbackRequest request) {
+    public Result<FeedbackResponse> practiceSessionItemFeedback(@RequestBody @Valid FeedbackRequest request) {
         return Result.success(feedbackAgent.execute(request));
     }
 }

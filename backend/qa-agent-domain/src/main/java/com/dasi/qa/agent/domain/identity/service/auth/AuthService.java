@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.domain.identity.service.auth;
 
-import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.util.IOssUtil;
 import com.dasi.qa.agent.domain.util.IEmailUtil;
@@ -23,6 +22,7 @@ import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.Random;
 import java.util.UUID;
@@ -76,7 +76,7 @@ public class AuthService implements IAuthService {
         accountRequest.setEmail(request.getEmail());
         accountRequest.setPassword(passwordEncoder.encode(request.getPassword()));
         accountRequest.setStatus(AccountStatus.ACTIVE.name());
-        if (StrUtil.isNotBlank(defaultAvatarUrl)) {
+        if (StringUtils.hasText(defaultAvatarUrl)) {
             accountRequest.setAvatar(defaultAvatarUrl);
         }
         UserAccountResponse created = identityRepository.createUserAccount(accountRequest, accountRequest.getId());
@@ -136,9 +136,6 @@ public class AuthService implements IAuthService {
     @Override
     public AuthResponse me() {
         String userId = contextUtil.getUserId();
-        if (StrUtil.isBlank(userId)) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
         UserAccountResponse account = identityRepository.detailUserAccount(userId, userId);
         if (!AccountStatus.ACTIVE.name().equals(account.getStatus())) {
             throw new ApiException(ResultCode.FORBIDDEN);

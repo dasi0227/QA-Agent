@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.agent.model.enumeration;
 
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
+import org.springframework.util.StringUtils;
 
 public enum AgentType {
     GENERATION,
@@ -9,7 +10,7 @@ public enum AgentType {
     SCORING;
 
     public static AgentType fromValue(String value) {
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             throw new ApiException(ResultCode.INVALID_PARAM);
         }
         try {

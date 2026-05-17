@@ -3,13 +3,12 @@ package com.dasi.qa.agent.domain.document.service.crud;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
-import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +40,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
 
     @Override
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             request.setId(UUID.randomUUID().toString());
         }
         return repository.createSourceDocument(request, currentUserId());
@@ -70,7 +69,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
 
     @Override
     public DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             request.setId(UUID.randomUUID().toString());
         }
         return repository.createDocumentChunk(request, currentUserId());
@@ -87,10 +86,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     }
 
     private String currentUserId() {
-        String userId = contextUtil.getUserId();
-        if (userId == null) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
-        return userId;
+        return contextUtil.getUserId();
     }
 }

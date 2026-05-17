@@ -33,6 +33,7 @@ import dev.langchain4j.agentic.scope.ResultWithAgenticScope;
 import dev.langchain4j.model.chat.ChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -72,9 +73,8 @@ public class FeedbackAgent implements IFeedbackAgent {
 
     @Override
     public FeedbackResponse execute(FeedbackRequest request) {
-        // 1. 校验请求和当前用户
+        // 1. 读取当前用户，参数完整性由 Controller Validation 处理
         String userId = currentUserId();
-        validateRequest(request);
         try {
             // 2. 构建用户模型和反馈 DAG 上下文
             ChatModel userModel = feedbackLlmModelProvider.getUserLlmModel(userId);
@@ -94,12 +94,7 @@ public class FeedbackAgent implements IFeedbackAgent {
         } catch (FeedbackException exception) {
             throw toApiException(exception);
         }
-    }
 
-    private void validateRequest(FeedbackRequest request) {
-        if (request == null || request.getSessionItemId() == null || request.getSessionItemId().isBlank()) {
-            throw new ApiException(ResultCode.INVALID_PARAM);
-        }
     }
 
     /**
@@ -125,12 +120,12 @@ public class FeedbackAgent implements IFeedbackAgent {
         FeedbackContext context = readFeedbackContext(scope);
         // 2. 组装 HintAgent 输入
         HintContext hintContext = HintContext.builder()
-                .question(value(context.getQuestion()))
-                .standardAnswer(value(context.getStandardAnswer()))
-                .knowledgeNote(value(context.getKnowledgeNote()))
-                .tip(value(context.getTip()))
-                .answerStyle(value(context.getAnswerStyle()))
-                .feedbackStyle(value(context.getFeedbackStyle()))
+                .question(StringUtils.hasText(context.getQuestion()) ? context.getQuestion() : "")
+                .standardAnswer(StringUtils.hasText(context.getStandardAnswer()) ? context.getStandardAnswer() : "")
+                .knowledgeNote(StringUtils.hasText(context.getKnowledgeNote()) ? context.getKnowledgeNote() : "")
+                .tip(StringUtils.hasText(context.getTip()) ? context.getTip() : "")
+                .answerStyle(StringUtils.hasText(context.getAnswerStyle()) ? context.getAnswerStyle() : "")
+                .feedbackStyle(StringUtils.hasText(context.getFeedbackStyle()) ? context.getFeedbackStyle() : "")
                 .build();
         HintResult result = null;
         String retryHint = "";
@@ -169,13 +164,13 @@ public class FeedbackAgent implements IFeedbackAgent {
         FeedbackContext context = readFeedbackContext(scope);
         // 2. 组装 JudgeAgent 输入
         JudgeContext judgeContext = JudgeContext.builder()
-                .question(value(context.getQuestion()))
-                .standardAnswer(value(context.getStandardAnswer()))
-                .knowledgeNote(value(context.getKnowledgeNote()))
-                .tip(value(context.getTip()))
-                .userAnswer(value(context.getUserAnswer()))
-                .answerStyle(value(context.getAnswerStyle()))
-                .feedbackStyle(value(context.getFeedbackStyle()))
+                .question(StringUtils.hasText(context.getQuestion()) ? context.getQuestion() : "")
+                .standardAnswer(StringUtils.hasText(context.getStandardAnswer()) ? context.getStandardAnswer() : "")
+                .knowledgeNote(StringUtils.hasText(context.getKnowledgeNote()) ? context.getKnowledgeNote() : "")
+                .tip(StringUtils.hasText(context.getTip()) ? context.getTip() : "")
+                .userAnswer(StringUtils.hasText(context.getUserAnswer()) ? context.getUserAnswer() : "")
+                .answerStyle(StringUtils.hasText(context.getAnswerStyle()) ? context.getAnswerStyle() : "")
+                .feedbackStyle(StringUtils.hasText(context.getFeedbackStyle()) ? context.getFeedbackStyle() : "")
                 .build();
         JudgeResult result = null;
         String retryHint = "";
@@ -245,8 +240,8 @@ public class FeedbackAgent implements IFeedbackAgent {
     private FeedbackSaveCommand hintSaveCommand(AgenticScope scope) {
         HintResult result = readHintResult(scope);
         HintFeedbackDetail detail = HintFeedbackDetail.builder()
-                .memoryTip(value(result.getMemoryTip()))
-                .encouragement(value(result.getEncouragement()))
+                .memoryTip(StringUtils.hasText(result.getMemoryTip()) ? result.getMemoryTip() : "")
+                .encouragement(StringUtils.hasText(result.getEncouragement()) ? result.getEncouragement() : "")
                 .build();
         return FeedbackSaveCommand.builder()
                 .userAnswer("")
@@ -264,16 +259,16 @@ public class FeedbackAgent implements IFeedbackAgent {
         JudgeResult result = readJudgeResult(scope);
         FeedbackResultType resultType = FeedbackResultType.valueOf(result.getResult());
         JudgeFeedbackDetail detail = JudgeFeedbackDetail.builder()
-                .missingPoints(safeList(result.getMissingPoints()))
-                .wrongPoints(safeList(result.getWrongPoints()))
-                .improvementAdvice(value(result.getImprovementAdvice()))
-                .betterAnswer(value(result.getBetterAnswer()))
+                .missingPoints(result.getMissingPoints() == null ? List.of() : result.getMissingPoints())
+                .wrongPoints(result.getWrongPoints() == null ? List.of() : result.getWrongPoints())
+                .improvementAdvice(StringUtils.hasText(result.getImprovementAdvice()) ? result.getImprovementAdvice() : "")
+                .betterAnswer(StringUtils.hasText(result.getBetterAnswer()) ? result.getBetterAnswer() : "")
                 .build();
         return FeedbackSaveCommand.builder()
-                .userAnswer(value(context.getUserAnswer()))
+                .userAnswer(StringUtils.hasText(context.getUserAnswer()) ? context.getUserAnswer() : "")
                 .result(resultType)
                 .score(result.getScore())
-                .feedbackSummary(value(result.getFeedbackSummary()))
+                .feedbackSummary(StringUtils.hasText(result.getFeedbackSummary()) ? result.getFeedbackSummary() : "")
                 .detailPayload(FeedbackDetailPayload.builder()
                         .type(FeedbackDetailType.JUDGE)
                         .judgeDetail(detail)
@@ -283,8 +278,7 @@ public class FeedbackAgent implements IFeedbackAgent {
 
     private boolean isUnknown(FeedbackRequest request) {
         return Boolean.TRUE.equals(request.getUnknown())
-                || request.getUserAnswer() == null
-                || request.getUserAnswer().trim().isBlank();
+                || !StringUtils.hasText(request.getUserAnswer());
     }
 
     private String normalizeAnswer(FeedbackRequest request) {
@@ -334,11 +328,7 @@ public class FeedbackAgent implements IFeedbackAgent {
     }
 
     private String currentUserId() {
-        String userId = contextUtil.getUserId();
-        if (userId == null) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
-        return userId;
+        return contextUtil.getUserId();
     }
 
     private ApiException toApiException(FeedbackException exception) {
@@ -348,11 +338,4 @@ public class FeedbackAgent implements IFeedbackAgent {
         return new ApiException(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }
 
-    private String value(String value) {
-        return value == null ? "" : value;
-    }
-
-    private List<String> safeList(List<String> values) {
-        return values == null ? List.of() : values;
-    }
 }

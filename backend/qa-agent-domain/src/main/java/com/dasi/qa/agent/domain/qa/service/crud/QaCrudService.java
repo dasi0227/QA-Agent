@@ -2,13 +2,12 @@ package com.dasi.qa.agent.domain.qa.service.crud;
 
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
-import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -56,7 +55,7 @@ public class QaCrudService implements IQaCrudService {
 
     @Override
     public QaItemResponse createQaItem(QaItemRequest request) {
-        if (request.getId() == null || request.getId().isBlank()) {
+        if (!StringUtils.hasText(request.getId())) {
             request.setId(UUID.randomUUID().toString());
         }
         return repository.createQaItem(request, currentUserId());
@@ -73,10 +72,6 @@ public class QaCrudService implements IQaCrudService {
     }
 
     private String currentUserId() {
-        String userId = contextUtil.getUserId();
-        if (userId == null) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
-        return userId;
+        return contextUtil.getUserId();
     }
 }

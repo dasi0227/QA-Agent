@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import cn.hutool.core.util.StrUtil;
 import com.dasi.qa.agent.domain.identity.service.crud.IProfileCrudService;
 import com.dasi.qa.agent.domain.util.IOssUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
@@ -13,6 +12,7 @@ import com.dasi.qa.agent.types.result.Result;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -65,13 +65,10 @@ public class IdentityController {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
+        if (!StringUtils.hasText(contentType) || !contentType.startsWith("image/")) {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
         String userId = contextUtil.getUserId();
-        if (StrUtil.isBlank(userId)) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
-        }
         UserAccountResponse currentUser = identityService.detailUserAccount(userId);
 
         aliOssUtil.delete(currentUser.getAvatar());

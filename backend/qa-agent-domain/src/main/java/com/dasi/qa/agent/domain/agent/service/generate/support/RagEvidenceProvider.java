@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +29,7 @@ public class RagEvidenceProvider {
     public List<EvidenceItem> search(String userId, List<String> documentIds, PlanItem planItem) {
         List<SearchResult> results = new ArrayList<>();
         String focusTopics = planItem.getFocusTopics();
-        List<String> topics = (focusTopics == null || focusTopics.isBlank())
+        List<String> topics = !StringUtils.hasText(focusTopics)
                 ? List.of(planItem.getModule())
                 : List.of(focusTopics.split(","));
         for (String topic : topics) {

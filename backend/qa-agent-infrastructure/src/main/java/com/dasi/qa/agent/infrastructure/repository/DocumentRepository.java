@@ -32,6 +32,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.sql.ResultSet;
@@ -293,7 +294,7 @@ public class DocumentRepository implements IDocumentRepository {
      * Splits on whitespace and joins with & (AND).
      */
     private String toTsquery(String queryText) {
-        if (queryText == null || queryText.isBlank()) return "";
+        if (!StringUtils.hasText(queryText)) return "";
         String[] words = queryText.trim().split("\\s+");
         return String.join(" & ", words);
     }
@@ -358,7 +359,7 @@ public class DocumentRepository implements IDocumentRepository {
     private <E, R extends BaseResponse> R toResponse(E entity, Class<R> responseType) {
         R response = ReflectUtil.newInstance(responseType);
         BeanUtil.copyProperties(entity, response, CopyOptions.create().ignoreNullValue());
-        if ((response.getId() == null || response.getId().isBlank())
+        if (!StringUtils.hasText(response.getId())
                 && BeanUtil.getProperty(entity, "userId") != null) {
             response.setId(String.valueOf(BeanUtil.getProperty(entity, "userId")));
         }
@@ -390,7 +391,7 @@ public class DocumentRepository implements IDocumentRepository {
         }
 
         private List<String> parseJsonArray(String json) {
-            if (json == null || json.isBlank() || "[]".equals(json)) {
+            if (!StringUtils.hasText(json) || "[]".equals(json)) {
                 return List.of();
             }
             // simple JSON array parser: ["a","b"] → [a, b]

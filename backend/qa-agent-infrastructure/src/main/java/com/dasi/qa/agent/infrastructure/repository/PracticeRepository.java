@@ -27,6 +27,7 @@ import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -156,7 +157,7 @@ public class PracticeRepository implements IPracticeRepository {
         if (response instanceof PracticeSessionItemResponse itemResponse
                 && entity instanceof PracticeSessionItem itemEntity
                 && itemEntity.getFeedbackDetailJson() != null
-                && !itemEntity.getFeedbackDetailJson().isBlank()) {
+                && StringUtils.hasText(itemEntity.getFeedbackDetailJson())) {
             FeedbackDetailPayload payload = JSON.parseObject(itemEntity.getFeedbackDetailJson(), FeedbackDetailPayload.class);
             if (payload != null) {
                 itemResponse.setJudgeDetail(payload.getJudgeDetail());
@@ -166,11 +167,11 @@ public class PracticeRepository implements IPracticeRepository {
         if (response instanceof PracticeSessionResponse sessionResponse
                 && entity instanceof PracticeSession sessionEntity
                 && sessionEntity.getAssessmentDetailJson() != null
-                && !sessionEntity.getAssessmentDetailJson().isBlank()) {
+                && StringUtils.hasText(sessionEntity.getAssessmentDetailJson())) {
             AssessmentDetail detail = JSON.parseObject(sessionEntity.getAssessmentDetailJson(), AssessmentDetail.class);
             sessionResponse.setAssessmentDetail(detail);
         }
-        if ((response.getId() == null || response.getId().isBlank()) && BeanUtil.getProperty(entity, "userId") != null) {
+        if (!StringUtils.hasText(response.getId()) && BeanUtil.getProperty(entity, "userId") != null) {
             response.setId(String.valueOf(BeanUtil.getProperty(entity, "userId")));
         }
         return response;

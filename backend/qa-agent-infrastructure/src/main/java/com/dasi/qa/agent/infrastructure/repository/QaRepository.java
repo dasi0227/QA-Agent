@@ -21,6 +21,7 @@ import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -167,7 +168,7 @@ public class QaRepository implements IQaRepository {
     private <E, R extends BaseResponse> R toResponse(E entity, Class<R> responseType) {
         R response = ReflectUtil.newInstance(responseType);
         BeanUtil.copyProperties(entity, response, CopyOptions.create().ignoreNullValue());
-        if ((response.getId() == null || response.getId().isBlank()) && BeanUtil.getProperty(entity, "userId") != null) {
+        if (!StringUtils.hasText(response.getId()) && BeanUtil.getProperty(entity, "userId") != null) {
             response.setId(String.valueOf(BeanUtil.getProperty(entity, "userId")));
         }
         return response;

@@ -10,6 +10,7 @@ import com.vladsch.flexmark.util.ast.Block;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,7 @@ public class MarkdownChunker {
     }
 
     public List<ChunkDraft> chunk(String rawContent) {
-        if (rawContent == null || rawContent.isBlank()) {
+        if (!StringUtils.hasText(rawContent)) {
             return List.of();
         }
         Node document = parser.parse(rawContent);

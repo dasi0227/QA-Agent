@@ -15,6 +15,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +61,7 @@ public class IndexService implements IIndexService {
             return;
         }
         String rawContent = docs.get(0).getRawContent();
-        if (rawContent == null || rawContent.isBlank()) {
+        if (!StringUtils.hasText(rawContent)) {
             log.warn("【文本嵌入】资料无正文内容，跳过索引: documentId={}", documentId);
             return;
         }
@@ -84,7 +85,7 @@ public class IndexService implements IIndexService {
             List<String> summaries = jsonUtil.parseJsonArray(response, String.class);
             for (int i = 0; i < drafts.size() && i < summaries.size(); i++) {
                 String summary = summaries.get(i);
-                drafts.get(i).setSummary(summary != null && !summary.isBlank() ? summary : fallbackSummary(drafts.get(i).getContent()));
+                drafts.get(i).setSummary(StringUtils.hasText(summary) ? summary : fallbackSummary(drafts.get(i).getContent()));
             }
             // 摘要数不足时用 fallback 补齐
             for (int i = summaries.size(); i < drafts.size(); i++) {

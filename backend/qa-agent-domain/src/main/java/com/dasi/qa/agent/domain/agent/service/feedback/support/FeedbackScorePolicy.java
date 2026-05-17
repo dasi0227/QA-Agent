@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.agent.service.feedback.support;
 
 import com.dasi.qa.agent.types.enumeration.FeedbackResultType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +32,7 @@ public class FeedbackScorePolicy {
      */
     public FeedbackResultType normalizeResult(String rawResult) {
         // 空值和非法值统一降级为 DEFICIENT
-        if (rawResult == null || rawResult.isBlank()) {
+        if (!StringUtils.hasText(rawResult)) {
             return FeedbackResultType.DEFICIENT;
         }
         try {

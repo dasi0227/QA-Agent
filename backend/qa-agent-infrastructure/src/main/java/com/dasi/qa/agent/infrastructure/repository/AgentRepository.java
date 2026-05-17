@@ -52,6 +52,7 @@ import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -188,7 +189,7 @@ public class AgentRepository implements IAgentRepository {
     }
 
     private String getDocumentNames(String documentIdsJson) {
-        if (documentIdsJson == null || documentIdsJson.isBlank()) {
+        if (!StringUtils.hasText(documentIdsJson)) {
             return "[]";
         }
         List<String> ids = JSON.parseArray(documentIdsJson, String.class);
@@ -308,7 +309,7 @@ public class AgentRepository implements IAgentRepository {
                             .eq(DocumentChunk::getDocumentId, doc.getId())
                             .orderByAsc(DocumentChunk::getChunkIndex));
             for (DocumentChunk chunk : chunks) {
-                if (chunk.getSummary() != null && !chunk.getSummary().isBlank()) {
+                if (StringUtils.hasText(chunk.getSummary())) {
                     sb.append(chunk.getSummary()).append("\n");
                 }
             }
@@ -547,7 +548,7 @@ public class AgentRepository implements IAgentRepository {
     }
 
     private JudgeFeedbackDetail judgeDetail(String feedbackDetailJson) {
-        if (feedbackDetailJson == null || feedbackDetailJson.isBlank()) {
+        if (!StringUtils.hasText(feedbackDetailJson)) {
             return null;
         }
         try {
@@ -638,7 +639,7 @@ public class AgentRepository implements IAgentRepository {
     }
 
     private List<String> parseChunkIds(String sourceChunkIdsJson) {
-        if (sourceChunkIdsJson == null || sourceChunkIdsJson.isBlank()) {
+        if (!StringUtils.hasText(sourceChunkIdsJson)) {
             return List.of();
         }
         try {
@@ -651,7 +652,7 @@ public class AgentRepository implements IAgentRepository {
     private List<String> moduleTags(List<DraftResult> draftResults) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (DraftResult draftResult : draftResults) {
-            if (draftResult.getTag() != null && !draftResult.getTag().isBlank()) {
+            if (StringUtils.hasText(draftResult.getTag())) {
                 for (String tag : draftResult.getTag().split(",")) {
                     String trimmed = tag.trim();
                     if (!trimmed.isEmpty()) {
@@ -665,7 +666,7 @@ public class AgentRepository implements IAgentRepository {
 
     private String title(CreateQaSetRequest request, PlanResult planResult) {
         boolean usePlanTitle = "未命名问答集".equals(request.getTitle())
-                && planResult != null && planResult.getTitle() != null && !planResult.getTitle().isBlank();
+                && planResult != null && StringUtils.hasText(planResult.getTitle());
         return usePlanTitle ? planResult.getTitle() : request.getTitle();
     }
 

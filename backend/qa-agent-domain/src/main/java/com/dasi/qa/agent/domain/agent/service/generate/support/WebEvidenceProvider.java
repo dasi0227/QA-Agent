@@ -10,6 +10,7 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,7 @@ public class WebEvidenceProvider {
 
     public List<InterviewInsights> search(String company, String role, PlanItem planItem) {
         String focusTopics = planItem.getFocusTopics();
-        List<String> topics = (focusTopics == null || focusTopics.isBlank())
+        List<String> topics = !StringUtils.hasText(focusTopics)
                 ? List.of(planItem.getModule())
                 : List.of(focusTopics.split(","));
         List<InterviewInsights> results = new ArrayList<>();

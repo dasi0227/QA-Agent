@@ -7,6 +7,7 @@ import com.dasi.qa.agent.types.enumeration.FeedbackResultType;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -73,7 +74,7 @@ public class AssessmentMetricCalculator {
         }
         // 每道题都必须已经完成反馈
         for (AssessItem item : context.getItems()) {
-            if (item.getAnsweredAt() == null || item.getResult() == null || item.getResult().isBlank() || item.getScore() == null) {
+            if (item.getAnsweredAt() == null || !StringUtils.hasText(item.getResult()) || item.getScore() == null) {
                 throw notCompleted("练习尚未完成，不能生成整轮评估");
             }
             resultType(item.getResult());

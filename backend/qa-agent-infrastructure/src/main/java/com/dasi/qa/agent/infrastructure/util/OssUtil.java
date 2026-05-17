@@ -5,8 +5,8 @@ import com.dasi.qa.agent.domain.util.IOssUtil;
 import com.dasi.qa.agent.infrastructure.properties.AliOssProperties;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.ResultCode;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 
@@ -35,7 +35,7 @@ public class OssUtil implements IOssUtil {
 
     @Override
     public String getPublicUrl(String uri) {
-        if (uri == null || uri.isBlank()) {
+        if (!StringUtils.hasText(uri)) {
             return null;
         }
         if (uri.startsWith("http://") || uri.startsWith("https://")) {
@@ -46,7 +46,7 @@ public class OssUtil implements IOssUtil {
 
     @Override
     public void delete(String uri) {
-        if (uri == null || uri.isBlank()) {
+        if (!StringUtils.hasText(uri)) {
             return;
         }
         if (uri.startsWith("http://") || uri.startsWith("https://")) {
