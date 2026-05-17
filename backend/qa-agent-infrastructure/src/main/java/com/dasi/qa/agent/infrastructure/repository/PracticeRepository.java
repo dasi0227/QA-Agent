@@ -19,7 +19,7 @@ import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.dto.response.practice.AssessmentDetail;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackDetailPayload;
+import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.constant.RedisConstant;
@@ -155,13 +155,14 @@ public class PracticeRepository implements IPracticeRepository {
         R response = ReflectUtil.newInstance(responseType);
         BeanUtil.copyProperties(entity, response, CopyOptions.create().ignoreNullValue());
         if (response instanceof PracticeSessionItemResponse itemResponse
-                && entity instanceof PracticeSessionItem itemEntity
-                && itemEntity.getFeedbackDetailJson() != null
-                && StringUtils.hasText(itemEntity.getFeedbackDetailJson())) {
-            FeedbackDetailPayload payload = JSON.parseObject(itemEntity.getFeedbackDetailJson(), FeedbackDetailPayload.class);
-            if (payload != null) {
-                itemResponse.setJudgeDetail(payload.getJudgeDetail());
-                itemResponse.setHintDetail(payload.getHintDetail());
+                && entity instanceof PracticeSessionItem itemEntity) {
+            if (StringUtils.hasText(itemEntity.getFeedbackJudgeDetail())) {
+                FeedbackResponse.JudgeDetail judgeDetail = JSON.parseObject(itemEntity.getFeedbackJudgeDetail(), FeedbackResponse.JudgeDetail.class);
+                itemResponse.setJudgeDetail(judgeDetail);
+            }
+            if (StringUtils.hasText(itemEntity.getFeedbackHintDetail())) {
+                FeedbackResponse.HintDetail hintDetail = JSON.parseObject(itemEntity.getFeedbackHintDetail(), FeedbackResponse.HintDetail.class);
+                itemResponse.setHintDetail(hintDetail);
             }
         }
         if (response instanceof PracticeSessionResponse sessionResponse

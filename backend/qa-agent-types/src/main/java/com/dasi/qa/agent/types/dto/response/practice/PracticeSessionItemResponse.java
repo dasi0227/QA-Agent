@@ -23,7 +23,7 @@ public class PracticeSessionItemResponse extends BaseResponse {
     private String result;
     private Integer score;
     private String feedbackSummary;
-    private JudgeFeedbackDetail judgeDetail;
-    private HintFeedbackDetail hintDetail;
+    private FeedbackResponse.JudgeDetail judgeDetail;
+    private FeedbackResponse.HintDetail hintDetail;
     private LocalDateTime answeredAt;
 }

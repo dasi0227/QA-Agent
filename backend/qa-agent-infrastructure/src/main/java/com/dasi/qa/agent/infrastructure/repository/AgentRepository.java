@@ -9,8 +9,8 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItem;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
-import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
-import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.command.FeedbackSaveCommand;
+import com.dasi.qa.agent.domain.agent.model.vo.PracticeVO;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
@@ -41,9 +41,8 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMappe
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackDetailPayload;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackSourceChunk;
-import com.dasi.qa.agent.types.dto.response.practice.JudgeFeedbackDetail;
+import com.dasi.qa.agent.domain.agent.model.vo.ChunkVO;
+import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
@@ -368,7 +367,7 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public FeedbackContext getFeedbackContext(String sessionItemId, String userId) {
+    public PracticeVO getPracticeVO(String sessionItemId, String userId) {
         PracticeSessionItem sessionItem = requirePracticeSessionItem(sessionItemId);
         PracticeSession session = requirePracticeSession(sessionItem.getSessionId());
         if (!userId.equals(session.getUserId())) {
@@ -379,8 +378,8 @@ public class AgentRepository implements IAgentRepository {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
         UserProfileStyleVO style = getUserProfileStyle(userId);
-        List<FeedbackSourceChunk> sourceChunks = feedbackSourceChunks(qaItem.getSourceChunkIdsJson(), userId);
-        return FeedbackContext.builder()
+        List<ChunkVO> sourceChunks = feedbackSourceChunks(qaItem.getSourceChunkIdsJson(), userId);
+        return PracticeVO.builder()
                 .sessionItemId(sessionItem.getId())
                 .sessionId(sessionItem.getSessionId())
                 .qaItemId(qaItem.getId())
@@ -391,7 +390,6 @@ public class AgentRepository implements IAgentRepository {
                 .answerStyle(style == null ? "" : style.getAnswerStyle())
                 .feedbackStyle(style == null ? "" : style.getFeedbackStyle())
                 .sourceChunks(sourceChunks)
-                .previousAnsweredAt(sessionItem.getAnsweredAt())
                 .build();
     }
 
@@ -411,7 +409,8 @@ public class AgentRepository implements IAgentRepository {
                         .set(PracticeSessionItem::getResult, command.getResult().name())
                         .set(PracticeSessionItem::getScore, command.getScore())
                         .set(PracticeSessionItem::getFeedbackSummary, command.getFeedbackSummary())
-                        .set(PracticeSessionItem::getFeedbackDetailJson, JSON.toJSONString(command.getDetailPayload()))
+                        .set(PracticeSessionItem::getFeedbackJudgeDetail, command.getJudgeDetail() != null ? JSON.toJSONString(command.getJudgeDetail()) : null)
+                        .set(PracticeSessionItem::getFeedbackHintDetail, command.getHintDetail() != null ? JSON.toJSONString(command.getHintDetail()) : null)
                         .set(PracticeSessionItem::getAnsweredAt, now)
                         .set(PracticeSessionItem::getUpdatedAt, now)
                         .eq(PracticeSessionItem::getId, sessionItemId));
@@ -445,7 +444,7 @@ public class AgentRepository implements IAgentRepository {
             if (qaItem == null || !userId.equals(qaItem.getUserId())) {
                 throw new ApiException(ResultCode.NOT_FOUND);
             }
-            JudgeFeedbackDetail judgeDetail = judgeDetail(sessionItem.getFeedbackDetailJson());
+            FeedbackResponse.JudgeDetail judgeDetail = judgeDetail(sessionItem.getFeedbackJudgeDetail());
             items.add(AssessItem.builder()
                     .itemId(sessionItem.getId())
                     .question(qaItem.getQuestion())
@@ -547,13 +546,12 @@ public class AgentRepository implements IAgentRepository {
         return entity;
     }
 
-    private JudgeFeedbackDetail judgeDetail(String feedbackDetailJson) {
-        if (!StringUtils.hasText(feedbackDetailJson)) {
+    private FeedbackResponse.JudgeDetail judgeDetail(String feedbackJudgeDetail) {
+        if (!StringUtils.hasText(feedbackJudgeDetail)) {
             return null;
         }
         try {
-            FeedbackDetailPayload payload = JSON.parseObject(feedbackDetailJson, FeedbackDetailPayload.class);
-            return payload == null ? null : payload.getJudgeDetail();
+            return JSON.parseObject(feedbackJudgeDetail, FeedbackResponse.JudgeDetail.class);
         } catch (Exception exception) {
             return null;
         }
@@ -609,7 +607,7 @@ public class AgentRepository implements IAgentRepository {
                         .eq(QaSet::getId, qaSetId));
     }
 
-    private List<FeedbackSourceChunk> feedbackSourceChunks(String sourceChunkIdsJson, String userId) {
+    private List<ChunkVO> feedbackSourceChunks(String sourceChunkIdsJson, String userId) {
         List<String> chunkIds = parseChunkIds(sourceChunkIdsJson);
         if (chunkIds.isEmpty()) {
             return List.of();
@@ -622,11 +620,11 @@ public class AgentRepository implements IAgentRepository {
         for (DocumentChunk chunk : chunks) {
             chunkMap.put(chunk.getId(), chunk);
         }
-        List<FeedbackSourceChunk> results = new ArrayList<>();
+        List<ChunkVO> results = new ArrayList<>();
         for (String chunkId : chunkIds) {
             DocumentChunk chunk = chunkMap.get(chunkId);
             if (chunk != null) {
-                results.add(FeedbackSourceChunk.builder()
+                results.add(ChunkVO.builder()
                         .chunkId(chunk.getId())
                         .documentId(chunk.getDocumentId())
                         .titlePath(chunk.getTitlePath())

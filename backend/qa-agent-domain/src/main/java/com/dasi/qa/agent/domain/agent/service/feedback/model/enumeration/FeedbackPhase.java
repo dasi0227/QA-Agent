@@ -4,17 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 单题反馈 DAG 阶段定义，统一维护 Agent 名称、描述和 Scope key。
+ * 单题反馈 DAG 阶段定义，仅维护真实 Agent 阶段。
  */
 @Getter
 @AllArgsConstructor
 public enum FeedbackPhase {
-    FEEDBACK("FeedbackAgent", "执行单题反馈链路。", null),
-    PREPARE("FeedbackPrepare", "读取练习题、题目、用户画像和资料切片，准备反馈上下文。", "feedbackContext"),
-    ROUTE("FeedbackRoute", "根据 Java 规则判断 UNKNOWN 分支或 JUDGE 分支。", "isUnknown"),
+    FEEDBACK("FeedbackAgent", "执行单题反馈链路。", "feedbackResult"),
     HINT("HintAgent", "用户不会时生成记忆技巧和情绪支持。", "hintResult"),
-    JUDGE("JudgeAgent", "用户有效作答时判定回答质量并生成反馈。", "judgeResult"),
-    SAVE("FeedbackSave", "保存单题最新反馈并返回结构化响应。", "feedbackResponse");
+    JUDGE("JudgeAgent", "用户有效作答时判定回答质量并生成反馈。", "judgeResult");
 
     private final String agentName;
     private final String agentDesc;

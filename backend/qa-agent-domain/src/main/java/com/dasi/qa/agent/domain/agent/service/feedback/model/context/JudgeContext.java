@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class JudgeContext {
 
+    private String sessionItemId;
     private String question;
     private String standardAnswer;
     private String knowledgeNote;

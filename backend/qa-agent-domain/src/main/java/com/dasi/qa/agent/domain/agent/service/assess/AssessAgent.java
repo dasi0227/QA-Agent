@@ -14,8 +14,8 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.result.RecordResult;
 import com.dasi.qa.agent.domain.agent.service.assess.subagent.AdviceAgent;
 import com.dasi.qa.agent.domain.agent.service.assess.subagent.DiagnosisAgent;
 import com.dasi.qa.agent.domain.agent.service.assess.subagent.RecordAgent;
+import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessAgentFactory;
-import com.dasi.qa.agent.domain.agent.service.assess.support.AssessLlmModelProvider;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessResultSanitizer;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessmentMetricCalculator;
 import com.dasi.qa.agent.domain.util.IContextUtil;
@@ -47,7 +47,7 @@ public class AssessAgent implements IAssessAgent {
     private final IJsonUtil jsonUtil;
     private final IAgentRepository agentRepository;
     private final AssessAgentFactory assessAgentFactory;
-    private final AssessLlmModelProvider assessLlmModelProvider;
+    private final UserLlmModelProvider userLlmModelProvider;
     private final AssessmentMetricCalculator assessmentMetricCalculator;
     private final AssessResultSanitizer assessResultSanitizer;
 
@@ -55,36 +55,39 @@ public class AssessAgent implements IAssessAgent {
                        IJsonUtil jsonUtil,
                        IAgentRepository agentRepository,
                        AssessAgentFactory assessAgentFactory,
-                       AssessLlmModelProvider assessLlmModelProvider,
+                       UserLlmModelProvider userLlmModelProvider,
                        AssessmentMetricCalculator assessmentMetricCalculator,
                        AssessResultSanitizer assessResultSanitizer) {
         this.contextUtil = contextUtil;
         this.jsonUtil = jsonUtil;
         this.agentRepository = agentRepository;
         this.assessAgentFactory = assessAgentFactory;
-        this.assessLlmModelProvider = assessLlmModelProvider;
+        this.userLlmModelProvider = userLlmModelProvider;
         this.assessmentMetricCalculator = assessmentMetricCalculator;
         this.assessResultSanitizer = assessResultSanitizer;
     }
 
     @Override
     public AssessResponse execute(AssessRequest request) {
-        // 1. 读取当前用户，参数完整性由 Controller Validation 处理
+        // 1. 读取当前用户并执行 Java 预处理步骤
         String userId = currentUserId();
         AssessContext context = prepareContext(userId, request);
+        doPrepare(context);
         // 2. 构建用户模型和整轮评估 DAG 上下文
-        ChatModel userModel = assessLlmModelProvider.getUserLlmModel(userId);
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
         AssessWorkflowContext workflowContext = AssessWorkflowContext.builder()
                 .userModel(userModel)
-                .prepareStep(scope -> doPrepare(scope, context))
                 .diagnosisStep(this::doDiagnosis)
                 .adviceStep(this::doAdvice)
                 .recordStep(this::doRecord)
-                .saveStep(scope -> doSave(scope, userId))
                 .build();
         // 3. 启动 DAG 并读取保存后的响应
         UntypedAgent assessAgent = assessAgentFactory.build(workflowContext);
-        ResultWithAgenticScope<String> result = assessAgent.invokeWithAgenticScope(Map.of());
+        ResultWithAgenticScope<String> result = assessAgent.invokeWithAgenticScope(Map.of(
+                AssessPhase.PREPARE.getScopeKey(), context
+        ));
+        // 4. 执行 Java 保存步骤并返回结果
+        doSave(result.agenticScope(), userId);
         return readAssessResponse(result.agenticScope());
     }
 
@@ -103,9 +106,7 @@ public class AssessAgent implements IAssessAgent {
     /**
      * PREPARE 阶段负责把已校验的上下文写入 Scope。
      */
-    private void doPrepare(AgenticScope scope, AssessContext context) {
-        // 1. 写入上下文供并发分支读取
-        writeAssessContext(scope, context);
+    private void doPrepare(AssessContext context) {
         log.info("【整轮评估】准备完成: sessionId={}, score={}, accuracy={}",
                 context.getSessionId(), context.getMetrics().getScore(), context.getMetrics().getAccuracy());
     }

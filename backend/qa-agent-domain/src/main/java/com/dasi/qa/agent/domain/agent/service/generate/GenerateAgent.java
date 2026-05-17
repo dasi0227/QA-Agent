@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
-import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.model.sse.EventPublisher;
 import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
@@ -14,10 +13,15 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.Verdict
 import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateException;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
-import com.dasi.qa.agent.domain.agent.service.generate.support.*;
+import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentFactory;
+import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
+import com.dasi.qa.agent.domain.agent.service.generate.support.RagEvidenceProvider;
+import com.dasi.qa.agent.domain.agent.service.generate.support.WebEvidenceProvider;
+import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -167,7 +171,7 @@ public class GenerateAgent implements IGenerateAgent {
             // 创建阶段总结器，负责在每个 Agent 调用成功后生成进度消息并推送 SSE
             GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, supervisorChatModel, eventPublisher, totalTokens);
 
-            // 组装各阶段执行上下文
+            // 构建各阶段执行上下文
             PlanContext planContext = PlanContext.builder()
                     .taskId(taskId)
                     .userId(userId)
@@ -218,7 +222,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .supervisor(supervisor)
                     .build();
 
-            // 汇总 DAG 运行上下文，并传入各阶段执行回调
+            // 构建 DAG 运行上下文
             GenerateContext generateContext = GenerateContext.builder()
                     .userModel(userModel)
                     .decideStep((scope, decideAgent) -> doDecide(scope, decideAgent, decideContext))
@@ -229,7 +233,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .summarizeStep((scope, summarizeAgent) -> doSummarize(scope, summarizeAgent, summarizeContext))
                     .build();
 
-            // 构建任务 DAG
+            // 构建智能体
             UntypedAgent generateAgent = generateAgentFactory.build(generateContext);
 
             // 初始化 Scope 数据，供各阶段读取
@@ -238,7 +242,7 @@ public class GenerateAgent implements IGenerateAgent {
                     "userPrompt", request.getUserPrompt()
             );
 
-            // 启动 DAG 执行
+            // 执行智能体
             generateAgent.invoke(initialData);
         }
         // 已知业务异常：按类型发布失败事件

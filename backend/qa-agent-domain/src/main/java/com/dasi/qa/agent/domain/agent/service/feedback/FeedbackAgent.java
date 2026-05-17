@@ -1,9 +1,8 @@
 package com.dasi.qa.agent.domain.agent.service.feedback;
 
+import com.dasi.qa.agent.domain.agent.model.vo.PracticeVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
-import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackWorkflowContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.HintContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.JudgeContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackPhase;
@@ -13,17 +12,13 @@ import com.dasi.qa.agent.domain.agent.service.feedback.model.result.JudgeResult;
 import com.dasi.qa.agent.domain.agent.service.feedback.subagent.HintAgent;
 import com.dasi.qa.agent.domain.agent.service.feedback.subagent.JudgeAgent;
 import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackAgentFactory;
-import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackLlmModelProvider;
-import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackScorePolicy;
+import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackSaver;
+import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackScoreCorrector;
+import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.dto.request.practice.FeedbackRequest;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackDetailPayload;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
-import com.dasi.qa.agent.types.dto.response.practice.HintFeedbackDetail;
-import com.dasi.qa.agent.types.dto.response.practice.JudgeFeedbackDetail;
-import com.dasi.qa.agent.types.enumeration.FeedbackDetailType;
-import com.dasi.qa.agent.types.enumeration.FeedbackResultType;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
@@ -33,8 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,84 +38,87 @@ import java.util.Map;
 public class FeedbackAgent implements IFeedbackAgent {
 
     private static final int MAX_RETRY = 2;
-    private static final String UNKNOWN_SUMMARY = "这题已标记为不会。";
 
     private final IContextUtil contextUtil;
     private final IJsonUtil jsonUtil;
     private final IAgentRepository agentRepository;
     private final FeedbackAgentFactory feedbackAgentFactory;
-    private final FeedbackLlmModelProvider feedbackLlmModelProvider;
-    private final FeedbackScorePolicy feedbackScorePolicy;
+    private final UserLlmModelProvider userLlmModelProvider;
+    private final FeedbackScoreCorrector feedbackScoreCorrector;
+    private final FeedbackSaver feedbackSaver;
 
     public FeedbackAgent(IContextUtil contextUtil,
                          IJsonUtil jsonUtil,
                          IAgentRepository agentRepository,
                          FeedbackAgentFactory feedbackAgentFactory,
-                         FeedbackLlmModelProvider feedbackLlmModelProvider,
-                         FeedbackScorePolicy feedbackScorePolicy) {
+                         UserLlmModelProvider userLlmModelProvider,
+                         FeedbackScoreCorrector feedbackScoreCorrector,
+                         FeedbackSaver feedbackSaver) {
         this.contextUtil = contextUtil;
         this.jsonUtil = jsonUtil;
         this.agentRepository = agentRepository;
         this.feedbackAgentFactory = feedbackAgentFactory;
-        this.feedbackLlmModelProvider = feedbackLlmModelProvider;
-        this.feedbackScorePolicy = feedbackScorePolicy;
+        this.userLlmModelProvider = userLlmModelProvider;
+        this.feedbackScoreCorrector = feedbackScoreCorrector;
+        this.feedbackSaver = feedbackSaver;
     }
 
     @Override
     public FeedbackResponse execute(FeedbackRequest request) {
-        // 1. 读取当前用户，参数完整性由 Controller Validation 处理
-        String userId = currentUserId();
-        // 2. 构建用户模型和反馈 DAG 上下文
-        ChatModel userModel = feedbackLlmModelProvider.getUserLlmModel(userId);
-        FeedbackWorkflowContext workflowContext = FeedbackWorkflowContext.builder()
-                .userModel(userModel)
-                .prepareStep(scope -> doPrepare(scope, userId, request))
-                .hintStep(this::doHint)
-                .judgeStep(this::doJudge)
-                .saveStep(scope -> doSave(scope, userId))
+        // 1. 构建用户模型
+        String userId = contextUtil.getUserId();
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+
+        // 2. 读取 DB 数据快照并处理请求输入
+        String sessionItemId = request.getSessionItemId();
+        PracticeVO practice = agentRepository.getPracticeVO(sessionItemId, userId);
+        String userAnswer = request.getUserAnswer() == null ? "" : request.getUserAnswer().trim();
+        boolean unknown = Boolean.TRUE.equals(request.getUnknown()) || !StringUtils.hasText(userAnswer);
+
+        // 3. 预构建阶段上下文
+        HintContext hintContext = HintContext.builder()
+                .sessionItemId(sessionItemId)
+                .question(StringUtils.hasText(practice.getQuestion()) ? practice.getQuestion() : "")
+                .standardAnswer(StringUtils.hasText(practice.getStandardAnswer()) ? practice.getStandardAnswer() : "")
+                .knowledgeNote(StringUtils.hasText(practice.getKnowledgeNote()) ? practice.getKnowledgeNote() : "")
+                .tip(StringUtils.hasText(practice.getTip()) ? practice.getTip() : "")
+                .answerStyle(StringUtils.hasText(practice.getAnswerStyle()) ? practice.getAnswerStyle() : "")
+                .feedbackStyle(StringUtils.hasText(practice.getFeedbackStyle()) ? practice.getFeedbackStyle() : "")
                 .build();
-        // 3. 启动 DAG 并读取保存后的响应
-        UntypedAgent feedbackAgent = feedbackAgentFactory.build(workflowContext);
+        JudgeContext judgeContext = JudgeContext.builder()
+                .sessionItemId(sessionItemId)
+                .question(StringUtils.hasText(practice.getQuestion()) ? practice.getQuestion() : "")
+                .standardAnswer(StringUtils.hasText(practice.getStandardAnswer()) ? practice.getStandardAnswer() : "")
+                .knowledgeNote(StringUtils.hasText(practice.getKnowledgeNote()) ? practice.getKnowledgeNote() : "")
+                .tip(StringUtils.hasText(practice.getTip()) ? practice.getTip() : "")
+                .userAnswer(userAnswer)
+                .answerStyle(StringUtils.hasText(practice.getAnswerStyle()) ? practice.getAnswerStyle() : "")
+                .feedbackStyle(StringUtils.hasText(practice.getFeedbackStyle()) ? practice.getFeedbackStyle() : "")
+                .build();
+
+        // 4. 构建 DAG 运行上下文
+        FeedbackContext feedbackContext = FeedbackContext.builder()
+                .userModel(userModel)
+                .hintStep((scope, hintAgent) -> doHint(scope, hintAgent, hintContext))
+                .judgeStep((scope, judgeAgent) -> doJudge(scope, judgeAgent, judgeContext))
+                .build();
+
+        // 5. 构建并执行智能体
+        UntypedAgent feedbackAgent = feedbackAgentFactory.build(feedbackContext);
         ResultWithAgenticScope<String> result = feedbackAgent.invokeWithAgenticScope(Map.of(
-                "sessionItemId", request.getSessionItemId()
+                feedbackContext.getRouteFlagKey(), unknown
         ));
-        return readFeedbackResponse(result.agenticScope());
 
-    }
-
-    /**
-     * PREPARE 阶段负责读取题目上下文，并写入是否进入 Hint 分支的路由标记。
-     */
-    private void doPrepare(AgenticScope scope, String userId, FeedbackRequest request) {
-        // 1. 读取单题反馈上下文
-        FeedbackContext context = agentRepository.getFeedbackContext(request.getSessionItemId(), userId);
-        // 2. 规范化作答内容和 UNKNOWN 状态
-        context.setUserAnswer(normalizeAnswer(request));
-        context.setUnknown(isUnknown(request));
-        // 3. 写入 Scope 供后续分支读取
-        writeFeedbackContext(scope, context);
-        scope.writeState(FeedbackPhase.ROUTE.getScopeKey(), Boolean.TRUE.equals(context.getUnknown()));
-        log.info("【单题反馈】准备完成: sessionItemId={}, unknown={}", context.getSessionItemId(), context.getUnknown());
+        // 6. 保存并返回结果
+        return feedbackSaver.save(result.agenticScope(), practice, unknown, userAnswer, userId);
     }
 
     /**
      * HintAgent 负责在用户不会时生成记忆技巧和情绪支持。
      */
-    private void doHint(AgenticScope scope, HintAgent hintAgent) {
-        // 1. 从 Scope 读取题目上下文
-        FeedbackContext context = readFeedbackContext(scope);
-        // 2. 组装 HintAgent 输入
-        HintContext hintContext = HintContext.builder()
-                .question(StringUtils.hasText(context.getQuestion()) ? context.getQuestion() : "")
-                .standardAnswer(StringUtils.hasText(context.getStandardAnswer()) ? context.getStandardAnswer() : "")
-                .knowledgeNote(StringUtils.hasText(context.getKnowledgeNote()) ? context.getKnowledgeNote() : "")
-                .tip(StringUtils.hasText(context.getTip()) ? context.getTip() : "")
-                .answerStyle(StringUtils.hasText(context.getAnswerStyle()) ? context.getAnswerStyle() : "")
-                .feedbackStyle(StringUtils.hasText(context.getFeedbackStyle()) ? context.getFeedbackStyle() : "")
-                .build();
-        HintResult result = null;
+    private void doHint(AgenticScope scope, HintAgent hintAgent, HintContext hintContext) {
+        HintResult hintResult = null;
         String retryHint = "";
-        // 3. 调用 HintAgent，失败时携带错误信息重试
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = hintAgent.hint(
@@ -134,40 +130,27 @@ public class FeedbackAgent implements IFeedbackAgent {
                         hintContext.getFeedbackStyle(),
                         retryHint
                 );
-                result = jsonUtil.parseJsonObject(response, HintResult.class);
+                hintResult = jsonUtil.parseJsonObject(response, HintResult.class);
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【单题反馈】HintAgent 最终失败，使用兜底提示: sessionItemId={}", context.getSessionItemId(), exception);
+                    hintResult = fallbackHint();
+                    log.warn("【单题反馈】HintAgent 最终失败，使用兜底提示: sessionItemId={}", hintContext.getSessionItemId(), exception);
                 } else {
-                    log.warn("【单题反馈】HintAgent 失败，重试: attempt={}, sessionItemId={}", attempt + 1, context.getSessionItemId(), exception);
+                    log.warn("【单题反馈】HintAgent 失败，重试: attempt={}, sessionItemId={}", attempt + 1, hintContext.getSessionItemId(), exception);
                 }
             }
         }
-        // 4. 写入 Hint 结果，失败时使用兜底提示
-        writeHintResult(scope, result != null ? result : fallbackHint());
+        scope.writeState(FeedbackPhase.HINT.getScopeKey(), hintResult);
     }
 
     /**
      * JudgeAgent 负责对有效用户回答进行判定、打分和改进建议生成。
      */
-    private void doJudge(AgenticScope scope, JudgeAgent judgeAgent) {
-        // 1. 从 Scope 读取题目上下文
-        FeedbackContext context = readFeedbackContext(scope);
-        // 2. 组装 JudgeAgent 输入
-        JudgeContext judgeContext = JudgeContext.builder()
-                .question(StringUtils.hasText(context.getQuestion()) ? context.getQuestion() : "")
-                .standardAnswer(StringUtils.hasText(context.getStandardAnswer()) ? context.getStandardAnswer() : "")
-                .knowledgeNote(StringUtils.hasText(context.getKnowledgeNote()) ? context.getKnowledgeNote() : "")
-                .tip(StringUtils.hasText(context.getTip()) ? context.getTip() : "")
-                .userAnswer(StringUtils.hasText(context.getUserAnswer()) ? context.getUserAnswer() : "")
-                .answerStyle(StringUtils.hasText(context.getAnswerStyle()) ? context.getAnswerStyle() : "")
-                .feedbackStyle(StringUtils.hasText(context.getFeedbackStyle()) ? context.getFeedbackStyle() : "")
-                .build();
-        JudgeResult result = null;
+    private void doJudge(AgenticScope scope, JudgeAgent judgeAgent, JudgeContext judgeContext) {
+        JudgeResult judgeResult = null;
         String retryHint = "";
-        // 3. 调用 JudgeAgent，失败时携带错误信息重试
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = judgeAgent.judge(
@@ -180,105 +163,22 @@ public class FeedbackAgent implements IFeedbackAgent {
                         judgeContext.getFeedbackStyle(),
                         retryHint
                 );
-                result = jsonUtil.parseJsonObject(response, JudgeResult.class);
+                judgeResult = jsonUtil.parseJsonObject(response, JudgeResult.class);
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    log.warn("【单题反馈】JudgeAgent 最终失败: sessionItemId={}", context.getSessionItemId(), exception);
+                    log.warn("【单题反馈】JudgeAgent 最终失败: sessionItemId={}", judgeContext.getSessionItemId(), exception);
+                    if (judgeResult == null) {
+                        throw new FeedbackException(AgentErrorType.INVALID_RESPONSE, "JudgeAgent 调用失败，已重试 " + MAX_RETRY + " 次");
+                    }
                 } else {
-                    log.warn("【单题反馈】JudgeAgent 失败，重试: attempt={}, sessionItemId={}", attempt + 1, context.getSessionItemId(), exception);
+                    log.warn("【单题反馈】JudgeAgent 失败，重试: attempt={}, sessionItemId={}", attempt + 1, judgeContext.getSessionItemId(), exception);
                 }
             }
         }
-        if (result == null) {
-            throw new FeedbackException(AgentErrorType.INVALID_RESPONSE, "JudgeAgent 调用失败，已重试 " + MAX_RETRY + " 次");
-        }
-        // 4. 校准判定结果和离散分数
-        FeedbackResultType resultType = feedbackScorePolicy.normalizeResult(result.getResult());
-        if (!feedbackScorePolicy.allowedForJudge(resultType)) {
-            throw new FeedbackException(AgentErrorType.INVALID_RESPONSE, "JudgeAgent 不能输出 UNKNOWN 判定");
-        }
-        result.setResult(resultType.name());
-        result.setScore(feedbackScorePolicy.normalizeScore(resultType, result.getScore()));
-        writeJudgeResult(scope, result);
-    }
-
-    /**
-     * SAVE 阶段负责将 Hint 或 Judge 结果统一转为保存命令并落库。
-     */
-    private void doSave(AgenticScope scope, String userId) {
-        // 1. 读取上下文并根据 UNKNOWN 状态选择保存结构
-        FeedbackContext context = readFeedbackContext(scope);
-        FeedbackSaveCommand command = Boolean.TRUE.equals(context.getUnknown())
-                ? hintSaveCommand(scope)
-                : judgeSaveCommand(scope, context);
-        // 2. 保存反馈结果并组装接口响应
-        LocalDateTime answeredAt = agentRepository.saveFeedbackResult(context.getSessionItemId(), userId, command);
-        FeedbackResponse response = FeedbackResponse.builder()
-                .sessionItemId(context.getSessionItemId())
-                .qaItemId(context.getQaItemId())
-                .result(command.getResult())
-                .score(command.getScore())
-                .feedbackSummary(command.getFeedbackSummary())
-                .judgeDetail(command.getDetailPayload().getJudgeDetail())
-                .hintDetail(command.getDetailPayload().getHintDetail())
-                .sourceChunks(context.getSourceChunks())
-                .answeredAt(answeredAt)
-                .build();
-        writeFeedbackResponse(scope, response);
-        log.info("【单题反馈】反馈完成: sessionItemId={}, result={}, score={}", context.getSessionItemId(), response.getResult(), response.getScore());
-    }
-
-    private FeedbackSaveCommand hintSaveCommand(AgenticScope scope) {
-        HintResult result = readHintResult(scope);
-        HintFeedbackDetail detail = HintFeedbackDetail.builder()
-                .memoryTip(StringUtils.hasText(result.getMemoryTip()) ? result.getMemoryTip() : "")
-                .encouragement(StringUtils.hasText(result.getEncouragement()) ? result.getEncouragement() : "")
-                .build();
-        return FeedbackSaveCommand.builder()
-                .userAnswer("")
-                .result(FeedbackResultType.UNKNOWN)
-                .score(0)
-                .feedbackSummary(UNKNOWN_SUMMARY)
-                .detailPayload(FeedbackDetailPayload.builder()
-                        .type(FeedbackDetailType.HINT)
-                        .hintDetail(detail)
-                        .build())
-                .build();
-    }
-
-    private FeedbackSaveCommand judgeSaveCommand(AgenticScope scope, FeedbackContext context) {
-        JudgeResult result = readJudgeResult(scope);
-        FeedbackResultType resultType = FeedbackResultType.valueOf(result.getResult());
-        JudgeFeedbackDetail detail = JudgeFeedbackDetail.builder()
-                .missingPoints(result.getMissingPoints() == null ? List.of() : result.getMissingPoints())
-                .wrongPoints(result.getWrongPoints() == null ? List.of() : result.getWrongPoints())
-                .improvementAdvice(StringUtils.hasText(result.getImprovementAdvice()) ? result.getImprovementAdvice() : "")
-                .betterAnswer(StringUtils.hasText(result.getBetterAnswer()) ? result.getBetterAnswer() : "")
-                .build();
-        return FeedbackSaveCommand.builder()
-                .userAnswer(StringUtils.hasText(context.getUserAnswer()) ? context.getUserAnswer() : "")
-                .result(resultType)
-                .score(result.getScore())
-                .feedbackSummary(StringUtils.hasText(result.getFeedbackSummary()) ? result.getFeedbackSummary() : "")
-                .detailPayload(FeedbackDetailPayload.builder()
-                        .type(FeedbackDetailType.JUDGE)
-                        .judgeDetail(detail)
-                        .build())
-                .build();
-    }
-
-    private boolean isUnknown(FeedbackRequest request) {
-        return Boolean.TRUE.equals(request.getUnknown())
-                || !StringUtils.hasText(request.getUserAnswer());
-    }
-
-    private String normalizeAnswer(FeedbackRequest request) {
-        if (isUnknown(request)) {
-            return "";
-        }
-        return request.getUserAnswer().trim();
+        feedbackScoreCorrector.correct(judgeResult);
+        scope.writeState(FeedbackPhase.JUDGE.getScopeKey(), judgeResult);
     }
 
     private HintResult fallbackHint() {
@@ -286,42 +186,6 @@ public class FeedbackAgent implements IFeedbackAgent {
                 .memoryTip("先把题目里的核心名词和标准答案第一层结构对应起来，下一轮复习时会更容易抓住主线。")
                 .encouragement("暂时不会并不代表没有进展，能把卡住的题标出来，本身就是一次有效练习。")
                 .build();
-    }
-
-    private FeedbackContext readFeedbackContext(AgenticScope scope) {
-        return (FeedbackContext) scope.readState(FeedbackPhase.PREPARE.getScopeKey());
-    }
-
-    private HintResult readHintResult(AgenticScope scope) {
-        return (HintResult) scope.readState(FeedbackPhase.HINT.getScopeKey());
-    }
-
-    private JudgeResult readJudgeResult(AgenticScope scope) {
-        return (JudgeResult) scope.readState(FeedbackPhase.JUDGE.getScopeKey());
-    }
-
-    private FeedbackResponse readFeedbackResponse(AgenticScope scope) {
-        return (FeedbackResponse) scope.readState(FeedbackPhase.SAVE.getScopeKey());
-    }
-
-    private void writeFeedbackContext(AgenticScope scope, FeedbackContext context) {
-        scope.writeState(FeedbackPhase.PREPARE.getScopeKey(), context);
-    }
-
-    private void writeHintResult(AgenticScope scope, HintResult result) {
-        scope.writeState(FeedbackPhase.HINT.getScopeKey(), result);
-    }
-
-    private void writeJudgeResult(AgenticScope scope, JudgeResult result) {
-        scope.writeState(FeedbackPhase.JUDGE.getScopeKey(), result);
-    }
-
-    private void writeFeedbackResponse(AgenticScope scope, FeedbackResponse response) {
-        scope.writeState(FeedbackPhase.SAVE.getScopeKey(), response);
-    }
-
-    private String currentUserId() {
-        return contextUtil.getUserId();
     }
 
 }

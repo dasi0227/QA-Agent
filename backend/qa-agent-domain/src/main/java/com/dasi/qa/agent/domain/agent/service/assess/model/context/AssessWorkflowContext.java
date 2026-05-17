@@ -18,16 +18,9 @@ import lombok.Data;
 public class AssessWorkflowContext {
 
     private final ChatModel userModel;
-    private final PrepareStep prepareStep;
     private final DiagnosisStep diagnosisStep;
     private final AdviceStep adviceStep;
     private final RecordStep recordStep;
-    private final SaveStep saveStep;
-
-    @FunctionalInterface
-    public interface PrepareStep {
-        void run(AgenticScope scope);
-    }
 
     @FunctionalInterface
     public interface DiagnosisStep {
@@ -42,10 +35,5 @@ public class AssessWorkflowContext {
     @FunctionalInterface
     public interface RecordStep {
         void run(AgenticScope scope, RecordAgent recordAgent);
-    }
-
-    @FunctionalInterface
-    public interface SaveStep {
-        void run(AgenticScope scope);
     }
 }

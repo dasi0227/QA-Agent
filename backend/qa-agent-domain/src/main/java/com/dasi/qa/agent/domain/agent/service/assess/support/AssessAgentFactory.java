@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 public class AssessAgentFactory {
 
     /**
-     * 构建 PREPARE -> 并发评估分支 -> SAVE 的整轮评估 DAG。
+     * 构建用户评估与记忆线索并发执行的整轮评估 DAG。
      */
     public UntypedAgent build(AssessWorkflowContext context) {
         // 1. 创建 LangChain4J 子 Agent
@@ -26,16 +26,12 @@ public class AssessAgentFactory {
         RecordAgent recordAgent = makeRecordAgent(context.getUserModel());
 
         // 2. 把主 Agent 阶段方法包装成 Agentic action
-        AgenticServices.AgenticScopeAction prepareAction =
-                AgenticServices.agentAction(context.getPrepareStep()::run);
         AgenticServices.AgenticScopeAction diagnosisAction =
                 AgenticServices.agentAction(scope -> context.getDiagnosisStep().run(scope, diagnosisAgent));
         AgenticServices.AgenticScopeAction adviceAction =
                 AgenticServices.agentAction(scope -> context.getAdviceStep().run(scope, adviceAgent));
         AgenticServices.AgenticScopeAction recordAction =
                 AgenticServices.agentAction(scope -> context.getRecordStep().run(scope, recordAgent));
-        AgenticServices.AgenticScopeAction saveAction =
-                AgenticServices.agentAction(context.getSaveStep()::run);
 
         // 3. 组装用户评估序列和并发记忆分支
         UntypedAgent userAssessmentAgent = makeUserAssessmentAgent(diagnosisAction, adviceAction);
@@ -43,7 +39,7 @@ public class AssessAgentFactory {
         return AgenticServices.sequenceBuilder()
                 .name(AssessPhase.ASSESS.getAgentName())
                 .description(AssessPhase.ASSESS.getAgentDesc())
-                .subAgents(prepareAction, parallelAgent, saveAction)
+                .subAgents(parallelAgent)
                 .build();
     }
 

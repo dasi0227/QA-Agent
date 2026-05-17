@@ -3,7 +3,7 @@ package com.dasi.qa.agent.domain.agent.service.assess.support;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItem;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessMetrics;
-import com.dasi.qa.agent.types.enumeration.FeedbackResultType;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackResult;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.stereotype.Component;
@@ -33,7 +33,7 @@ public class AssessmentMetricCalculator {
         int totalScore = 0;
         // 2. 统计四类结果和总分
         for (AssessItem item : items) {
-            FeedbackResultType resultType = resultType(item.getResult());
+            FeedbackResult resultType = resultType(item.getResult());
             totalScore += item.getScore();
             switch (resultType) {
                 case CORRECT -> correct++;
@@ -81,9 +81,9 @@ public class AssessmentMetricCalculator {
         }
     }
 
-    private FeedbackResultType resultType(String value) {
+    private FeedbackResult resultType(String value) {
         try {
-            return FeedbackResultType.valueOf(value.trim().toUpperCase());
+            return FeedbackResult.valueOf(value.trim().toUpperCase());
         } catch (Exception exception) {
             throw notCompleted("练习题目结果不完整，不能生成整轮评估");
         }

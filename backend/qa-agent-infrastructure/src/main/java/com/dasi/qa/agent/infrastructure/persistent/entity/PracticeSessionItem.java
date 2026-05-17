@@ -34,7 +34,9 @@ public class PracticeSessionItem {
     
     private String feedbackSummary;
 
-    private String feedbackDetailJson;
+    private String feedbackJudgeDetail;
+
+    private String feedbackHintDetail;
     
     private LocalDateTime answeredAt;
     

@@ -1,6 +1,7 @@
 package com.dasi.qa.agent.interfaces.handler;
 
 import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.types.exception.AgentException;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.Result;
@@ -26,7 +27,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AgentException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleAgentException(AgentException exception) {
-        log.error("【全局异常】Agent执行错误: error={}", exception.getMessage(), exception);
+        log.error("【全局异常】Agent执行错误: errorType={}, error={}",
+                exception.getAgentErrorType(), exception.getMessage(), exception);
+        if (exception.getAgentErrorType() == AgentErrorType.LLM_NOT_CONFIGURED) {
+            return Result.fail(ResultCode.LLM_NOT_CONFIGURED.getCode(), exception.getMessage());
+        }
         return Result.fail(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }
 

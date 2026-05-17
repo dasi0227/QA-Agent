@@ -7,8 +7,8 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.Generat
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.service.assess.model.AssessSaveCommand;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
-import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
-import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.command.FeedbackSaveCommand;
+import com.dasi.qa.agent.domain.agent.model.vo.PracticeVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
@@ -56,7 +56,7 @@ public interface IAgentRepository {
 
     String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request, PlanResult planResult, List<DraftResult> draftResults);
 
-    FeedbackContext getFeedbackContext(String sessionItemId, String userId);
+    PracticeVO getPracticeVO(String sessionItemId, String userId);
 
     LocalDateTime saveFeedbackResult(String sessionItemId, String userId, FeedbackSaveCommand command);
 
