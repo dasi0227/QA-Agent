@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 单题反馈上下文，贯穿 PREPARE、ROUTE、HINT/JUDGE 和 SAVE 阶段。
+ */
 @Data
 @Builder
 @NoArgsConstructor

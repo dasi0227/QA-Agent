@@ -12,6 +12,9 @@ import org.springframework.util.StringUtils;
 import java.time.Duration;
 
 @Component
+/**
+ * FeedbackLlmModelProvider 负责用用户 Profile 中的配置创建反馈链路模型。
+ */
 public class FeedbackLlmModelProvider {
 
     private final IAgentRepository agentRepository;
@@ -20,11 +23,17 @@ public class FeedbackLlmModelProvider {
         this.agentRepository = agentRepository;
     }
 
+    /**
+     * 获取用户专属 LLM 模型，配置缺失时抛出业务异常。
+     */
     public ChatModel getUserLlmModel(String userId) {
+        // 1. 读取用户模型配置
         UserLlmModelVO userLlmModelVO = agentRepository.getUserLlmModel(userId);
+        // 2. 校验 baseUrl、apiKey 和 modelName
         if (isNotValid(userLlmModelVO)) {
             throw new FeedbackException(ErrorType.LLM_NOT_CONFIGURED, "用户未配置 LLM 接入信息，请先在 Profile 中填写 base_url、api_key 和 model_name");
         }
+        // 3. 构建 OpenAI 兼容 ChatModel
         return OpenAiChatModel.builder()
                 .baseUrl(userLlmModelVO.getBaseUrl())
                 .apiKey(userLlmModelVO.getApiKey())

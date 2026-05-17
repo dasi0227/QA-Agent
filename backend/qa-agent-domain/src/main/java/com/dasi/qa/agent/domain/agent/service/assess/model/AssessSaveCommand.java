@@ -8,6 +8,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 整轮评估保存命令，承载统计指标、评估详情和内部记忆线索。
+ */
 @Data
 @Builder
 @NoArgsConstructor

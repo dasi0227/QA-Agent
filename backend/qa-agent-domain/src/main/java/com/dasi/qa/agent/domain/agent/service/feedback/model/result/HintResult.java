@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * HintAgent 输出结果，包含记忆技巧和情绪支持。
+ */
 @Data
 @Builder
 @NoArgsConstructor

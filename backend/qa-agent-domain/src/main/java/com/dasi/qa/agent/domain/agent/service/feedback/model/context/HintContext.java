@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * HintAgent 输入上下文，面向用户不会作答的提示分支。
+ */
 @Data
 @Builder
 @NoArgsConstructor

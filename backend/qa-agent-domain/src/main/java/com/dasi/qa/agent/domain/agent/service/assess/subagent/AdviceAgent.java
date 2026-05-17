@@ -5,6 +5,9 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * AdviceAgent 负责输出整轮整体点评和下一轮复习指导。
+ */
 public interface AdviceAgent {
 
     @SystemMessage(fromResource = "prompt/assess/assessment-advice.txt")

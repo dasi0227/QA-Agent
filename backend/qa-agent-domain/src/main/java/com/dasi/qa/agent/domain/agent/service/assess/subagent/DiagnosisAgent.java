@@ -5,6 +5,9 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * DiagnosisAgent 负责识别整轮练习中的优势和薄弱点。
+ */
 public interface DiagnosisAgent {
 
     @SystemMessage(fromResource = "prompt/assess/assessment-diagnosis.txt")

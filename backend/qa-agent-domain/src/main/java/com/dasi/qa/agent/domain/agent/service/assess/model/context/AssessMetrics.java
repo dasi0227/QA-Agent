@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
+/**
+ * Java 计算出的整轮稳定指标，LLM 不参与这些字段的判定。
+ */
 @Data
 @Builder
 @NoArgsConstructor

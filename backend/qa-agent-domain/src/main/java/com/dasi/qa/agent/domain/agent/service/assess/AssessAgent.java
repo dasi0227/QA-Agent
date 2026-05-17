@@ -39,6 +39,9 @@ import java.util.Map;
 
 @Service
 @Slf4j
+/**
+ * AssessAgent 负责同步生成整轮练习评估，并保存用户可读评估与内部记忆线索。
+ */
 public class AssessAgent implements IAssessAgent {
 
     private static final int MAX_RETRY = 2;
@@ -70,10 +73,12 @@ public class AssessAgent implements IAssessAgent {
 
     @Override
     public AssessResponse execute(AssessRequest request) {
+        // 1. 校验请求、用户和练习完成状态
         String userId = currentUserId();
         validateRequest(request);
         try {
             AssessContext context = prepareContext(userId, request);
+            // 2. 构建用户模型和整轮评估 DAG 上下文
             ChatModel userModel = assessLlmModelProvider.getUserLlmModel(userId);
             AssessWorkflowContext workflowContext = AssessWorkflowContext.builder()
                     .userModel(userModel)
@@ -83,6 +88,7 @@ public class AssessAgent implements IAssessAgent {
                     .recordStep(this::doRecord)
                     .saveStep(scope -> doSave(scope, userId))
                     .build();
+            // 3. 启动 DAG 并读取保存后的响应
             UntypedAgent assessAgent = assessAgentFactory.build(workflowContext);
             ResultWithAgenticScope<String> result = assessAgent.invokeWithAgenticScope(Map.of());
             return readAssessResponse(result.agenticScope());
@@ -91,8 +97,13 @@ public class AssessAgent implements IAssessAgent {
         }
     }
 
+    /**
+     * 评估前准备完整上下文，并用 Java 规则计算稳定指标。
+     */
     private AssessContext prepareContext(String userId, AssessRequest request) {
+        // 1. 读取整轮练习上下文
         AssessContext context = agentRepository.getAssessContext(request.getSessionId(), userId);
+        // 2. 校验完成状态并计算分数、准确率和分布
         AssessMetrics metrics = assessmentMetricCalculator.calculate(context);
         context.setMetrics(metrics);
         return context;
@@ -104,16 +115,25 @@ public class AssessAgent implements IAssessAgent {
         }
     }
 
+    /**
+     * PREPARE 阶段负责把已校验的上下文写入 Scope。
+     */
     private void doPrepare(AgenticScope scope, AssessContext context) {
+        // 1. 写入上下文供并发分支读取
         writeAssessContext(scope, context);
         log.info("【整轮评估】准备完成: sessionId={}, score={}, accuracy={}",
                 context.getSessionId(), context.getMetrics().getScore(), context.getMetrics().getAccuracy());
     }
 
+    /**
+     * DiagnosisAgent 负责识别本轮优势和薄弱点。
+     */
     private void doDiagnosis(AgenticScope scope, DiagnosisAgent diagnosisAgent) {
+        // 1. 读取整轮上下文
         AssessContext context = readAssessContext(scope);
         DiagnosisResult result = null;
         String retryHint = "";
+        // 2. 调用 DiagnosisAgent，失败时携带错误信息重试
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = diagnosisAgent.diagnose(
@@ -129,14 +149,20 @@ public class AssessAgent implements IAssessAgent {
                 log.warn("【整轮评估】DiagnosisAgent 调用失败: attempt={}, sessionId={}", attempt + 1, context.getSessionId(), exception);
             }
         }
+        // 3. 写入诊断结果，失败时使用空诊断兜底
         writeDiagnosisResult(scope, result != null ? result : assessResultSanitizer.fallbackDiagnosis());
     }
 
+    /**
+     * AdviceAgent 负责基于诊断结果生成整体点评和复习指导。
+     */
     private void doAdvice(AgenticScope scope, AdviceAgent adviceAgent) {
+        // 1. 读取上下文和诊断结果
         AssessContext context = readAssessContext(scope);
         DiagnosisResult diagnosis = readDiagnosisResult(scope);
         AdviceResult result = null;
         String retryHint = "";
+        // 2. 调用 AdviceAgent，失败时携带错误信息重试
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = adviceAgent.advise(
@@ -153,13 +179,19 @@ public class AssessAgent implements IAssessAgent {
                 log.warn("【整轮评估】AdviceAgent 调用失败: attempt={}, sessionId={}", attempt + 1, context.getSessionId(), exception);
             }
         }
+        // 3. 写入建议结果，失败时使用统计摘要兜底
         writeAdviceResult(scope, result != null ? result : assessResultSanitizer.fallbackAdvice(context.getMetrics()));
     }
 
+    /**
+     * RecordAgent 负责并发提炼供 V6 Memory 使用的内部线索。
+     */
     private void doRecord(AgenticScope scope, RecordAgent recordAgent) {
+        // 1. 读取整轮上下文
         AssessContext context = readAssessContext(scope);
         RecordResult result = null;
         String retryHint = "";
+        // 2. 调用 RecordAgent，失败时携带错误信息重试
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = recordAgent.record(
@@ -175,20 +207,27 @@ public class AssessAgent implements IAssessAgent {
                 log.warn("【整轮评估】RecordAgent 调用失败: attempt={}, sessionId={}", attempt + 1, context.getSessionId(), exception);
             }
         }
+        // 3. 写入记忆线索，失败时使用空数组兜底
         writeRecordResult(scope, result != null ? result : assessResultSanitizer.fallbackRecord());
     }
 
+    /**
+     * SAVE 阶段负责组合评估详情并更新 session 与 qa_set 聚合数据。
+     */
     private void doSave(AgenticScope scope, String userId) {
+        // 1. 读取并合并两个分支的输出
         AssessContext context = readAssessContext(scope);
         DiagnosisResult diagnosis = readDiagnosisResult(scope);
         AdviceResult advice = readAdviceResult(scope);
         RecordResult record = readRecordResult(scope);
         AssessmentDetail assessmentDetail = assessResultSanitizer.toAssessmentDetail(advice, diagnosis);
+        // 2. 组装保存命令
         AssessSaveCommand command = AssessSaveCommand.builder()
                 .metrics(context.getMetrics())
                 .assessmentDetail(assessmentDetail)
                 .recordResult(record)
                 .build();
+        // 3. 落库并写入接口响应
         AssessResponse response = agentRepository.saveAssessResult(context.getSessionId(), userId, command);
         writeAssessResponse(scope, response);
         log.info("【整轮评估】保存完成: sessionId={}, score={}, accuracy={}", context.getSessionId(), response.getScore(), response.getAccuracy());

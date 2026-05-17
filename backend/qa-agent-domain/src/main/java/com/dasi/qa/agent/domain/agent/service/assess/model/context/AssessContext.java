@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * 整轮评估上下文，保存 session、题集、单题摘要和 Java 计算指标。
+ */
 @Data
 @Builder
 @NoArgsConstructor

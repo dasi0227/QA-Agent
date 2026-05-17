@@ -7,6 +7,9 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
+/**
+ * FeedbackScorePolicy 负责约束单题反馈结果和离散分数。
+ */
 public class FeedbackScorePolicy {
 
     private static final Map<FeedbackResultType, Set<Integer>> ALLOWED_SCORES = Map.of(
@@ -23,7 +26,11 @@ public class FeedbackScorePolicy {
             FeedbackResultType.UNKNOWN, 0
     );
 
+    /**
+     * 将 LLM 输出的结果收敛到已知枚举。
+     */
     public FeedbackResultType normalizeResult(String rawResult) {
+        // 空值和非法值统一降级为 DEFICIENT
         if (rawResult == null || rawResult.isBlank()) {
             return FeedbackResultType.DEFICIENT;
         }
@@ -34,7 +41,11 @@ public class FeedbackScorePolicy {
         }
     }
 
+    /**
+     * 将分数修正到当前结果允许的离散分值。
+     */
     public Integer normalizeScore(FeedbackResultType result, Integer score) {
+        // 合法分值原样保留，否则使用该结果类型默认分
         FeedbackResultType normalizedResult = result != null ? result : FeedbackResultType.DEFICIENT;
         if (score != null && ALLOWED_SCORES.get(normalizedResult).contains(score)) {
             return score;
@@ -42,6 +53,9 @@ public class FeedbackScorePolicy {
         return DEFAULT_SCORES.get(normalizedResult);
     }
 
+    /**
+     * Judge 分支只允许输出有效作答的三类结果。
+     */
     public boolean allowedForJudge(FeedbackResultType result) {
         return result == FeedbackResultType.CORRECT
                 || result == FeedbackResultType.DEFICIENT

@@ -11,13 +11,21 @@ import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * AssessAgentFactory 负责组装整轮评估 DAG，不承载具体业务逻辑。
+ */
 public class AssessAgentFactory {
 
+    /**
+     * 构建 PREPARE -> 并发评估分支 -> SAVE 的整轮评估 DAG。
+     */
     public UntypedAgent build(AssessWorkflowContext context) {
+        // 1. 创建 LangChain4J 子 Agent
         DiagnosisAgent diagnosisAgent = makeDiagnosisAgent(context.getUserModel());
         AdviceAgent adviceAgent = makeAdviceAgent(context.getUserModel());
         RecordAgent recordAgent = makeRecordAgent(context.getUserModel());
 
+        // 2. 把主 Agent 阶段方法包装成 Agentic action
         AgenticServices.AgenticScopeAction prepareAction =
                 AgenticServices.agentAction(context.getPrepareStep()::run);
         AgenticServices.AgenticScopeAction diagnosisAction =
@@ -29,6 +37,7 @@ public class AssessAgentFactory {
         AgenticServices.AgenticScopeAction saveAction =
                 AgenticServices.agentAction(context.getSaveStep()::run);
 
+        // 3. 组装用户评估序列和并发记忆分支
         UntypedAgent userAssessmentAgent = makeUserAssessmentAgent(diagnosisAction, adviceAction);
         UntypedAgent parallelAgent = makeParallelAgent(userAssessmentAgent, recordAction);
         return AgenticServices.sequenceBuilder()
@@ -38,6 +47,9 @@ public class AssessAgentFactory {
                 .build();
     }
 
+    /**
+     * 用户可读评估分支按诊断到建议的顺序执行。
+     */
     private UntypedAgent makeUserAssessmentAgent(AgenticServices.AgenticScopeAction diagnosisAction,
                                                  AgenticServices.AgenticScopeAction adviceAction) {
         return AgenticServices.sequenceBuilder()
@@ -47,6 +59,9 @@ public class AssessAgentFactory {
                 .build();
     }
 
+    /**
+     * 并发执行用户评估分支和内部记忆线索分支。
+     */
     private UntypedAgent makeParallelAgent(UntypedAgent userAssessmentAgent,
                                            AgenticServices.AgenticScopeAction recordAction) {
         return AgenticServices.parallelBuilder()

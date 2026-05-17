@@ -5,6 +5,9 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * RecordAgent 负责提炼供 V6 Memory 使用的内部记忆线索。
+ */
 public interface RecordAgent {
 
     @SystemMessage(fromResource = "prompt/assess/assessment-record.txt")

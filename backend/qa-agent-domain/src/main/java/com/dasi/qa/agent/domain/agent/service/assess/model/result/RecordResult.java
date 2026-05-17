@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * RecordAgent 输出结果，根数组解析后封装为 clues。
+ */
 @Data
 @Builder
 @NoArgsConstructor

@@ -40,6 +40,9 @@ import java.util.Map;
 
 @Service
 @Slf4j
+/**
+ * FeedbackAgent 负责同步生成单题反馈，并根据用户是否会做分流到 Judge 或 Hint 链路。
+ */
 public class FeedbackAgent implements IFeedbackAgent {
 
     private static final int MAX_RETRY = 2;
@@ -69,9 +72,11 @@ public class FeedbackAgent implements IFeedbackAgent {
 
     @Override
     public FeedbackResponse execute(FeedbackRequest request) {
+        // 1. 校验请求和当前用户
         String userId = currentUserId();
         validateRequest(request);
         try {
+            // 2. 构建用户模型和反馈 DAG 上下文
             ChatModel userModel = feedbackLlmModelProvider.getUserLlmModel(userId);
             FeedbackWorkflowContext workflowContext = FeedbackWorkflowContext.builder()
                     .userModel(userModel)
@@ -80,6 +85,7 @@ public class FeedbackAgent implements IFeedbackAgent {
                     .judgeStep(this::doJudge)
                     .saveStep(scope -> doSave(scope, userId))
                     .build();
+            // 3. 启动 DAG 并读取保存后的响应
             UntypedAgent feedbackAgent = feedbackAgentFactory.build(workflowContext);
             ResultWithAgenticScope<String> result = feedbackAgent.invokeWithAgenticScope(Map.of(
                     "sessionItemId", request.getSessionItemId()
@@ -96,17 +102,28 @@ public class FeedbackAgent implements IFeedbackAgent {
         }
     }
 
+    /**
+     * PREPARE 阶段负责读取题目上下文，并写入是否进入 Hint 分支的路由标记。
+     */
     private void doPrepare(AgenticScope scope, String userId, FeedbackRequest request) {
+        // 1. 读取单题反馈上下文
         FeedbackContext context = agentRepository.getFeedbackContext(request.getSessionItemId(), userId);
+        // 2. 规范化作答内容和 UNKNOWN 状态
         context.setUserAnswer(normalizeAnswer(request));
         context.setUnknown(isUnknown(request));
+        // 3. 写入 Scope 供后续分支读取
         writeFeedbackContext(scope, context);
         scope.writeState(FeedbackPhase.ROUTE.getScopeKey(), Boolean.TRUE.equals(context.getUnknown()));
         log.info("【单题反馈】准备完成: sessionItemId={}, unknown={}", context.getSessionItemId(), context.getUnknown());
     }
 
+    /**
+     * HintAgent 负责在用户不会时生成记忆技巧和情绪支持。
+     */
     private void doHint(AgenticScope scope, HintAgent hintAgent) {
+        // 1. 从 Scope 读取题目上下文
         FeedbackContext context = readFeedbackContext(scope);
+        // 2. 组装 HintAgent 输入
         HintContext hintContext = HintContext.builder()
                 .question(value(context.getQuestion()))
                 .standardAnswer(value(context.getStandardAnswer()))
@@ -117,6 +134,7 @@ public class FeedbackAgent implements IFeedbackAgent {
                 .build();
         HintResult result = null;
         String retryHint = "";
+        // 3. 调用 HintAgent，失败时携带错误信息重试
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = hintAgent.hint(
@@ -139,11 +157,17 @@ public class FeedbackAgent implements IFeedbackAgent {
                 }
             }
         }
+        // 4. 写入 Hint 结果，失败时使用兜底提示
         writeHintResult(scope, result != null ? result : fallbackHint());
     }
 
+    /**
+     * JudgeAgent 负责对有效用户回答进行判定、打分和改进建议生成。
+     */
     private void doJudge(AgenticScope scope, JudgeAgent judgeAgent) {
+        // 1. 从 Scope 读取题目上下文
         FeedbackContext context = readFeedbackContext(scope);
+        // 2. 组装 JudgeAgent 输入
         JudgeContext judgeContext = JudgeContext.builder()
                 .question(value(context.getQuestion()))
                 .standardAnswer(value(context.getStandardAnswer()))
@@ -155,6 +179,7 @@ public class FeedbackAgent implements IFeedbackAgent {
                 .build();
         JudgeResult result = null;
         String retryHint = "";
+        // 3. 调用 JudgeAgent，失败时携带错误信息重试
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = judgeAgent.judge(
@@ -181,6 +206,7 @@ public class FeedbackAgent implements IFeedbackAgent {
         if (result == null) {
             throw new FeedbackException(ErrorType.INVALID_RESPONSE, "JudgeAgent 调用失败，已重试 " + MAX_RETRY + " 次");
         }
+        // 4. 校准判定结果和离散分数
         FeedbackResultType resultType = feedbackScorePolicy.normalizeResult(result.getResult());
         if (!feedbackScorePolicy.allowedForJudge(resultType)) {
             throw new FeedbackException(ErrorType.INVALID_RESPONSE, "JudgeAgent 不能输出 UNKNOWN 判定");
@@ -190,11 +216,16 @@ public class FeedbackAgent implements IFeedbackAgent {
         writeJudgeResult(scope, result);
     }
 
+    /**
+     * SAVE 阶段负责将 Hint 或 Judge 结果统一转为保存命令并落库。
+     */
     private void doSave(AgenticScope scope, String userId) {
+        // 1. 读取上下文并根据 UNKNOWN 状态选择保存结构
         FeedbackContext context = readFeedbackContext(scope);
         FeedbackSaveCommand command = Boolean.TRUE.equals(context.getUnknown())
                 ? hintSaveCommand(scope)
                 : judgeSaveCommand(scope, context);
+        // 2. 保存反馈结果并组装接口响应
         LocalDateTime answeredAt = agentRepository.saveFeedbackResult(context.getSessionItemId(), userId, command);
         FeedbackResponse response = FeedbackResponse.builder()
                 .sessionItemId(context.getSessionItemId())

@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * RecordAgent 输出的单条内部记忆线索。
+ */
 @Data
 @Builder
 @NoArgsConstructor

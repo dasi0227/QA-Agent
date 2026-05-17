@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 单题反馈保存命令，承载 Judge 或 Hint 分支的统一落库数据。
+ */
 @Data
 @Builder
 @NoArgsConstructor

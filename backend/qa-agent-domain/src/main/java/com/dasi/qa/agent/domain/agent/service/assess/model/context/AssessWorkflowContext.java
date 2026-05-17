@@ -9,6 +9,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * 整轮评估 DAG 运行上下文，保存模型和各阶段回调。
+ */
 @Data
 @Builder
 @AllArgsConstructor

@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * DiagnosisAgent 输出结果，包含优势和薄弱点列表。
+ */
 @Data
 @Builder
 @NoArgsConstructor

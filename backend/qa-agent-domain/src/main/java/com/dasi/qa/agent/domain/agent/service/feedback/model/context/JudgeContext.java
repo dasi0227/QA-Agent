@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * JudgeAgent 输入上下文，面向有效用户回答的判定分支。
+ */
 @Data
 @Builder
 @NoArgsConstructor

@@ -10,12 +10,20 @@ import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.stereotype.Component;
 
 @Component
+/**
+ * FeedbackAgentFactory 负责组装单题反馈 DAG，不承载具体业务逻辑。
+ */
 public class FeedbackAgentFactory {
 
+    /**
+     * 构建 PREPARE -> ROUTE(HINT/JUDGE) -> SAVE 的反馈 DAG。
+     */
     public UntypedAgent build(FeedbackWorkflowContext context) {
+        // 1. 创建 LangChain4J 子 Agent
         HintAgent hintAgent = makeHintAgent(context.getUserModel());
         JudgeAgent judgeAgent = makeJudgeAgent(context.getUserModel());
 
+        // 2. 把主 Agent 阶段方法包装成 Agentic action
         AgenticServices.AgenticScopeAction prepareAction =
                 AgenticServices.agentAction(context.getPrepareStep()::run);
         AgenticServices.AgenticScopeAction hintAction =
@@ -25,6 +33,7 @@ public class FeedbackAgentFactory {
         AgenticServices.AgenticScopeAction saveAction =
                 AgenticServices.agentAction(context.getSaveStep()::run);
 
+        // 3. 组装路由分支和主链路
         UntypedAgent routeAgent = makeRouteAgent(hintAction, judgeAction);
         return AgenticServices.sequenceBuilder()
                 .name(FeedbackPhase.FEEDBACK.getAgentName())
@@ -33,6 +42,9 @@ public class FeedbackAgentFactory {
                 .build();
     }
 
+    /**
+     * 根据 PREPARE 写入的 route flag 选择 Hint 或 Judge 分支。
+     */
     private UntypedAgent makeRouteAgent(AgenticServices.AgenticScopeAction hintAction,
                                         AgenticServices.AgenticScopeAction judgeAction) {
         return AgenticServices.conditionalBuilder()

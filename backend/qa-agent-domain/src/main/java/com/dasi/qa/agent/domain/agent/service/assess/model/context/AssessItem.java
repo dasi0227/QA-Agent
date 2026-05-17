@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 整轮评估中的单题输入摘要，供 DiagnosisAgent 和 RecordAgent 使用。
+ */
 @Data
 @Builder
 @NoArgsConstructor

@@ -18,6 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
+/**
+ * AssessResultSanitizer 负责解析、裁剪和兜底整轮评估的 LLM 输出。
+ */
 public class AssessResultSanitizer {
 
     private static final int MAX_POINTS = 3;
@@ -28,6 +31,9 @@ public class AssessResultSanitizer {
         this.jsonUtil = jsonUtil;
     }
 
+    /**
+     * 解析 DiagnosisAgent 输出，并过滤空内容。
+     */
     public DiagnosisResult parseDiagnosis(String response) {
         try {
             DiagnosisResult result = jsonUtil.parseJsonObject(response, DiagnosisResult.class);
@@ -37,6 +43,9 @@ public class AssessResultSanitizer {
         }
     }
 
+    /**
+     * 解析 AdviceAgent 输出，并补齐空点评。
+     */
     public AdviceResult parseAdvice(String response, AssessMetrics metrics) {
         try {
             AdviceResult result = jsonUtil.parseJsonObject(response, AdviceResult.class);
@@ -46,6 +55,9 @@ public class AssessResultSanitizer {
         }
     }
 
+    /**
+     * 解析 RecordAgent 输出的根数组，并过滤非法线索。
+     */
     public RecordResult parseRecord(String response) {
         try {
             List<MemoryClueResult> clues = jsonUtil.parseJsonArray(response, MemoryClueResult.class);
@@ -55,6 +67,9 @@ public class AssessResultSanitizer {
         }
     }
 
+    /**
+     * 清洗优势和薄弱点列表。
+     */
     public DiagnosisResult sanitizeDiagnosis(DiagnosisResult result) {
         if (result == null) {
             return fallbackDiagnosis();
@@ -65,6 +80,9 @@ public class AssessResultSanitizer {
                 .build();
     }
 
+    /**
+     * 清洗整体点评和复习指导。
+     */
     public AdviceResult sanitizeAdvice(AdviceResult result, AssessMetrics metrics) {
         if (result == null) {
             return fallbackAdvice(metrics);
@@ -78,11 +96,15 @@ public class AssessResultSanitizer {
                 .build();
     }
 
+    /**
+     * 清洗内部记忆线索，保留合法枚举和非空观察。
+     */
     public RecordResult sanitizeRecord(RecordResult result) {
         if (result == null || result.getClues() == null) {
             return fallbackRecord();
         }
         List<MemoryClueResult> clues = new ArrayList<>();
+        // 逐条过滤空观察、非法类型和超长列表
         for (MemoryClueResult clue : result.getClues()) {
             if (clue == null || value(clue.getObservation()).isBlank()) {
                 continue;
@@ -103,6 +125,9 @@ public class AssessResultSanitizer {
         return RecordResult.builder().clues(clues).build();
     }
 
+    /**
+     * 将 Advice 与 Diagnosis 合并为接口返回的评估详情。
+     */
     public AssessmentDetail toAssessmentDetail(AdviceResult advice, DiagnosisResult diagnosis) {
         return AssessmentDetail.builder()
                 .overallComment(value(advice.getOverallComment()))

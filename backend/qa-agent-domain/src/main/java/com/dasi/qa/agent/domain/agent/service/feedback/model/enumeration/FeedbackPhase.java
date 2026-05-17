@@ -3,6 +3,9 @@ package com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * 单题反馈 DAG 阶段定义，统一维护 Agent 名称、描述和 Scope key。
+ */
 @Getter
 @AllArgsConstructor
 public enum FeedbackPhase {

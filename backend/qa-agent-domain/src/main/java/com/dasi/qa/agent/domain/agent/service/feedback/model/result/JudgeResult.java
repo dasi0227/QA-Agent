@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * JudgeAgent 输出结果，包含判定、分数和结构化反馈详情。
+ */
 @Data
 @Builder
 @NoArgsConstructor

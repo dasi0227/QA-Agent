@@ -2,6 +2,9 @@ package com.dasi.qa.agent.domain.agent.service.assess.model.enumeration;
 
 import lombok.Getter;
 
+/**
+ * 整轮评估 DAG 阶段定义，统一维护 Agent 名称、描述和 Scope key。
+ */
 @Getter
 public enum AssessPhase {
 
