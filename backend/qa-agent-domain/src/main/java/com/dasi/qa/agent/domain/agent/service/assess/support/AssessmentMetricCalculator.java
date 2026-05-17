@@ -5,7 +5,7 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItem;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessMetrics;
 import com.dasi.qa.agent.types.enumeration.FeedbackResultType;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 

@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.types.result;
 
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import lombok.*;
 
 import java.io.Serial;

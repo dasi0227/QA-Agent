@@ -17,7 +17,7 @@ import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;

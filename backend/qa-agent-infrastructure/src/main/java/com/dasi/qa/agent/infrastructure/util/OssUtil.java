@@ -4,7 +4,7 @@ import com.aliyun.oss.OSS;
 import com.dasi.qa.agent.domain.util.IOssUtil;
 import com.dasi.qa.agent.infrastructure.properties.AliOssProperties;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 

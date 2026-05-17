@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.model.sse;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
@@ -50,13 +50,13 @@ public class EventPublisher {
         eventSink.accept(sseEvent);
     }
 
-    public void publishFailure(ErrorType errorType, String errorMessage) {
-        agentRepository.markTaskFailed(taskId, errorType, errorMessage);
+    public void publishFailure(AgentErrorType agentErrorType, String errorMessage) {
+        agentRepository.markTaskFailed(taskId, agentErrorType, errorMessage);
         publishEvent(GeneratePhase.FAIL, GenerateStatus.UNSOLVED, errorMessage, 0);
     }
 
-    public void publishCanceled(ErrorType errorType, String errorMessage) {
-        agentRepository.markTaskFailed(taskId, errorType, errorMessage);
+    public void publishCanceled(AgentErrorType agentErrorType, String errorMessage) {
+        agentRepository.markTaskFailed(taskId, agentErrorType, errorMessage);
         publishEvent(GeneratePhase.FAIL, GenerateStatus.CANCELED, errorMessage, 0);
     }
 

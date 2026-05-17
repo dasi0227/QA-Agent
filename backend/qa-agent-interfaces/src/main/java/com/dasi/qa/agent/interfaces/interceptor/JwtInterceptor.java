@@ -5,7 +5,7 @@ import static com.dasi.qa.agent.types.constant.StringConstant.AUTH_BEARER_PREFIX
 import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;

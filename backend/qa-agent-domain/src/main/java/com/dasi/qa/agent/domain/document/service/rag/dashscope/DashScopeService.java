@@ -11,7 +11,7 @@ import com.alibaba.dashscope.rerank.TextReRankParam;
 import com.alibaba.dashscope.rerank.TextReRankResult;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

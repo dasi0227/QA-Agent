@@ -1,18 +1,14 @@
 package com.dasi.qa.agent.domain.agent.service.feedback.model.exception;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
-import lombok.Getter;
+import com.dasi.qa.agent.types.exception.AgentException;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 
 /**
  * 单题反馈链路内部异常，用于携带可映射的错误类型。
  */
-@Getter
-public class FeedbackException extends RuntimeException {
+public class FeedbackException extends AgentException {
 
-    private final ErrorType errorType;
-
-    public FeedbackException(ErrorType errorType, String message) {
-        super(message);
-        this.errorType = errorType;
+    public FeedbackException(AgentErrorType agentErrorType, String message) {
+        super(agentErrorType, message);
     }
 }

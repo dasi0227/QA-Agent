@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.types.result;
+package com.dasi.qa.agent.types.enumeration;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

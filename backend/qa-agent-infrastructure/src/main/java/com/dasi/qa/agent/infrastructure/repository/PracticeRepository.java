@@ -23,7 +23,7 @@ import com.dasi.qa.agent.types.dto.response.practice.FeedbackDetailPayload;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.constant.RedisConstant;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;

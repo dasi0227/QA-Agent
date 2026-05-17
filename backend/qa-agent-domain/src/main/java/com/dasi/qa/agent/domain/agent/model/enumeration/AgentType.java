@@ -1,7 +1,7 @@
 package com.dasi.qa.agent.domain.agent.model.enumeration;
 
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.util.StringUtils;
 
 public enum AgentType {

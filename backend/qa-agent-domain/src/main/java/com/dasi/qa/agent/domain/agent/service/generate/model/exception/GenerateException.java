@@ -1,16 +1,12 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.exception;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
-import lombok.Getter;
+import com.dasi.qa.agent.types.exception.AgentException;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 
-@Getter
-public class GenerateException extends RuntimeException {
+public class GenerateException extends AgentException {
 
-    private final ErrorType errorType;
-
-    public GenerateException(ErrorType errorType, String message) {
-        super(message);
-        this.errorType = errorType;
+    public GenerateException(AgentErrorType agentErrorType, String message) {
+        super(agentErrorType, message);
     }
 
 }

@@ -8,7 +8,7 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItem;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
@@ -48,7 +48,7 @@ import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -141,11 +141,11 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public void markTaskFailed(String taskId, ErrorType errorType, String errorMessage) {
+    public void markTaskFailed(String taskId, AgentErrorType agentErrorType, String errorMessage) {
         QaGenerationTask entity = requireTask(taskId);
         entity.setStatus(GenerateStatus.UNSOLVED.name());
         entity.setStage(GeneratePhase.FAIL.getGenerateStage());
-        entity.setErrorCode(errorType.name());
+        entity.setErrorCode(agentErrorType.name());
         entity.setErrorMessage(errorMessage);
         entity.setCompletedAt(LocalDateTime.now());
         taskMapper.updateById(entity);

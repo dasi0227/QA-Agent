@@ -1,18 +1,14 @@
 package com.dasi.qa.agent.domain.agent.service.assess.model.exception;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
-import lombok.Getter;
+import com.dasi.qa.agent.types.exception.AgentException;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 
 /**
  * 整轮评估链路内部异常，用于携带可映射的错误类型。
  */
-@Getter
-public class AssessException extends RuntimeException {
+public class AssessException extends AgentException {
 
-    private final ErrorType errorType;
-
-    public AssessException(ErrorType errorType, String message) {
-        super(message);
-        this.errorType = errorType;
+    public AssessException(AgentErrorType agentErrorType, String message) {
+        super(agentErrorType, message);
     }
 }

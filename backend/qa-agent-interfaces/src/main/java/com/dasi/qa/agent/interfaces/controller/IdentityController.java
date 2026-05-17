@@ -9,7 +9,7 @@ import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.Result;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.util.StringUtils;

@@ -2,7 +2,7 @@ package com.dasi.qa.agent.domain.agent.repository;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.service.assess.model.AssessSaveCommand;
@@ -34,7 +34,7 @@ public interface IAgentRepository {
 
     void markTaskCompleted(String taskId, String qaSetId);
 
-    void markTaskFailed(String taskId, ErrorType errorType, String errorMessage);
+    void markTaskFailed(String taskId, AgentErrorType agentErrorType, String errorMessage);
 
     void appendTaskMessage(String taskId, String userId, String stage, String message, String content);
 

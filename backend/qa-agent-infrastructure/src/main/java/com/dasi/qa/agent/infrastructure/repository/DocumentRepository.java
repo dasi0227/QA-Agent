@@ -24,7 +24,7 @@ import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.constant.RedisConstant;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.beans.factory.annotation.Qualifier;

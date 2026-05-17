@@ -1,6 +1,6 @@
-package com.dasi.qa.agent.domain.agent.model.enumeration;
+package com.dasi.qa.agent.types.enumeration;
 
-public enum ErrorType {
+public enum AgentErrorType {
     NETWORK_ERROR,
     RATE_LIMITED,
     AUTH_FAILURE,
@@ -9,10 +9,8 @@ public enum ErrorType {
     LLM_NOT_CONFIGURED,
     UNKNOWN;
 
-    public static ErrorType fromException(Throwable throwable) {
-        String message = throwable == null || throwable.getMessage() == null
-                ? ""
-                : throwable.getMessage().toLowerCase();
+    public static AgentErrorType fromException(Throwable throwable) {
+        String message = throwable == null || throwable.getMessage() == null ? "" : throwable.getMessage().toLowerCase();
         if (message.contains("401") || message.contains("unauthorized") || message.contains("api key")) {
             return AUTH_FAILURE;
         }

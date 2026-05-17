@@ -1,7 +1,9 @@
 package com.dasi.qa.agent.types.exception;
 
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
+import lombok.Getter;
 
+@Getter
 public class ApiException extends RuntimeException {
 
     private final int code;
@@ -16,7 +18,4 @@ public class ApiException extends RuntimeException {
         this.code = code;
     }
 
-    public int getCode() {
-        return code;
-    }
 }

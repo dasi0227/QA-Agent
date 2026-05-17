@@ -18,7 +18,7 @@ import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

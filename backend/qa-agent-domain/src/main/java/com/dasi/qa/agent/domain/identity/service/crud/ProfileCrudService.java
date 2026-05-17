@@ -8,7 +8,7 @@ import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;

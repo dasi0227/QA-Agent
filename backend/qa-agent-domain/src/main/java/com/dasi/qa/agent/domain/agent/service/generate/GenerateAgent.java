@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.model.sse.EventPublisher;
 import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
@@ -243,11 +243,11 @@ public class GenerateAgent implements IGenerateAgent {
         }
         // 已知业务异常：按类型发布失败事件
         catch (GenerateException exception) {
-            eventPublisher.publishFailure(exception.getErrorType(), exception.getMessage());
+            eventPublisher.publishFailure(exception.getAgentErrorType(), exception.getMessage());
         }
         // 未知异常：映射错误类型后发布失败事件
         catch (Exception exception) {
-            eventPublisher.publishFailure(ErrorType.fromException(exception), exception.getMessage());
+            eventPublisher.publishFailure(AgentErrorType.fromException(exception), exception.getMessage());
         }
     }
 
@@ -300,7 +300,7 @@ public class GenerateAgent implements IGenerateAgent {
         }
 
         // 4. 发送中断信息
-        abortContext.getEventPublisher().publishCanceled(ErrorType.CONTENT_FILTERED, message);
+        abortContext.getEventPublisher().publishCanceled(AgentErrorType.CONTENT_FILTERED, message);
     }
 
     /**
@@ -346,7 +346,7 @@ public class GenerateAgent implements IGenerateAgent {
                 log.warn("【生成问答集】规划失败，启用兜底方案: taskId={}", planContext.getTaskId());
                 planResult = fallbackPlan(planContext.getRequest());
             } else {
-                throw new GenerateException(ErrorType.UNKNOWN, "PlanAgent 调用失败，已重试 " + MAX_RETRY + " 次");
+                throw new GenerateException(AgentErrorType.UNKNOWN, "PlanAgent 调用失败，已重试 " + MAX_RETRY + " 次");
             }
         }
 
@@ -441,7 +441,7 @@ public class GenerateAgent implements IGenerateAgent {
         } catch (Exception exception) {
             log.warn("【生成问答集】出题阶段整体异常: taskId={}", writeContext.getTaskId(), exception);
             writeDraftResult(scope, draftResults);
-            throw new GenerateException(ErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
+            throw new GenerateException(AgentErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
         }
 
         // 7. 写入共享领域

@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.assess.support;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.assess.model.exception.AssessException;
@@ -31,7 +31,7 @@ public class AssessLlmModelProvider {
         UserLlmModelVO userLlmModelVO = agentRepository.getUserLlmModel(userId);
         // 2. 校验 baseUrl、apiKey 和 modelName
         if (isNotValid(userLlmModelVO)) {
-            throw new AssessException(ErrorType.LLM_NOT_CONFIGURED, "用户未配置 LLM 接入信息，请先在 Profile 中填写 base_url、api_key 和 model_name");
+            throw new AssessException(AgentErrorType.LLM_NOT_CONFIGURED, "用户未配置 LLM 接入信息，请先在 Profile 中填写 base_url、api_key 和 model_name");
         }
         // 3. 构建 OpenAI 兼容 ChatModel
         return OpenAiChatModel.builder()

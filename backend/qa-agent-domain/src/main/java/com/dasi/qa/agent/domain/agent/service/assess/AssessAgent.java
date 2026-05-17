@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.domain.agent.service.assess;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.assess.model.AssessSaveCommand;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
@@ -9,7 +8,6 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItemBri
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessMetrics;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessWorkflowContext;
 import com.dasi.qa.agent.domain.agent.service.assess.model.enumeration.AssessPhase;
-import com.dasi.qa.agent.domain.agent.service.assess.model.exception.AssessException;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.AdviceResult;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.DiagnosisResult;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.RecordResult;
@@ -25,8 +23,6 @@ import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.dto.request.practice.AssessRequest;
 import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
 import com.dasi.qa.agent.types.dto.response.practice.AssessmentDetail;
-import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.agentic.scope.ResultWithAgenticScope;
@@ -46,7 +42,6 @@ import java.util.Map;
 public class AssessAgent implements IAssessAgent {
 
     private static final int MAX_RETRY = 2;
-    private static final int LLM_NOT_CONFIGURED_CODE = 40902;
 
     private final IContextUtil contextUtil;
     private final IJsonUtil jsonUtil;
@@ -76,25 +71,21 @@ public class AssessAgent implements IAssessAgent {
     public AssessResponse execute(AssessRequest request) {
         // 1. 读取当前用户，参数完整性由 Controller Validation 处理
         String userId = currentUserId();
-        try {
-            AssessContext context = prepareContext(userId, request);
-            // 2. 构建用户模型和整轮评估 DAG 上下文
-            ChatModel userModel = assessLlmModelProvider.getUserLlmModel(userId);
-            AssessWorkflowContext workflowContext = AssessWorkflowContext.builder()
-                    .userModel(userModel)
-                    .prepareStep(scope -> doPrepare(scope, context))
-                    .diagnosisStep(this::doDiagnosis)
-                    .adviceStep(this::doAdvice)
-                    .recordStep(this::doRecord)
-                    .saveStep(scope -> doSave(scope, userId))
-                    .build();
-            // 3. 启动 DAG 并读取保存后的响应
-            UntypedAgent assessAgent = assessAgentFactory.build(workflowContext);
-            ResultWithAgenticScope<String> result = assessAgent.invokeWithAgenticScope(Map.of());
-            return readAssessResponse(result.agenticScope());
-        } catch (AssessException exception) {
-            throw toApiException(exception);
-        }
+        AssessContext context = prepareContext(userId, request);
+        // 2. 构建用户模型和整轮评估 DAG 上下文
+        ChatModel userModel = assessLlmModelProvider.getUserLlmModel(userId);
+        AssessWorkflowContext workflowContext = AssessWorkflowContext.builder()
+                .userModel(userModel)
+                .prepareStep(scope -> doPrepare(scope, context))
+                .diagnosisStep(this::doDiagnosis)
+                .adviceStep(this::doAdvice)
+                .recordStep(this::doRecord)
+                .saveStep(scope -> doSave(scope, userId))
+                .build();
+        // 3. 启动 DAG 并读取保存后的响应
+        UntypedAgent assessAgent = assessAgentFactory.build(workflowContext);
+        ResultWithAgenticScope<String> result = assessAgent.invokeWithAgenticScope(Map.of());
+        return readAssessResponse(result.agenticScope());
     }
 
     /**
@@ -286,13 +277,6 @@ public class AssessAgent implements IAssessAgent {
 
     private String currentUserId() {
         return contextUtil.getUserId();
-    }
-
-    private ApiException toApiException(AssessException exception) {
-        if (exception.getErrorType() == ErrorType.LLM_NOT_CONFIGURED) {
-            return new ApiException(LLM_NOT_CONFIGURED_CODE, exception.getMessage());
-        }
-        return new ApiException(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }
 
 }

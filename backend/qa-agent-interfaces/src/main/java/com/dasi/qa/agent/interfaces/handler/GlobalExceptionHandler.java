@@ -1,8 +1,9 @@
 package com.dasi.qa.agent.interfaces.handler;
 
+import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.AgentException;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.Result;
-import com.dasi.qa.agent.types.result.ResultCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -20,6 +21,13 @@ public class GlobalExceptionHandler {
     public Result<Void> handleApiException(ApiException exception) {
         log.error("【全局异常】API调用错误: error={}", exception.getMessage(), exception);
         return Result.fail(exception.getCode(), exception.getMessage());
+    }
+
+    @ExceptionHandler(AgentException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleAgentException(AgentException exception) {
+        log.error("【全局异常】Agent执行错误: error={}", exception.getMessage(), exception);
+        return Result.fail(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

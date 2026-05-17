@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.domain.agent.service.feedback;
 
-import com.dasi.qa.agent.domain.agent.model.enumeration.ErrorType;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackContext;
@@ -25,8 +24,7 @@ import com.dasi.qa.agent.types.dto.response.practice.HintFeedbackDetail;
 import com.dasi.qa.agent.types.dto.response.practice.JudgeFeedbackDetail;
 import com.dasi.qa.agent.types.enumeration.FeedbackDetailType;
 import com.dasi.qa.agent.types.enumeration.FeedbackResultType;
-import com.dasi.qa.agent.types.exception.ApiException;
-import com.dasi.qa.agent.types.result.ResultCode;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.agentic.scope.ResultWithAgenticScope;
@@ -47,7 +45,6 @@ import java.util.Map;
 public class FeedbackAgent implements IFeedbackAgent {
 
     private static final int MAX_RETRY = 2;
-    private static final int LLM_NOT_CONFIGURED_CODE = 40902;
     private static final String UNKNOWN_SUMMARY = "这题已标记为不会。";
 
     private final IContextUtil contextUtil;
@@ -75,25 +72,21 @@ public class FeedbackAgent implements IFeedbackAgent {
     public FeedbackResponse execute(FeedbackRequest request) {
         // 1. 读取当前用户，参数完整性由 Controller Validation 处理
         String userId = currentUserId();
-        try {
-            // 2. 构建用户模型和反馈 DAG 上下文
-            ChatModel userModel = feedbackLlmModelProvider.getUserLlmModel(userId);
-            FeedbackWorkflowContext workflowContext = FeedbackWorkflowContext.builder()
-                    .userModel(userModel)
-                    .prepareStep(scope -> doPrepare(scope, userId, request))
-                    .hintStep(this::doHint)
-                    .judgeStep(this::doJudge)
-                    .saveStep(scope -> doSave(scope, userId))
-                    .build();
-            // 3. 启动 DAG 并读取保存后的响应
-            UntypedAgent feedbackAgent = feedbackAgentFactory.build(workflowContext);
-            ResultWithAgenticScope<String> result = feedbackAgent.invokeWithAgenticScope(Map.of(
-                    "sessionItemId", request.getSessionItemId()
-            ));
-            return readFeedbackResponse(result.agenticScope());
-        } catch (FeedbackException exception) {
-            throw toApiException(exception);
-        }
+        // 2. 构建用户模型和反馈 DAG 上下文
+        ChatModel userModel = feedbackLlmModelProvider.getUserLlmModel(userId);
+        FeedbackWorkflowContext workflowContext = FeedbackWorkflowContext.builder()
+                .userModel(userModel)
+                .prepareStep(scope -> doPrepare(scope, userId, request))
+                .hintStep(this::doHint)
+                .judgeStep(this::doJudge)
+                .saveStep(scope -> doSave(scope, userId))
+                .build();
+        // 3. 启动 DAG 并读取保存后的响应
+        UntypedAgent feedbackAgent = feedbackAgentFactory.build(workflowContext);
+        ResultWithAgenticScope<String> result = feedbackAgent.invokeWithAgenticScope(Map.of(
+                "sessionItemId", request.getSessionItemId()
+        ));
+        return readFeedbackResponse(result.agenticScope());
 
     }
 
@@ -199,12 +192,12 @@ public class FeedbackAgent implements IFeedbackAgent {
             }
         }
         if (result == null) {
-            throw new FeedbackException(ErrorType.INVALID_RESPONSE, "JudgeAgent 调用失败，已重试 " + MAX_RETRY + " 次");
+            throw new FeedbackException(AgentErrorType.INVALID_RESPONSE, "JudgeAgent 调用失败，已重试 " + MAX_RETRY + " 次");
         }
         // 4. 校准判定结果和离散分数
         FeedbackResultType resultType = feedbackScorePolicy.normalizeResult(result.getResult());
         if (!feedbackScorePolicy.allowedForJudge(resultType)) {
-            throw new FeedbackException(ErrorType.INVALID_RESPONSE, "JudgeAgent 不能输出 UNKNOWN 判定");
+            throw new FeedbackException(AgentErrorType.INVALID_RESPONSE, "JudgeAgent 不能输出 UNKNOWN 判定");
         }
         result.setResult(resultType.name());
         result.setScore(feedbackScorePolicy.normalizeScore(resultType, result.getScore()));
@@ -329,13 +322,6 @@ public class FeedbackAgent implements IFeedbackAgent {
 
     private String currentUserId() {
         return contextUtil.getUserId();
-    }
-
-    private ApiException toApiException(FeedbackException exception) {
-        if (exception.getErrorType() == ErrorType.LLM_NOT_CONFIGURED) {
-            return new ApiException(LLM_NOT_CONFIGURED_CODE, exception.getMessage());
-        }
-        return new ApiException(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }
 
 }
