@@ -18,10 +18,10 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
 /**
  * AssessResultSanitizer 负责解析、裁剪和兜底整轮评估的 LLM 输出。
  */
+@Component
 public class AssessResultSanitizer {
 
     private static final int MAX_POINTS = 3;

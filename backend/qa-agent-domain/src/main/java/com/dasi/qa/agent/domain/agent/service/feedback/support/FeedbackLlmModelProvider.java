@@ -11,10 +11,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 
-@Component
 /**
  * FeedbackLlmModelProvider 负责用用户 Profile 中的配置创建反馈链路模型。
  */
+@Component
 public class FeedbackLlmModelProvider {
 
     private final IAgentRepository agentRepository;

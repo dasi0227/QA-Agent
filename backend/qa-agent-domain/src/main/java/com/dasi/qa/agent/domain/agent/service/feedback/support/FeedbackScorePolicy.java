@@ -7,10 +7,10 @@ import org.springframework.util.StringUtils;
 import java.util.Map;
 import java.util.Set;
 
-@Component
 /**
  * FeedbackScorePolicy 负责约束单题反馈结果和离散分数。
  */
+@Component
 public class FeedbackScorePolicy {
 
     private static final Map<FeedbackResultType, Set<Integer>> ALLOWED_SCORES = Map.of(

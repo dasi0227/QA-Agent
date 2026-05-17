@@ -39,11 +39,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@Service
-@Slf4j
 /**
  * FeedbackAgent 负责同步生成单题反馈，并根据用户是否会做分流到 Judge 或 Hint 链路。
  */
+@Service
+@Slf4j
 public class FeedbackAgent implements IFeedbackAgent {
 
     private static final int MAX_RETRY = 2;

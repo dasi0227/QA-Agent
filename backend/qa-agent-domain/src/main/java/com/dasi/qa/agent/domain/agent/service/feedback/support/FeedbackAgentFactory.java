@@ -9,10 +9,10 @@ import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.stereotype.Component;
 
-@Component
 /**
  * FeedbackAgentFactory 负责组装单题反馈 DAG，不承载具体业务逻辑。
  */
+@Component
 public class FeedbackAgentFactory {
 
     /**

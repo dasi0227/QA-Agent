@@ -11,10 +11,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 
-@Component
 /**
  * AssessLlmModelProvider 负责用用户 Profile 中的配置创建整轮评估模型。
  */
+@Component
 public class AssessLlmModelProvider {
 
     private final IAgentRepository agentRepository;

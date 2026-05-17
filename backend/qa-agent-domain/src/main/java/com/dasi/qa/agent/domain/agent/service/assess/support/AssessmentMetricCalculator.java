@@ -13,10 +13,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-@Component
 /**
  * AssessmentMetricCalculator 负责用 Java 规则计算整轮评估的稳定指标。
  */
+@Component
 public class AssessmentMetricCalculator {
 
     /**

@@ -10,10 +10,10 @@ import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.stereotype.Component;
 
-@Component
 /**
  * AssessAgentFactory 负责组装整轮评估 DAG，不承载具体业务逻辑。
  */
+@Component
 public class AssessAgentFactory {
 
     /**

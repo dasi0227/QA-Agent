@@ -38,11 +38,11 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.Map;
 
-@Service
-@Slf4j
 /**
  * AssessAgent 负责同步生成整轮练习评估，并保存用户可读评估与内部记忆线索。
  */
+@Service
+@Slf4j
 public class AssessAgent implements IAssessAgent {
 
     private static final int MAX_RETRY = 2;
