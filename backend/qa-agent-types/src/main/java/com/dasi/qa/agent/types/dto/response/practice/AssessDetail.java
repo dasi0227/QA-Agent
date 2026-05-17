@@ -1,19 +1,20 @@
-package com.dasi.qa.agent.domain.agent.service.assess.model.result;
+package com.dasi.qa.agent.types.dto.response.practice;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * AdviceAgent 输出结果，包含整体点评和复习指导。
- */
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdviceResult {
+public class AssessDetail {
 
     private String overallComment;
     private String reviewGuidance;
+    private List<AssessPoint> strengths;
+    private List<AssessPoint> weaknesses;
 }

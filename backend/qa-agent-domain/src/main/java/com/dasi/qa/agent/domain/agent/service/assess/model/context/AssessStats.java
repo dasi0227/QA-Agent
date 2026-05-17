@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AssessMetrics {
+public class AssessStats {
 
     private Integer totalQuestions;
     private Integer score;

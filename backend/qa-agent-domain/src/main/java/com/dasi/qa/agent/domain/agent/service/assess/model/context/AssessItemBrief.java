@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * AdviceAgent 使用的单题简要摘要，避免重复传入诊断专用字段。
+ * AdviseAgent 使用的单题简要摘要，避免重复传入诊断专用字段。
  */
 @Data
 @Builder

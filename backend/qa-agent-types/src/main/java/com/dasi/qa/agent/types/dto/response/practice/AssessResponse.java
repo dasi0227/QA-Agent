@@ -23,6 +23,6 @@ public class AssessResponse {
     private Integer wrongCount;
     private Integer unknownCount;
     private String summary;
-    private AssessmentDetail assessmentDetail;
+    private AssessDetail assessDetail;
     private LocalDateTime finishedAt;
 }

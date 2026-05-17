@@ -341,7 +341,7 @@
 1. 保留 `status`。
 2. 不保留 `module_results_json`。
 3. `accuracy` 定义见第 7 节。
-4. `correct_count`、`deficient_count`、`wrong_count`、`unknown_count` 由 V5 AssessAgent 在整轮评估时写入，作为高频展示和后续统计字段。
+4. `correct_count`、`deficient_count`、`wrong_count`、`unknown_count` 由 V5 AssessAgent 在整轮评估时写入，作为高频展示和后续统计字段；`PERFECT` 计入 `correct_count`。
 5. `assessment_detail_json` 存用户可读整轮评估详情，结构固定为 `overallComment`、`reviewGuidance`、`strengths`、`weaknesses`。
 6. `memory_clue_json` 存 V6 Memory 使用的内部线索，根节点直接为数组，不返回前端。
 
@@ -368,8 +368,8 @@
 
 1. 保留用户作答文本 `user_answer`。
 2. 不保留 `is_unknown`，由 `result=UNKNOWN` 承载"不会"语义。
-3. `result` 取值为 `CORRECT`、`DEFICIENT`、`WRONG`、`UNKNOWN`。
-4. `score` 使用离散分数：`CORRECT` 为 80/90/100，`DEFICIENT` 为 40/50/60/70，`WRONG` 为 0/10/20/30，`UNKNOWN` 固定 0。
+3. `result` 取值为 `PERFECT`、`CORRECT`、`DEFICIENT`、`WRONG`、`UNKNOWN`。
+4. `score` 使用离散分数：`PERFECT` 为 100，`CORRECT` 为 80/90，`DEFICIENT` 为 50/60/70，`WRONG` 为 0/10/20/30/40，`UNKNOWN` 固定 0。
 5. `feedback_summary` 存单题反馈摘要，供列表和题卡快速展示。
 6. `feedback_detail_json` 存结构化反馈详情。`JUDGE` 分支存 `judgeDetail`，`HINT` 分支存 `hintDetail`；API 返回时拆成结构化对象，不直接返回 JSON 字符串。
 
@@ -594,18 +594,19 @@
 
 `practice_session.accuracy` 定义为：
 
-`(CORRECT + DEFICIENT) / 已作答题数`
+`(PERFECT + CORRECT + DEFICIENT) / 已作答题数`
 
 即：
 
-1. `CORRECT` 算命中
-2. `DEFICIENT` 算命中
-3. `WRONG` 不算命中
-4. `UNKNOWN` 不算命中
+1. `PERFECT` 算命中，并计入 `correct_count`
+2. `CORRECT` 算命中，并计入 `correct_count`
+3. `DEFICIENT` 算命中
+4. `WRONG` 不算命中
+5. `UNKNOWN` 不算命中
 
 V5 AssessAgent 只允许完整练习会话评估，因此正式写入时等价于：
 
-`(CORRECT + DEFICIENT) / total_questions * 100`
+`(PERFECT + CORRECT + DEFICIENT) / total_questions * 100`
 
 ### 8.1.1 单轮练习分数
 

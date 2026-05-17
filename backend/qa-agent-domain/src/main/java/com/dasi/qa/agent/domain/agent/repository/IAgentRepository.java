@@ -5,8 +5,8 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
-import com.dasi.qa.agent.domain.agent.service.assess.model.AssessSaveCommand;
-import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
+import com.dasi.qa.agent.domain.agent.service.assess.model.command.AssessSaveCommand;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.SessionContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.command.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.model.vo.PracticeVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
@@ -60,7 +60,7 @@ public interface IAgentRepository {
 
     LocalDateTime saveFeedbackResult(String sessionItemId, String userId, FeedbackSaveCommand command);
 
-    AssessContext getAssessContext(String sessionId, String userId);
+    SessionContext getAssessContext(String sessionId, String userId);
 
     AssessResponse saveAssessResult(String sessionId, String userId, AssessSaveCommand command);
 

@@ -31,7 +31,7 @@ public class PracticeSessionResponse extends BaseResponse {
     private Integer wrongCount;
     private Integer unknownCount;
     private String summary;
-    private AssessmentDetail assessmentDetail;
+    private AssessDetail assessDetail;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
 }

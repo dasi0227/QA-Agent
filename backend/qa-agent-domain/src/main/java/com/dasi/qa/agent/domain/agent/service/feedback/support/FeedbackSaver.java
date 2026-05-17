@@ -9,6 +9,7 @@ import com.dasi.qa.agent.domain.agent.service.feedback.model.result.HintResult;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.result.JudgeResult;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import dev.langchain4j.agentic.scope.AgenticScope;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ import java.util.List;
  * 负责从 scope 读取反馈结果并落库，返回 FeedbackResponse。
  */
 @Component
+@Slf4j
 public class FeedbackSaver {
 
     private static final String UNKNOWN_SUMMARY = "这题已标记为不会。";
@@ -36,6 +38,7 @@ public class FeedbackSaver {
 
         // 2. 只记录最新的回答
         LocalDateTime answeredAt = agentRepository.saveFeedbackResult(practice.getSessionItemId(), userId, command);
+        log.info("【单题反馈】保存完成: sessionItemId={}", practice.getSessionItemId());
 
         // 3. 构造返回对象
         List<FeedbackResponse.SourceChunk> sourceChunks = practice.getSourceChunks().stream()

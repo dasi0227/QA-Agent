@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.interfaces.handler;
 
+import com.dasi.qa.agent.domain.agent.service.assess.model.exception.AssessException;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.types.exception.AgentException;
@@ -22,6 +23,14 @@ public class GlobalExceptionHandler {
     public Result<Void> handleApiException(ApiException exception) {
         log.error("【全局异常】API调用错误: error={}", exception.getMessage(), exception);
         return Result.fail(exception.getCode(), exception.getMessage());
+    }
+
+    @ExceptionHandler(AssessException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleAssessException(AssessException exception) {
+        log.error("【全局异常】Assess执行错误: resultCode={}, error={}",
+                exception.getResultCode(), exception.getMessage(), exception);
+        return Result.fail(exception.getResultCode().getCode(), exception.getMessage());
     }
 
     @ExceptionHandler(AgentException.class)

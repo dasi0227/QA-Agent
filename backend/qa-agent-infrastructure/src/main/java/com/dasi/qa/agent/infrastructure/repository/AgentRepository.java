@@ -3,9 +3,9 @@ package com.dasi.qa.agent.infrastructure.repository;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.dasi.qa.agent.domain.agent.service.assess.model.AssessSaveCommand;
-import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
-import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItem;
+import com.dasi.qa.agent.domain.agent.service.assess.model.command.AssessSaveCommand;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItemDetail;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.SessionContext;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
@@ -425,7 +425,7 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
-    public AssessContext getAssessContext(String sessionId, String userId) {
+    public SessionContext getAssessContext(String sessionId, String userId) {
         PracticeSession session = requirePracticeSession(sessionId);
         if (!userId.equals(session.getUserId())) {
             throw new ApiException(ResultCode.FORBIDDEN);
@@ -438,14 +438,14 @@ public class AgentRepository implements IAgentRepository {
                 new LambdaQueryWrapper<PracticeSessionItem>()
                         .eq(PracticeSessionItem::getSessionId, sessionId)
                         .orderByAsc(PracticeSessionItem::getSortOrder));
-        List<AssessItem> items = new ArrayList<>();
+        List<AssessItemDetail> items = new ArrayList<>();
         for (PracticeSessionItem sessionItem : sessionItems) {
             QaItem qaItem = qaItemMapper.selectById(sessionItem.getQaItemId());
             if (qaItem == null || !userId.equals(qaItem.getUserId())) {
                 throw new ApiException(ResultCode.NOT_FOUND);
             }
             FeedbackResponse.JudgeDetail judgeDetail = judgeDetail(sessionItem.getFeedbackJudgeDetail());
-            items.add(AssessItem.builder()
+            items.add(AssessItemDetail.builder()
                     .itemId(sessionItem.getId())
                     .question(qaItem.getQuestion())
                     .moduleTag(qaItem.getModuleTag())
@@ -460,7 +460,7 @@ public class AgentRepository implements IAgentRepository {
                     .answeredAt(sessionItem.getAnsweredAt())
                     .build());
         }
-        return AssessContext.builder()
+        return SessionContext.builder()
                 .sessionId(session.getId())
                 .qaSetId(session.getQaSetId())
                 .qaSetTitle(qaSet.getTitle())
@@ -479,21 +479,21 @@ public class AgentRepository implements IAgentRepository {
         }
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime finishedAt = session.getFinishedAt() == null ? now : session.getFinishedAt();
-        String assessmentDetailJson = JSON.toJSONString(command.getAssessmentDetail());
-        String memoryClueJson = JSON.toJSONString(command.getRecordResult() == null || command.getRecordResult().getClues() == null
+        String assessmentDetailJson = JSON.toJSONString(command.getAssessDetail());
+        String memoryClueJson = JSON.toJSONString(command.getMemoryClues() == null
                 ? List.of()
-                : command.getRecordResult().getClues());
+                : command.getMemoryClues());
 
         practiceSessionMapper.update(null,
                 new LambdaUpdateWrapper<PracticeSession>()
                         .set(PracticeSession::getStatus, "FINISHED")
-                        .set(PracticeSession::getScore, command.getMetrics().getScore())
-                        .set(PracticeSession::getAccuracy, command.getMetrics().getAccuracy())
-                        .set(PracticeSession::getCorrectCount, command.getMetrics().getCorrectCount())
-                        .set(PracticeSession::getDeficientCount, command.getMetrics().getDeficientCount())
-                        .set(PracticeSession::getWrongCount, command.getMetrics().getWrongCount())
-                        .set(PracticeSession::getUnknownCount, command.getMetrics().getUnknownCount())
-                        .set(PracticeSession::getSummary, command.getAssessmentDetail().getOverallComment())
+                        .set(PracticeSession::getScore, command.getScore())
+                        .set(PracticeSession::getAccuracy, command.getAccuracy())
+                        .set(PracticeSession::getCorrectCount, command.getCorrectCount())
+                        .set(PracticeSession::getDeficientCount, command.getDeficientCount())
+                        .set(PracticeSession::getWrongCount, command.getWrongCount())
+                        .set(PracticeSession::getUnknownCount, command.getUnknownCount())
+                        .set(PracticeSession::getSummary, command.getAssessDetail().getOverallComment())
                         .set(PracticeSession::getAssessmentDetailJson, assessmentDetailJson)
                         .set(PracticeSession::getMemoryClueJson, memoryClueJson)
                         .set(PracticeSession::getFinishedAt, finishedAt)
@@ -504,14 +504,14 @@ public class AgentRepository implements IAgentRepository {
         return AssessResponse.builder()
                 .sessionId(session.getId())
                 .qaSetId(session.getQaSetId())
-                .score(command.getMetrics().getScore())
-                .accuracy(command.getMetrics().getAccuracy())
-                .correctCount(command.getMetrics().getCorrectCount())
-                .deficientCount(command.getMetrics().getDeficientCount())
-                .wrongCount(command.getMetrics().getWrongCount())
-                .unknownCount(command.getMetrics().getUnknownCount())
-                .summary(command.getAssessmentDetail().getOverallComment())
-                .assessmentDetail(command.getAssessmentDetail())
+                .score(command.getScore())
+                .accuracy(command.getAccuracy())
+                .correctCount(command.getCorrectCount())
+                .deficientCount(command.getDeficientCount())
+                .wrongCount(command.getWrongCount())
+                .unknownCount(command.getUnknownCount())
+                .summary(command.getAssessDetail().getOverallComment())
+                .assessDetail(command.getAssessDetail())
                 .finishedAt(finishedAt)
                 .build();
     }

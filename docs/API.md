@@ -250,13 +250,13 @@ SUMMARIZE
 | `sessionId` | 练习会话 ID |
 | `qaSetId` | 对应问答集 ID |
 | `score` | 本轮平均分，Java 根据单题分数计算 |
-| `accuracy` | 本轮达标率，`(CORRECT + DEFICIENT) / totalQuestions * 100` |
-| `correctCount` | `CORRECT` 题数 |
+| `accuracy` | 本轮达标率，`(PERFECT + CORRECT + DEFICIENT) / totalQuestions * 100` |
+| `correctCount` | `PERFECT + CORRECT` 题数 |
 | `deficientCount` | `DEFICIENT` 题数 |
 | `wrongCount` | `WRONG` 题数 |
 | `unknownCount` | `UNKNOWN` 题数 |
-| `summary` | 本轮整体摘要，等同于 `assessmentDetail.overallComment` |
-| `assessmentDetail` | 用户可读整轮评估详情 |
+| `summary` | 本轮整体摘要，等同于 `assessDetail.overallComment` |
+| `assessDetail` | 用户可读整轮评估详情 |
 | `finishedAt` | 练习首次完成时间，重复评估不刷新 |
 
 #### `/practice/session/assess` 响应示例
@@ -275,7 +275,7 @@ SUMMARIZE
     "wrongCount": 0,
     "unknownCount": 0,
     "summary": "本轮 Spring Boot 练习整体完成度较好，能答出自动配置与事务代理的主要方向，但代理机制边界仍需要补充。",
-    "assessmentDetail": {
+    "assessDetail": {
       "overallComment": "本轮 Spring Boot 练习整体完成度较好，能答出自动配置与事务代理的主要方向，但代理机制边界仍需要补充。",
       "reviewGuidance": "下一轮先重答事务自调用题，补充代理增强生效条件和调用路径，再用自动配置题保持依赖收敛与条件装配的表达稳定性。",
       "strengths": [
@@ -325,7 +325,7 @@ SUMMARIZE
 | --- | --- |
 | `sessionItemId` | 练习题目结果 ID |
 | `qaItemId` | 对应题目 ID |
-| `result` | `CORRECT` / `DEFICIENT` / `WRONG` / `UNKNOWN` |
+| `result` | `PERFECT` / `CORRECT` / `DEFICIENT` / `WRONG` / `UNKNOWN` |
 | `score` | 单题离散分数 |
 | `feedbackSummary` | 单题反馈摘要 |
 | `judgeDetail` | 有效回答分支详情，包含 `missingPoints`、`wrongPoints`、`improvementAdvice`、`betterAnswer` |

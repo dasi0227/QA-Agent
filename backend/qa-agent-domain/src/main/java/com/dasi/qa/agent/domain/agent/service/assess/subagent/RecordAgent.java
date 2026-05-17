@@ -10,7 +10,7 @@ import dev.langchain4j.service.V;
  */
 public interface RecordAgent {
 
-    @SystemMessage(fromResource = "prompt/assess/assessment-record.txt")
+    @SystemMessage(fromResource = "prompt/assess/assess-record.txt")
     @UserMessage("""
             题集标题：{{qaSetTitle}}
             本轮统计：{{metrics}}

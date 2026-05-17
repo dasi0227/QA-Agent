@@ -1,25 +1,39 @@
 package com.dasi.qa.agent.domain.agent.service.assess.model.context;
 
+import com.dasi.qa.agent.domain.agent.service.assess.subagent.AdviseAgent;
+import com.dasi.qa.agent.domain.agent.service.assess.subagent.DiagnoseAgent;
+import com.dasi.qa.agent.domain.agent.service.assess.subagent.RecordAgent;
+import dev.langchain4j.agentic.scope.AgenticScope;
+import dev.langchain4j.model.chat.ChatModel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
- * 整轮评估上下文，保存 session、题集、单题摘要和 Java 计算指标。
+ * 整轮评估 DAG 运行上下文，保存模型和各阶段回调。
  */
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
 public class AssessContext {
 
-    private String sessionId;
-    private String qaSetId;
-    private String qaSetTitle;
-    private Integer totalQuestions;
-    private List<AssessItem> items;
-    private AssessMetrics metrics;
+    private final ChatModel userModel;
+    private final DiagnoseStep diagnoseStep;
+    private final AdviseStep adviseStep;
+    private final RecordStep recordStep;
+
+    @FunctionalInterface
+    public interface DiagnoseStep {
+        void run(AgenticScope scope, DiagnoseAgent diagnoseAgent);
+    }
+
+    @FunctionalInterface
+    public interface AdviseStep {
+        void run(AgenticScope scope, AdviseAgent adviseAgent);
+    }
+
+    @FunctionalInterface
+    public interface RecordStep {
+        void run(AgenticScope scope, RecordAgent recordAgent);
+    }
 }

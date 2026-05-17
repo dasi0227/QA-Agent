@@ -14,11 +14,11 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSession;
 import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItem;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
+import com.dasi.qa.agent.types.dto.response.practice.AssessDetail;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
-import com.dasi.qa.agent.types.dto.response.practice.AssessmentDetail;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
@@ -169,8 +169,8 @@ public class PracticeRepository implements IPracticeRepository {
                 && entity instanceof PracticeSession sessionEntity
                 && sessionEntity.getAssessmentDetailJson() != null
                 && StringUtils.hasText(sessionEntity.getAssessmentDetailJson())) {
-            AssessmentDetail detail = JSON.parseObject(sessionEntity.getAssessmentDetailJson(), AssessmentDetail.class);
-            sessionResponse.setAssessmentDetail(detail);
+            AssessDetail detail = JSON.parseObject(sessionEntity.getAssessmentDetailJson(), AssessDetail.class);
+            sessionResponse.setAssessDetail(detail);
         }
         if (!StringUtils.hasText(response.getId()) && BeanUtil.getProperty(entity, "userId") != null) {
             response.setId(String.valueOf(BeanUtil.getProperty(entity, "userId")));

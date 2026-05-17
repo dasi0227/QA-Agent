@@ -1,0 +1,21 @@
+package com.dasi.qa.agent.domain.agent.service.assess.model.context;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * RecordAgent 输入上下文。
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class RecordContext {
+
+    private String sessionId;
+    private String qaSetTitle;
+    private String statsJson;
+    private String itemsJson;
+}

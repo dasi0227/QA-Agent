@@ -1,10 +1,10 @@
 package com.dasi.qa.agent.domain.agent.service.assess.support;
 
-import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessContext;
-import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItem;
-import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessMetrics;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItemDetail;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessStats;
+import com.dasi.qa.agent.domain.agent.service.assess.model.context.SessionContext;
+import com.dasi.qa.agent.domain.agent.service.assess.model.exception.AssessException;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackResult;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -14,29 +14,29 @@ import java.math.RoundingMode;
 import java.util.List;
 
 /**
- * AssessmentMetricCalculator 负责用 Java 规则计算整轮评估的稳定指标。
+ * AssessStatCalculator 负责用 Java 规则计算整轮评估的稳定指标。
  */
 @Component
-public class AssessmentMetricCalculator {
+public class AssessStatCalculator {
 
     /**
      * 校验完成状态后计算平均分、达标率和四类结果分布。
      */
-    public AssessMetrics calculate(AssessContext context) {
+    public AssessStats calculate(SessionContext context) {
         // 1. 校验整轮练习是否完整
         validate(context);
-        List<AssessItem> items = context.getItems();
+        List<AssessItemDetail> items = context.getItems();
         int correct = 0;
         int deficient = 0;
         int wrong = 0;
         int unknown = 0;
         int totalScore = 0;
         // 2. 统计四类结果和总分
-        for (AssessItem item : items) {
+        for (AssessItemDetail item : items) {
             FeedbackResult resultType = resultType(item.getResult());
             totalScore += item.getScore();
             switch (resultType) {
-                case CORRECT -> correct++;
+                case PERFECT, CORRECT -> correct++;
                 case DEFICIENT -> deficient++;
                 case WRONG -> wrong++;
                 case UNKNOWN -> unknown++;
@@ -48,7 +48,7 @@ public class AssessmentMetricCalculator {
         BigDecimal accuracy = BigDecimal.valueOf(correct + deficient)
                 .multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(total), 2, RoundingMode.HALF_UP);
-        return AssessMetrics.builder()
+        return AssessStats.builder()
                 .totalQuestions(total)
                 .score(score)
                 .accuracy(accuracy)
@@ -62,7 +62,7 @@ public class AssessmentMetricCalculator {
     /**
      * 校验 session item 数量和每题作答结果是否完整。
      */
-    public void validate(AssessContext context) {
+    public void validate(SessionContext context) {
         // 题目为空时不能生成整轮评估
         if (context == null || context.getItems() == null || context.getItems().isEmpty()) {
             throw notCompleted("练习题目为空，不能生成整轮评估");
@@ -73,7 +73,7 @@ public class AssessmentMetricCalculator {
             throw notCompleted("练习题目数量异常，不能生成整轮评估");
         }
         // 每道题都必须已经完成反馈
-        for (AssessItem item : context.getItems()) {
+        for (AssessItemDetail item : context.getItems()) {
             if (item.getAnsweredAt() == null || !StringUtils.hasText(item.getResult()) || item.getScore() == null) {
                 throw notCompleted("练习尚未完成，不能生成整轮评估");
             }
@@ -89,7 +89,7 @@ public class AssessmentMetricCalculator {
         }
     }
 
-    private ApiException notCompleted(String message) {
-        return new ApiException(ResultCode.PRACTICE_SESSION_NOT_COMPLETED.getCode(), message);
+    private AssessException notCompleted(String message) {
+        return new AssessException(ResultCode.PRACTICE_SESSION_NOT_COMPLETED, message);
     }
 }

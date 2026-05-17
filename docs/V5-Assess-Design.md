@@ -37,7 +37,7 @@ AssessAgent 是 QA_Agent 系统的整轮练习评估链路。它只在一轮练�
   "wrongCount": 1,
   "unknownCount": 1,
   "summary": "本轮整体完成度中等，能覆盖部分核心方向，但在代理边界和持久化机制对比上还不稳定。",
-  "assessmentDetail": {
+  "assessDetail": {
     "overallComment": "",
     "reviewGuidance": "",
     "strengths": [],
@@ -55,7 +55,7 @@ AssessAgent 是 QA_Agent 系统的整轮练习评估链路。它只在一轮练�
 
 | 字段 | 含义 |
 | --- | --- |
-| `correct_count` | 本轮 `CORRECT` 题数 |
+| `correct_count` | 本轮 `PERFECT + CORRECT` 题数 |
 | `deficient_count` | 本轮 `DEFICIENT` 题数 |
 | `wrong_count` | 本轮 `WRONG` 题数 |
 | `unknown_count` | 本轮 `UNKNOWN` 题数 |
@@ -115,7 +115,7 @@ AssessAgent 是 QA_Agent 系统的整轮练习评估链路。它只在一轮练�
 Java prepare step
   -> parallel(
        user assessment sequence:
-         DiagnosisAgent -> AdviceAgent,
+         DiagnoseAgent -> AdviseAgent,
        RecordAgent
      )
   -> Java save step
@@ -123,9 +123,9 @@ Java prepare step
 
 说明：
 
-1. `PREPARE` 和 `SAVE` 是 Java step，不是 LLM 子 Agent。
-2. `DiagnosisAgent` 输出 `strengths / weaknesses`。
-3. `AdviceAgent` 基于诊断结果和单题简要摘要输出 `overallComment / reviewGuidance`。
+1. prepare 和 save 是 Java step，不进入 DAG scope；DAG scope 只保存阶段输出。
+2. `DiagnoseAgent` 输出 `strengths / weaknesses`。
+3. `AdviseAgent` 基于诊断结果和单题简要摘要输出 `overallComment / reviewGuidance`。
 4. `RecordAgent` 并发输出 `memory_clue_json`。
 5. `AssessAgentFactory` 只负责组装 DAG；业务阶段逻辑留在 `AssessAgent`。
 
@@ -145,7 +145,7 @@ Java prepare step
 }
 ```
 
-`items` 给 `DiagnosisAgent` 和 `RecordAgent`：
+`items` 给 `DiagnoseAgent` 和 `RecordAgent`：
 
 ```json
 {
@@ -162,7 +162,7 @@ Java prepare step
 }
 ```
 
-`itemBriefs` 给 `AdviceAgent`：
+`itemBriefs` 给 `AdviseAgent`：
 
 ```json
 {
@@ -191,8 +191,8 @@ Java 负责稳定指标：
 | 指标 | 规则 |
 | --- | --- |
 | `score` | 所有单题 `score` 平均值，四舍五入为整数 |
-| `accuracy` | `(CORRECT + DEFICIENT) / totalQuestions * 100`，保留 2 位小数 |
-| `correctCount` | `CORRECT` 数量 |
+| `accuracy` | `(PERFECT + CORRECT + DEFICIENT) / totalQuestions * 100`，保留 2 位小数 |
+| `correctCount` | `PERFECT + CORRECT` 数量 |
 | `deficientCount` | `DEFICIENT` 数量 |
 | `wrongCount` | `WRONG` 数量 |
 | `unknownCount` | `UNKNOWN` 数量 |
@@ -222,8 +222,8 @@ status = FINISHED
 score = Java 计算结果
 accuracy = Java 计算结果
 correct_count / deficient_count / wrong_count / unknown_count
-summary = assessmentDetail.overallComment
-assessment_detail_json = assessmentDetail
+summary = assessDetail.overallComment
+assessment_detail_json = assessDetail
 memory_clue_json = RecordAgent 输出数组
 finished_at = COALESCE(finished_at, now)
 updated_at = now
@@ -247,9 +247,9 @@ last_practiced_at = max(finished_at)
 Prompt 文件：
 
 ```text
-prompt/assess/assessment-diagnosis.txt
-prompt/assess/assessment-advice.txt
-prompt/assess/assessment-record.txt
+prompt/assess/assess-diagnose.txt
+prompt/assess/assess-advise.txt
+prompt/assess/assess-record.txt
 ```
 
 Prompt 必须明确：
@@ -262,8 +262,8 @@ Prompt 必须明确：
 
 容错：
 
-1. `DiagnosisAgent` 失败时 fallback 为空 strengths/weaknesses。
-2. `AdviceAgent` 失败时使用 Java 规则生成基础 overallComment/reviewGuidance。
+1. `DiagnoseAgent` 失败时 fallback 为空 strengths/weaknesses。
+2. `AdviseAgent` 失败时使用 Java 规则生成基础 overallComment/reviewGuidance。
 3. `RecordAgent` 失败时 fallback 为空数组。
 4. DB 保存失败必须中断。
 
@@ -274,25 +274,31 @@ domain/agent/service/assess/
   IAssessAgent.java
   AssessAgent.java
   model/
-    AssessSaveCommand.java
+    command/
+      AssessSaveCommand.java
     context/
+      AssessContext.java
+      AssessSessionContext.java
+      DiagnoseContext.java
+      AdviseContext.java
+      RecordContext.java
     enumeration/
-    exception/
     result/
   subagent/
-    DiagnosisAgent.java
-    AdviceAgent.java
+    DiagnoseAgent.java
+    AdviseAgent.java
     RecordAgent.java
   support/
     AssessAgentFactory.java
-    AssessLlmModelProvider.java
+    AssessSaver.java
+    AssessDetailAssembler.java
     AssessmentMetricCalculator.java
     AssessResultSanitizer.java
 
 application/src/main/resources/prompt/assess/
-  assessment-diagnosis.txt
-  assessment-advice.txt
-  assessment-record.txt
+  assess-diagnose.txt
+  assess-advise.txt
+  assess-record.txt
 ```
 
 ## 十一、测试边界

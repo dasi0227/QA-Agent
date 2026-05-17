@@ -6,14 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DiagnosisAgent 输出的单条薄弱点分析。
+ * AdviseAgent 输出结果，包含整体点评和复习指导。
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class WeaknessResult {
+public class AdviseResult {
 
-    private String title;
-    private String analysis;
+    private String overallComment;
+    private String reviewGuidance;
 }

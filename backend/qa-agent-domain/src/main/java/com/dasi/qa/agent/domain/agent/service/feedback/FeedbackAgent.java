@@ -6,7 +6,7 @@ import com.dasi.qa.agent.domain.agent.service.feedback.model.context.FeedbackCon
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.HintContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.JudgeContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackPhase;
-import com.dasi.qa.agent.domain.agent.service.feedback.model.exception.FeedbackException;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackResult;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.result.HintResult;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.result.JudgeResult;
 import com.dasi.qa.agent.domain.agent.service.feedback.subagent.HintAgent;
@@ -19,7 +19,6 @@ import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.dto.request.practice.FeedbackRequest;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
-import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.agentic.scope.ResultWithAgenticScope;
@@ -28,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -134,15 +134,10 @@ public class FeedbackAgent implements IFeedbackAgent {
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
-                if (attempt == MAX_RETRY) {
-                    hintResult = fallbackHint();
-                    log.warn("【单题反馈】HintAgent 最终失败，使用兜底提示: sessionItemId={}", hintContext.getSessionItemId(), exception);
-                } else {
-                    log.warn("【单题反馈】HintAgent 失败，重试: attempt={}, sessionItemId={}", attempt + 1, hintContext.getSessionItemId(), exception);
-                }
+                log.warn("【单题反馈】HintAgent 调用失败，重试: attempt={}, sessionItemId={}", attempt + 1, hintContext.getSessionItemId(), exception);
             }
         }
-        scope.writeState(FeedbackPhase.HINT.getScopeKey(), hintResult);
+        writeHintResult(scope, hintResult);
     }
 
     /**
@@ -167,18 +162,10 @@ public class FeedbackAgent implements IFeedbackAgent {
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
-                if (attempt == MAX_RETRY) {
-                    log.warn("【单题反馈】JudgeAgent 最终失败: sessionItemId={}", judgeContext.getSessionItemId(), exception);
-                    if (judgeResult == null) {
-                        throw new FeedbackException(AgentErrorType.INVALID_RESPONSE, "JudgeAgent 调用失败，已重试 " + MAX_RETRY + " 次");
-                    }
-                } else {
-                    log.warn("【单题反馈】JudgeAgent 失败，重试: attempt={}, sessionItemId={}", attempt + 1, judgeContext.getSessionItemId(), exception);
-                }
+                log.warn("【单题反馈】JudgeAgent 调用失败，重试: attempt={}, sessionItemId={}", attempt + 1, judgeContext.getSessionItemId(), exception);
             }
         }
-        feedbackScoreCorrector.correct(judgeResult);
-        scope.writeState(FeedbackPhase.JUDGE.getScopeKey(), judgeResult);
+        writeJudgeResult(scope, judgeResult);
     }
 
     private HintResult fallbackHint() {
@@ -186,6 +173,28 @@ public class FeedbackAgent implements IFeedbackAgent {
                 .memoryTip("先把题目里的核心名词和标准答案第一层结构对应起来，下一轮复习时会更容易抓住主线。")
                 .encouragement("暂时不会并不代表没有进展，能把卡住的题标出来，本身就是一次有效练习。")
                 .build();
+    }
+
+    private JudgeResult fallbackJudge() {
+        return JudgeResult.builder()
+                .result(FeedbackResult.WRONG.name())
+                .score(20)
+                .feedbackSummary("本题已完成提交，但系统未能稳定生成判题结果。下一轮建议先按错题处理，优先补齐核心概念和主线表达。")
+                .missingPoints(List.of())
+                .wrongPoints(List.of())
+                .improvementAdvice("")
+                .betterAnswer("")
+                .build();
+    }
+
+    private void writeHintResult(AgenticScope scope, HintResult result) {
+        scope.writeState(FeedbackPhase.HINT.getScopeKey(), result != null ? result : fallbackHint());
+    }
+
+    private void writeJudgeResult(AgenticScope scope, JudgeResult result) {
+        JudgeResult finalResult = result != null ? result : fallbackJudge();
+        feedbackScoreCorrector.correct(finalResult);
+        scope.writeState(FeedbackPhase.JUDGE.getScopeKey(), finalResult);
     }
 
 }
