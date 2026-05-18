@@ -5,7 +5,7 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessStats;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.SessionContext;
 import com.dasi.qa.agent.domain.agent.service.assess.model.exception.AssessException;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackResult;
-import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -90,6 +90,6 @@ public class AssessStatCalculator {
     }
 
     private AssessException notCompleted(String message) {
-        return new AssessException(ResultCode.PRACTICE_SESSION_NOT_COMPLETED, message);
+        return new AssessException(AgentErrorType.PRACTICE_SESSION_NOT_COMPLETED, message);
     }
 }

@@ -15,8 +15,12 @@ import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunk;
+import com.dasi.qa.agent.infrastructure.persistent.entity.QaSet;
+import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetDocumentRef;
 import com.dasi.qa.agent.infrastructure.persistent.entity.SourceDocument;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.DocumentChunkMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetDocumentRefMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMapper;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.document.DocumentChunkRequest;
@@ -50,15 +54,21 @@ public class DocumentRepository implements IDocumentRepository {
 
     private final SourceDocumentMapper sourceDocumentMapper;
     private final DocumentChunkMapper documentChunkMapper;
+    private final QaSetMapper qaSetMapper;
+    private final QaSetDocumentRefMapper qaSetDocumentRefMapper;
     private final JdbcTemplate postgresJdbc;
     private final IIdUtil idUtil;
 
     public DocumentRepository(SourceDocumentMapper sourceDocumentMapper,
                               DocumentChunkMapper documentChunkMapper,
+                              QaSetMapper qaSetMapper,
+                              QaSetDocumentRefMapper qaSetDocumentRefMapper,
                               @Qualifier("postgresDataSource") DataSource postgresDataSource,
                               IIdUtil idUtil) {
         this.sourceDocumentMapper = sourceDocumentMapper;
         this.documentChunkMapper = documentChunkMapper;
+        this.qaSetMapper = qaSetMapper;
+        this.qaSetDocumentRefMapper = qaSetDocumentRefMapper;
         this.postgresJdbc = new JdbcTemplate(postgresDataSource);
         this.idUtil = idUtil;
     }
@@ -86,7 +96,16 @@ public class DocumentRepository implements IDocumentRepository {
     @Override
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request, String userId) {
-        return update(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
+        SourceDocument entity = sourceDocumentMapper.selectById(request.getId());
+        if (entity == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        if (!userId.equals(entity.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        entity.setFileName(request.getFileName());
+        sourceDocumentMapper.updateById(entity);
+        return toResponse(entity, SourceDocumentResponse.class);
     }
 
     @Override
@@ -95,6 +114,19 @@ public class DocumentRepository implements IDocumentRepository {
         SourceDocument entity = sourceDocumentMapper.selectById(id);
         if (entity == null) {
             throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        if (!userId.equals(entity.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        if (entity.getReferenceCount() != null && entity.getReferenceCount() > 0) {
+            List<String> qaSetIds = qaSetDocumentRefMapper.selectList(
+                    new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getDocumentId, id))
+                    .stream().map(QaSetDocumentRef::getQaSetId).distinct().toList();
+            String titles = qaSetMapper.selectBatchIds(qaSetIds).stream()
+                    .map(QaSet::getTitle).filter(StringUtils::hasText)
+                    .reduce((a, b) -> a + "、 " + b).orElse("");
+            throw new ApiException(ResultCode.DOCUMENT_REFERENCED.getCode(),
+                    "当前资料仍被以下问答集引用，无法删除：" + titles);
         }
         entity.setDeleted(true);
         sourceDocumentMapper.updateById(entity);

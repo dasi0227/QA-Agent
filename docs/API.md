@@ -75,14 +75,15 @@
 | GET | `/document/source/detail?id=...` | 是 | `id` |
 | POST | `/document/source/query` | 是 | `id?`, `fileName?`, `fileType?`, `filePath?`, `rawContent?` |
 | POST | `/document/source/upload` | 是 | `fileName`, `fileType`, `filePath?`, `rawContent` |
-| POST | `/document/source/update` | 是 | `id`, 其余字段同上 |
+| POST | `/document/source/update` | 是 | `id`, `fileName?` |
 | POST | `/document/source/delete` | 是 | `id` |
 
 说明：
 
-1. `upload` / `update` 成功后都会发送 Kafka 消息到 `document.index`，异步触发 RAG 索引。
-2. `delete` 会同时删除 MySQL `document_chunk` 和 PostgreSQL `chunk_search` 中的相关索引数据。
-3. 当前没有开放 `/document/source/reindex` 接口。
+1. `upload` 成功后发送 Kafka 消息到 `document.index`，异步触发 RAG 索引。
+2. `update` 只允许修改 `fileName`，不触发重索引，不修改资料正文。
+3. `delete` 执行软删除（`deleted = true`）。删除前校验 userId 归属，若 `referenceCount > 0` 则返回 `40903` 并提示引用该资料的问答集名称列表。
+4. 当前没有开放 `/document/source/reindex` 接口。
 
 ### 4.2 RAG 搜索接口
 

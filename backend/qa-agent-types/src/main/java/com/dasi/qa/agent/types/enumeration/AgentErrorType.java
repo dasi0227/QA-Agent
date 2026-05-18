@@ -7,6 +7,7 @@ public enum AgentErrorType {
     INVALID_RESPONSE,
     CONTENT_FILTERED,
     LLM_NOT_CONFIGURED,
+    PRACTICE_SESSION_NOT_COMPLETED,
     UNKNOWN;
 
     public static AgentErrorType fromException(Throwable throwable) {

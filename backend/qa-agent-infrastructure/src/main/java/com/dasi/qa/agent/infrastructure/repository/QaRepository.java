@@ -6,6 +6,7 @@ import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
@@ -37,16 +38,19 @@ public class QaRepository implements IQaRepository {
     private final PracticeSessionMapper practiceSessionMapper;
     private final PracticeSessionItemMapper practiceSessionItemMapper;
     private final QaSetDocumentRefMapper qaSetDocumentRefMapper;
+    private final SourceDocumentMapper sourceDocumentMapper;
 
     public QaRepository(QaSetMapper qaSetMapper, QaItemMapper qaItemMapper,
                         PracticeSessionMapper practiceSessionMapper,
                         PracticeSessionItemMapper practiceSessionItemMapper,
-                        QaSetDocumentRefMapper qaSetDocumentRefMapper) {
+                        QaSetDocumentRefMapper qaSetDocumentRefMapper,
+                        SourceDocumentMapper sourceDocumentMapper) {
         this.qaSetMapper = qaSetMapper;
         this.qaItemMapper = qaItemMapper;
         this.practiceSessionMapper = practiceSessionMapper;
         this.practiceSessionItemMapper = practiceSessionItemMapper;
         this.qaSetDocumentRefMapper = qaSetDocumentRefMapper;
+        this.sourceDocumentMapper = sourceDocumentMapper;
     }
 
     @Override
@@ -82,6 +86,14 @@ public class QaRepository implements IQaRepository {
             new LambdaQueryWrapper<PracticeSession>().eq(PracticeSession::getQaSetId, id));
         qaItemMapper.delete(
             new LambdaQueryWrapper<QaItem>().eq(QaItem::getQaSetId, id));
+        List<QaSetDocumentRef> refs = qaSetDocumentRefMapper.selectList(
+            new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, id));
+        for (QaSetDocumentRef ref : refs) {
+            sourceDocumentMapper.update(null,
+                    new LambdaUpdateWrapper<SourceDocument>()
+                            .setSql("reference_count = reference_count - 1")
+                            .eq(SourceDocument::getId, ref.getDocumentId()));
+        }
         qaSetDocumentRefMapper.delete(
             new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, id));
         qaSetMapper.deleteById(id);

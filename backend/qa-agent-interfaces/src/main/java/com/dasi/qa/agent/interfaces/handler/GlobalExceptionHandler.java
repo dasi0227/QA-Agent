@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.interfaces.handler;
 
-import com.dasi.qa.agent.domain.agent.service.assess.model.exception.AssessException;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.types.exception.AgentException;
@@ -25,21 +24,17 @@ public class GlobalExceptionHandler {
         return Result.fail(exception.getCode(), exception.getMessage());
     }
 
-    @ExceptionHandler(AssessException.class)
-    @ResponseStatus(HttpStatus.OK)
-    public Result<Void> handleAssessException(AssessException exception) {
-        log.error("【全局异常】Assess执行错误: resultCode={}, error={}",
-                exception.getResultCode(), exception.getMessage(), exception);
-        return Result.fail(exception.getResultCode().getCode(), exception.getMessage());
-    }
-
     @ExceptionHandler(AgentException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleAgentException(AgentException exception) {
         log.error("【全局异常】Agent执行错误: errorType={}, error={}",
                 exception.getAgentErrorType(), exception.getMessage(), exception);
-        if (exception.getAgentErrorType() == AgentErrorType.LLM_NOT_CONFIGURED) {
+        AgentErrorType errorType = exception.getAgentErrorType();
+        if (errorType == AgentErrorType.LLM_NOT_CONFIGURED) {
             return Result.fail(ResultCode.LLM_NOT_CONFIGURED.getCode(), exception.getMessage());
+        }
+        if (errorType == AgentErrorType.PRACTICE_SESSION_NOT_COMPLETED) {
+            return Result.fail(ResultCode.PRACTICE_SESSION_NOT_COMPLETED.getCode(), exception.getMessage());
         }
         return Result.fail(ResultCode.INTERNAL_ERROR.getCode(), exception.getMessage());
     }

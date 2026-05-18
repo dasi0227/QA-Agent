@@ -64,11 +64,7 @@ public class DocumentController {
 
     @PostMapping("/source/update")
     public Result<SourceDocumentResponse> sourceDocumentUpdate(@RequestBody SourceDocumentRequest request) {
-        SourceDocumentResponse response = documentService.updateSourceDocument(request);
-        String jobId = INDEX_JOB_ID_PREFIX + request.getId();
-        String content = JSON.toJSONString(Map.of("documentId", request.getId()));
-        mqUtil.send(indexingTopic, jobId, content);
-        return Result.success(response);
+        return Result.success(documentService.updateSourceDocument(request));
     }
 
     @PostMapping("/source/delete")
