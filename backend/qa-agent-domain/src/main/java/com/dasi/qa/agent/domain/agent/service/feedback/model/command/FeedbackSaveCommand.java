@@ -1,7 +1,8 @@
 package com.dasi.qa.agent.domain.agent.service.feedback.model.command;
 
 import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackResult;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
+import com.dasi.qa.agent.types.dto.response.practice.HintDetail;
+import com.dasi.qa.agent.types.dto.response.practice.JudgeDetail;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,6 +21,6 @@ public class FeedbackSaveCommand {
     private FeedbackResult result;
     private Integer score;
     private String feedbackSummary;
-    private FeedbackResponse.JudgeDetail judgeDetail;
-    private FeedbackResponse.HintDetail hintDetail;
+    private JudgeDetail judgeDetail;
+    private HintDetail hintDetail;
 }

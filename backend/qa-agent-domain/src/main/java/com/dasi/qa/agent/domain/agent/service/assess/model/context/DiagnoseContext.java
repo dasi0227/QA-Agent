@@ -16,6 +16,6 @@ public class DiagnoseContext {
 
     private String sessionId;
     private String qaSetTitle;
-    private String metricsJson;
+    private String statsJson;
     private String itemsJson;
 }

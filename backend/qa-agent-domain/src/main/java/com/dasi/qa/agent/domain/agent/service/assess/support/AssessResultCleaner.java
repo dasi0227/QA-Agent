@@ -28,39 +28,6 @@ public class AssessResultCleaner {
                 .build();
     }
 
-    public AdviseResult cleanAdvise(AdviseResult result) {
-        return AdviseResult.builder()
-                .overallComment(result.getOverallComment().trim())
-                .reviewGuidance(result.getReviewGuidance().trim())
-                .build();
-    }
-
-    public RecordResult cleanRecord(RecordResult result) {
-        if (result == null || result.getClues() == null) {
-            return null;
-        }
-        List<MemoryClueResult> clues = new ArrayList<>();
-        // 逐条过滤空观察、非法类型和超长列表
-        for (MemoryClueResult clue : result.getClues()) {
-            if (clue == null || !StringUtils.hasText(clue.getObservation())) {
-                continue;
-            }
-            MemoryClueType type = MemoryClueType.fromValue(clue.getType());
-            if (type == null) {
-                continue;
-            }
-            clues.add(MemoryClueResult.builder()
-                    .type(type.name())
-                    .observation(clue.getObservation().trim())
-                    .importance(MemoryClueImportance.normalize(clue.getImportance()).name())
-                    .build());
-            if (clues.size() == MAX_POINTS) {
-                break;
-            }
-        }
-        return RecordResult.builder().clues(clues).build();
-    }
-
     private List<DiagnoseItem> cleanDiagnoseItems(List<DiagnoseItem> values) {
         if (values == null) {
             return List.of();
@@ -79,6 +46,38 @@ public class AssessResultCleaner {
             }
         }
         return results;
+    }
+
+    public AdviseResult cleanAdvise(AdviseResult result) {
+        return AdviseResult.builder()
+                .overallComment(result.getOverallComment().trim())
+                .reviewGuidance(result.getReviewGuidance().trim())
+                .build();
+    }
+
+    public RecordResult cleanRecord(RecordResult result) {
+        if (result == null || result.getClues() == null) {
+            return null;
+        }
+        List<MemoryClueResult> clues = new ArrayList<>();
+        for (MemoryClueResult clue : result.getClues()) {
+            if (clue == null || !StringUtils.hasText(clue.getObservation())) {
+                continue;
+            }
+            MemoryClueType type = MemoryClueType.fromValue(clue.getType());
+            if (type == null) {
+                continue;
+            }
+            clues.add(MemoryClueResult.builder()
+                    .type(type.name())
+                    .observation(clue.getObservation().trim())
+                    .importance(MemoryClueImportance.normalize(clue.getImportance()).name())
+                    .build());
+            if (clues.size() == MAX_POINTS) {
+                break;
+            }
+        }
+        return RecordResult.builder().clues(clues).build();
     }
 
 }

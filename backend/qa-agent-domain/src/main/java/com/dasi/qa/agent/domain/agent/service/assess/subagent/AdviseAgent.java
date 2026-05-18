@@ -13,7 +13,7 @@ public interface AdviseAgent {
     @SystemMessage(fromResource = "prompt/assess/assess-advise.txt")
     @UserMessage("""
             题集标题：{{qaSetTitle}}
-            本轮统计：{{metrics}}
+            本轮统计：{{stats}}
             诊断结果：{{diagnosis}}
             单题简要摘要：{{itemBriefs}}
 
@@ -28,7 +28,7 @@ public interface AdviseAgent {
             """)
     @Agent(name = "ADVISE", description = "生成整轮整体点评和复习指导")
     String advise(@V("qaSetTitle") String qaSetTitle,
-                  @V("metrics") String metrics,
+                  @V("stats") String stats,
                   @V("diagnosis") String diagnosis,
                   @V("itemBriefs") String itemBriefs,
                   @V("retryHint") String retryHint);

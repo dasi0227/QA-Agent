@@ -41,8 +41,8 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMappe
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
+import com.dasi.qa.agent.types.dto.response.practice.JudgeDetail;
 import com.dasi.qa.agent.domain.agent.model.vo.ChunkVO;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
@@ -444,7 +444,7 @@ public class AgentRepository implements IAgentRepository {
             if (qaItem == null || !userId.equals(qaItem.getUserId())) {
                 throw new ApiException(ResultCode.NOT_FOUND);
             }
-            FeedbackResponse.JudgeDetail judgeDetail = judgeDetail(sessionItem.getFeedbackJudgeDetail());
+            JudgeDetail judgeDetail = judgeDetail(sessionItem.getFeedbackJudgeDetail());
             items.add(AssessItemDetail.builder()
                     .itemId(sessionItem.getId())
                     .question(qaItem.getQuestion())
@@ -546,12 +546,12 @@ public class AgentRepository implements IAgentRepository {
         return entity;
     }
 
-    private FeedbackResponse.JudgeDetail judgeDetail(String feedbackJudgeDetail) {
+    private JudgeDetail judgeDetail(String feedbackJudgeDetail) {
         if (!StringUtils.hasText(feedbackJudgeDetail)) {
             return null;
         }
         try {
-            return JSON.parseObject(feedbackJudgeDetail, FeedbackResponse.JudgeDetail.class);
+            return JSON.parseObject(feedbackJudgeDetail, JudgeDetail.class);
         } catch (Exception exception) {
             return null;
         }

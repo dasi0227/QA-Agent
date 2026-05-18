@@ -19,7 +19,8 @@ import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
 import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
+import com.dasi.qa.agent.types.dto.response.practice.HintDetail;
+import com.dasi.qa.agent.types.dto.response.practice.JudgeDetail;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.constant.RedisConstant;
@@ -157,11 +158,11 @@ public class PracticeRepository implements IPracticeRepository {
         if (response instanceof PracticeSessionItemResponse itemResponse
                 && entity instanceof PracticeSessionItem itemEntity) {
             if (StringUtils.hasText(itemEntity.getFeedbackJudgeDetail())) {
-                FeedbackResponse.JudgeDetail judgeDetail = JSON.parseObject(itemEntity.getFeedbackJudgeDetail(), FeedbackResponse.JudgeDetail.class);
+                JudgeDetail judgeDetail = JSON.parseObject(itemEntity.getFeedbackJudgeDetail(), JudgeDetail.class);
                 itemResponse.setJudgeDetail(judgeDetail);
             }
             if (StringUtils.hasText(itemEntity.getFeedbackHintDetail())) {
-                FeedbackResponse.HintDetail hintDetail = JSON.parseObject(itemEntity.getFeedbackHintDetail(), FeedbackResponse.HintDetail.class);
+                HintDetail hintDetail = JSON.parseObject(itemEntity.getFeedbackHintDetail(), HintDetail.class);
                 itemResponse.setHintDetail(hintDetail);
             }
         }

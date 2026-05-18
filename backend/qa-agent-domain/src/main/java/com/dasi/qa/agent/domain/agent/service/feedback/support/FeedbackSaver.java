@@ -8,6 +8,9 @@ import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.Feedbac
 import com.dasi.qa.agent.domain.agent.service.feedback.model.result.HintResult;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.result.JudgeResult;
 import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
+import com.dasi.qa.agent.types.dto.response.practice.HintDetail;
+import com.dasi.qa.agent.types.dto.response.practice.JudgeDetail;
+import com.dasi.qa.agent.types.dto.response.practice.SourceChunk;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -41,8 +44,8 @@ public class FeedbackSaver {
         log.info("【单题反馈】保存完成: sessionItemId={}", practice.getSessionItemId());
 
         // 3. 构造返回对象
-        List<FeedbackResponse.SourceChunk> sourceChunks = practice.getSourceChunks().stream()
-                .map(c -> FeedbackResponse.SourceChunk.builder()
+        List<SourceChunk> sourceChunks = practice.getSourceChunks().stream()
+                .map(c -> SourceChunk.builder()
                         .chunkId(c.getChunkId())
                         .documentId(c.getDocumentId())
                         .titlePath(c.getTitlePath())
@@ -71,7 +74,7 @@ public class FeedbackSaver {
                 .result(FeedbackResult.UNKNOWN)
                 .score(0)
                 .feedbackSummary(UNKNOWN_SUMMARY)
-                .hintDetail(FeedbackResponse.HintDetail.builder()
+                .hintDetail(HintDetail.builder()
                         .memoryTip(result.getMemoryTip())
                         .encouragement(result.getEncouragement())
                         .build())
@@ -85,7 +88,7 @@ public class FeedbackSaver {
                 .result(FeedbackResult.valueOf(result.getResult()))
                 .score(result.getScore())
                 .feedbackSummary(result.getFeedbackSummary())
-                .judgeDetail(FeedbackResponse.JudgeDetail.builder()
+                .judgeDetail(JudgeDetail.builder()
                         .missingPoints(result.getMissingPoints() != null ? result.getMissingPoints() : List.of())
                         .wrongPoints(result.getWrongPoints() != null ? result.getWrongPoints() : List.of())
                         .improvementAdvice(result.getImprovementAdvice())

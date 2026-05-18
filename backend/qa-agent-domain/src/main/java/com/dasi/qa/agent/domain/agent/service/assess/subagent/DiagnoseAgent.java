@@ -13,7 +13,7 @@ public interface DiagnoseAgent {
     @SystemMessage(fromResource = "prompt/assess/assess-diagnose.txt")
     @UserMessage("""
             题集标题：{{qaSetTitle}}
-            本轮统计：{{metrics}}
+            本轮统计：{{stats}}
             单题作答摘要：{{items}}
 
             输出要求：
@@ -27,7 +27,7 @@ public interface DiagnoseAgent {
             """)
     @Agent(name = "DIAGNOSE", description = "识别整轮练习的优势和薄弱点")
     String diagnose(@V("qaSetTitle") String qaSetTitle,
-                    @V("metrics") String metrics,
+                    @V("stats") String stats,
                     @V("items") String items,
                     @V("retryHint") String retryHint);
 }

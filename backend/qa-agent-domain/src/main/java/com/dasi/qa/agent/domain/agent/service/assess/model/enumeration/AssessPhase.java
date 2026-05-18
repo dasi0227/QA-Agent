@@ -9,7 +9,7 @@ import lombok.Getter;
 public enum AssessPhase {
 
     ASSESS("AssessAgent", "整轮练习评估 DAG。", null),
-    USER_ASSESSMENT("UserAssessment", "生成用户可读的整轮诊断和复习建议。", null),
+    REVIEW("ReviewAgent", "生成用户可读的整轮诊断和复习建议。", null),
     DIAGNOSE("DiagnoseAgent", "识别本轮优势和薄弱点。", "diagnoseResult"),
     ADVISE("AdviseAgent", "生成整体点评和复习指导。", "adviseResult"),
     RECORD("RecordAgent", "提炼 V6 Memory 使用的内部记忆线索。", "recordResult");

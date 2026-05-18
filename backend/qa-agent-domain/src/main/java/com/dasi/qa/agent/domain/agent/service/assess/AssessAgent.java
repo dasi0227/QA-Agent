@@ -92,13 +92,13 @@ public class AssessAgent implements IAssessAgent {
         DiagnoseContext diagnoseContext = DiagnoseContext.builder()
                 .sessionId(sessionContext.getSessionId())
                 .qaSetTitle(qaSetTitle)
-                .metricsJson(statsJson)
+                .statsJson(statsJson)
                 .itemsJson(itemsJson)
                 .build();
         AdviseContext adviseContext = AdviseContext.builder()
                 .sessionId(sessionContext.getSessionId())
                 .qaSetTitle(qaSetTitle)
-                .metricsJson(statsJson)
+                .statsJson(statsJson)
                 .itemBriefsJson(itemBriefsJson)
                 .stats(sessionContext.getStats())
                 .build();
@@ -135,7 +135,7 @@ public class AssessAgent implements IAssessAgent {
             try {
                 String response = diagnoseAgent.diagnose(
                         diagnoseContext.getQaSetTitle(),
-                        diagnoseContext.getMetricsJson(),
+                        diagnoseContext.getStatsJson(),
                         diagnoseContext.getItemsJson(),
                         retryHint
                 );
@@ -161,7 +161,7 @@ public class AssessAgent implements IAssessAgent {
             try {
                 String response = adviseAgent.advise(
                         adviseContext.getQaSetTitle(),
-                        adviseContext.getMetricsJson(),
+                        adviseContext.getStatsJson(),
                         jsonUtil.toJsonString(diagnoseResult),
                         adviseContext.getItemBriefsJson(),
                         retryHint

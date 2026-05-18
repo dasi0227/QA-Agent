@@ -48,8 +48,8 @@ public class AssessAgentFactory {
     private UntypedAgent makeReviewAgent(AgenticServices.AgenticScopeAction diagnoseAction,
                                          AgenticServices.AgenticScopeAction adviseAction) {
         return AgenticServices.sequenceBuilder()
-                .name(AssessPhase.USER_ASSESSMENT.getAgentName())
-                .description(AssessPhase.USER_ASSESSMENT.getAgentDesc())
+                .name(AssessPhase.REVIEW.getAgentName())
+                .description(AssessPhase.REVIEW.getAgentDesc())
                 .subAgents(diagnoseAction, adviseAction)
                 .build();
     }

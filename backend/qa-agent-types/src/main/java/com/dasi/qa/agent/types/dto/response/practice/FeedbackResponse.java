@@ -23,36 +23,4 @@ public class FeedbackResponse {
     private HintDetail hintDetail;
     private List<SourceChunk> sourceChunks;
     private LocalDateTime answeredAt;
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SourceChunk {
-        private String chunkId;
-        private String documentId;
-        private String titlePath;
-        private String summary;
-        private String content;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class JudgeDetail {
-        private List<String> missingPoints;
-        private List<String> wrongPoints;
-        private String improvementAdvice;
-        private String betterAnswer;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class HintDetail {
-        private String memoryTip;
-        private String encouragement;
-    }
 }

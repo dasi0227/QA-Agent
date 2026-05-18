@@ -13,7 +13,7 @@ public interface RecordAgent {
     @SystemMessage(fromResource = "prompt/assess/assess-record.txt")
     @UserMessage("""
             题集标题：{{qaSetTitle}}
-            本轮统计：{{metrics}}
+            本轮统计：{{stats}}
             单题作答摘要：{{items}}
 
             输出要求：
@@ -28,7 +28,7 @@ public interface RecordAgent {
             """)
     @Agent(name = "RECORD", description = "提炼供 V6 Memory 使用的内部记忆线索")
     String record(@V("qaSetTitle") String qaSetTitle,
-                  @V("metrics") String metrics,
+                  @V("stats") String stats,
                   @V("items") String items,
                   @V("retryHint") String retryHint);
 }

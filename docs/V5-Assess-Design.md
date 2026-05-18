@@ -131,7 +131,7 @@ Java prepare step
 
 ## 五、输入上下文
 
-`metrics` 由 Java 计算：
+`stats` 由 Java 计算：
 
 ```json
 {

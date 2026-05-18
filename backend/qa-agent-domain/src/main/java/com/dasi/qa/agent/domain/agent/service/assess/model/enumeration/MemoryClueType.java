@@ -16,7 +16,6 @@ public enum MemoryClueType {
      * 将字符串解析为线索类型，非法值返回 null 供上层过滤。
      */
     public static MemoryClueType fromValue(String value) {
-        // 空值不参与记忆线索落库
         if (!StringUtils.hasText(value)) {
             return null;
         }
