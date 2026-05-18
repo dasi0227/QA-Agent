@@ -112,6 +112,7 @@ public class FeedbackAgent implements IFeedbackAgent {
         ));
 
         // 6. 保存并返回结果
+        log.info("【单题反馈】DAG 执行完成: sessionItemId={}, unknown={}", sessionItemId, unknown);
         try {
             return feedbackSaver.save(result.agenticScope(), practice, unknown, userAnswer, userId);
         } catch (Exception exception) {
@@ -141,7 +142,11 @@ public class FeedbackAgent implements IFeedbackAgent {
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
-                log.warn("【单题反馈】HintAgent 调用失败，重试: attempt={}, sessionItemId={}", attempt + 1, hintContext.getSessionItemId(), exception);
+                if (attempt == MAX_RETRY) {
+                    log.warn("【单题反馈】HintAgent 最终失败: maxRetries={}, sessionItemId={}", MAX_RETRY, hintContext.getSessionItemId(), exception);
+                } else {
+                    log.warn("【单题反馈】HintAgent 调用失败，重试: attempt={}, sessionItemId={}", attempt + 1, hintContext.getSessionItemId(), exception);
+                }
             }
         }
         writeHintResult(scope, hintResult);
@@ -169,7 +174,11 @@ public class FeedbackAgent implements IFeedbackAgent {
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
-                log.warn("【单题反馈】JudgeAgent 调用失败，重试: attempt={}, sessionItemId={}", attempt + 1, judgeContext.getSessionItemId(), exception);
+                if (attempt == MAX_RETRY) {
+                    log.warn("【单题反馈】JudgeAgent 最终失败: maxRetries={}, sessionItemId={}", MAX_RETRY, judgeContext.getSessionItemId(), exception);
+                } else {
+                    log.warn("【单题反馈】JudgeAgent 调用失败，重试: attempt={}, sessionItemId={}", attempt + 1, judgeContext.getSessionItemId(), exception);
+                }
             }
         }
         writeJudgeResult(scope, judgeResult);
@@ -200,7 +209,12 @@ public class FeedbackAgent implements IFeedbackAgent {
 
     private void writeJudgeResult(AgenticScope scope, JudgeResult result) {
         JudgeResult finalResult = result != null ? result : fallbackJudge();
+        String rawResult = finalResult.getResult();
+        Integer rawScore = finalResult.getScore();
         feedbackScoreCorrector.correct(finalResult);
+        if (!rawResult.equals(finalResult.getResult()) || !rawScore.equals(finalResult.getScore())) {
+            log.warn("【单题反馈】分数校准: rawResult={}, rawScore={}, correctedResult={}, correctedScore={}", rawResult, rawScore, finalResult.getResult(), finalResult.getScore());
+        }
         scope.writeState(FeedbackPhase.JUDGE.getScopeKey(), finalResult);
     }
 

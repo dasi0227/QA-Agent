@@ -186,7 +186,7 @@
 
 #### `PostgreSQL`
 
-用于承载结构化资料切片和后续 `RAG` 所需能力。结合最新 `table.md`，`PostgreSQL` 更适合负责：
+用于承载结构化资料切片和后续 `RAG` 所需能力。结合最新 `TABLE.md`，`PostgreSQL` 更适合负责：
 
 1. 文档切片
 2. 向量检索
@@ -343,15 +343,15 @@
 6. 按审校意见修订可修复题目
 7. 形成最终问答集
 
-当前 V3 落地链路形态：
+当前 V3 代码落地链路形态：
 
 1. `DecideAgent`
 2. `PlanAgent`
-3. `Creator`：`SearchAgent -> DraftAgent`，按模块并发
-4. `Validator`：`EvaluateAgent -> AmendAgent -> EvaluateAgent`
+3. `Write`：先由 Java 串行预搜证据，再由 `DraftAgent` 按模块并发起草
+4. `Validate`：`EvaluateAgent -> AmendAgent -> EvaluateAgent`
 5. `SummarizeAgent`
 
-其中 `DecideAgent` 负责入口判定，`DraftAgent` 只负责首轮起草，`EvaluateAgent` 只负责审校判定，`AmendAgent` 只负责最小必要修订。对外阶段包含 `DECIDE`、`PLANNER`、`CREATOR`、`VALIDATOR`、`SUMMARIZER`。
+其中 `DecideAgent` 负责入口判定，`DraftAgent` 只负责首轮起草，`EvaluateAgent` 只负责审校判定，`AmendAgent` 只负责最小必要修订。当前对外阶段文案以 `GeneratePhase.generateStage` 为准，主要包括 `🤔 请求判定`、`🗓️ 规划模块`、`📝 题目编写`、`🧐 审校修订`、`📈 结果汇总`。
 
 #### 6.3.3 反馈 Agent
 
@@ -497,7 +497,7 @@
 
 #### 6.5.8 当前阶段边界
 
-当前版本先不正式落地 `Memory`，但后续设计时必须遵循以下原则：
+当前版本还没有对外开放独立 `Memory` 能力，但 `AssessAgent` 已经开始为后续 Memory 保存内部 `memory_clue_json` 线索。后续设计时必须遵循以下原则：
 
 1. `Profile` 是显式记忆入口
 2. 练习会话是历史信息入口
@@ -648,6 +648,17 @@
 1. 可用的整轮评估能力
 2. 更完整的训练闭环出口
 3. 后续 Memory 可复用的训练线索
+
+### 8.5.1 当前代码实现补充
+
+结合当前后端实现，V2 ~ V5 已经有明确落地点：
+
+1. `V2 RAG`：已具备 Markdown 切片、摘要、向量化、混合检索、Kafka 索引和 DLQ 重试链路。
+2. `V3 Generate`：已具备同步 SSE 推送、任务表留档、基于用户自配 LLM 的问答集生成 DAG。
+3. `V4 Feedback`：已具备单题同步反馈、不会分支提示、结构化 `judgeDetail / hintDetail` 落库。
+4. `V5 Assess`：已具备整轮同步评估、统计回写、`assessment_detail_json` 和 `memory_clue_json` 持久化。
+
+因此，当前产品文档不应再把这几条链路描述成“仅规划未落地”的状态，而应视为已经进入持续收口和迭代阶段。
 
 ### 8.6 `V6`：Memory 设计
 

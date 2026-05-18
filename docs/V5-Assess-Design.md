@@ -1,26 +1,41 @@
-# V5 整轮评估 AssessAgent 设计说明
+# V5 Assess 设计说明
 
-## 一、AssessAgent 是什么
+本文以当前代码实现为准，核心文件包括：
 
-AssessAgent 是 QA_Agent 系统的整轮练习评估链路。它只在一轮练习全部题目完成后执行，基于 V4 已经落库的单题结果和反馈摘要，生成本轮总分、达标率、结果分布、整体点评、复习指导、优势/薄弱分析，以及供 V6 Memory 使用的内部记忆线索。
+- `PracticeController`
+- `AssessAgent`
+- `AssessAgentFactory`
+- `AssessStatCalculator`
+- `AssessResultCleaner`
+- `AssessSaver`
+- `AgentRepository.getAssessContext()` / `saveAssessResult()`
 
-边界：
+## 1. 当前目标
 
-1. 不重新判题，不修改单题 `result` 和 `score`。
-2. 不做部分评估。
-3. 不使用 SSE、轮询、任务表。
-4. 不使用 Tool、RAG、Web、sourceChunks。
-5. 不修改前端。
+AssessAgent 负责一轮练习完成后的同步整轮评估。它基于已经落库的单题反馈结果生成：
 
-## 二、接口
+1. 总分
+2. 达标率
+3. `correct / deficient / wrong / unknown` 分布
+4. 用户可读整轮诊断与复习建议
+5. 内部记忆线索
 
-`POST /practice/session/assess`
+当前链路不做：
+
+1. 重新判题
+2. SSE / 后台任务
+3. RAG / Web 搜索
+4. source chunk 再利用
+
+## 2. 对外接口
+
+接口：`POST /practice/session/assess`
 
 请求：
 
 ```json
 {
-  "sessionId": "88888888-8888-8888-8888-888888888881"
+  "sessionId": "practice-session-id"
 }
 ```
 
@@ -28,74 +43,203 @@ AssessAgent 是 QA_Agent 系统的整轮练习评估链路。它只在一轮练�
 
 ```json
 {
-  "sessionId": "88888888-8888-8888-8888-888888888881",
-  "qaSetId": "55555555-5555-5555-5555-555555555541",
+  "sessionId": "practice-session-id",
+  "qaSetId": "qa-set-id",
   "score": 75,
   "accuracy": 80.00,
   "correctCount": 3,
   "deficientCount": 5,
   "wrongCount": 1,
   "unknownCount": 1,
-  "summary": "本轮整体完成度中等，能覆盖部分核心方向，但在代理边界和持久化机制对比上还不稳定。",
+  "summary": "string",
   "assessDetail": {
-    "overallComment": "",
-    "reviewGuidance": "",
+    "overallComment": "string",
+    "reviewGuidance": "string",
     "strengths": [],
     "weaknesses": []
   },
-  "finishedAt": "2026-05-17T10:00:00"
+  "finishedAt": "2026-05-18T12:00:00"
 }
 ```
 
-`memory_clue_json` 只落库，不返回前端。
+说明：`memory_clue_json` 只落库，不返回前端。
 
-## 三、数据结构
+## 3. 主流程
 
-`practice_session` 新增字段：
+```text
+AssessAgent.execute()
+  -> 取当前 userId
+  -> UserLlmModelProvider.getUserLlmModel()
+  -> AgentRepository.getAssessContext(sessionId, userId)
+  -> AssessStatCalculator.calculate()
+  -> 预构建 Diagnose / Advise / Record Context
+  -> AssessAgentFactory.build()
+  -> invokeWithAgenticScope()
+  -> AssessSaver.save()
+```
 
-| 字段 | 含义 |
+## 4. 预校验与统计
+
+`AssessStatCalculator.validate()` 会在 LLM 调用前校验：
+
+1. `SessionContext` 不为空
+2. `items` 不为空
+3. `items.size == totalQuestions`
+4. 每道题都有 `answeredAt`
+5. 每道题都有 `result`
+6. 每道题都有 `score`
+
+不满足时抛：
+
+- `AssessException(ResultCode.PRACTICE_SESSION_NOT_COMPLETED, ...)`
+
+由 `GlobalExceptionHandler` 转成：
+
+- `40906 PRACTICE_SESSION_NOT_COMPLETED`
+
+### 4.1 统计规则
+
+| 字段 | 规则 |
 | --- | --- |
-| `correct_count` | 本轮 `PERFECT + CORRECT` 题数 |
-| `deficient_count` | 本轮 `DEFICIENT` 题数 |
-| `wrong_count` | 本轮 `WRONG` 题数 |
-| `unknown_count` | 本轮 `UNKNOWN` 题数 |
-| `assessment_detail_json` | 用户可读整轮评估详情 |
-| `memory_clue_json` | V6 Memory 使用的内部记忆线索 |
+| `score` | 所有单题 `score` 平均值，四舍五入为整数 |
+| `accuracy` | `(PERFECT + CORRECT + DEFICIENT) / totalQuestions * 100`，保留 2 位 |
+| `correctCount` | `PERFECT + CORRECT` 数量 |
+| `deficientCount` | `DEFICIENT` 数量 |
+| `wrongCount` | `WRONG` 数量 |
+| `unknownCount` | `UNKNOWN` 数量 |
 
-`assessment_detail_json`：
+## 5. DB 快照输入
+
+`AgentRepository.getAssessContext()` 会读取：
+
+1. `practice_session`
+2. `qa_set`
+3. 当前 session 下全部 `practice_session_item`
+4. 每道 item 对应的 `qa_item`
+5. `feedback_judge_detail` 反序列化出的 `JudgeDetail`
+
+组装 `SessionContext`：
+
+| 字段 | 说明 |
+| --- | --- |
+| `sessionId` | 练习会话 ID |
+| `qaSetId` | 题集 ID |
+| `qaSetTitle` | 题集标题 |
+| `totalQuestions` | 题数 |
+| `items` | `AssessItemDetail[]` |
+| `stats` | 由 Java 计算后回填 |
+
+`AssessItemDetail` 关键字段：
+
+1. `question`
+2. `moduleTag`
+3. `difficulty`
+4. `standardAnswer`
+5. `userAnswer`
+6. `result`
+7. `score`
+8. `feedbackSummary`
+9. `missingPoints`
+10. `wrongPoints`
+11. `answeredAt`
+
+## 6. DAG 结构
+
+```text
+parallel
+  -> REVIEW sequence
+       -> DIAGNOSE
+       -> ADVISE
+  -> RECORD
+```
+
+说明：
+
+1. `ReviewAgent` 负责用户可读评估
+2. `RecordAgent` 并行提取内部记忆线索
+3. scope 中只保存阶段输出，不存整份大上下文
+
+scope key：
+
+| key | 类型 |
+| --- | --- |
+| `diagnoseResult` | `DiagnoseResult` |
+| `adviseResult` | `AdviseResult` |
+| `recordResult` | `RecordResult` |
+
+## 7. 三个 SubAgent
+
+### 7.1 DiagnoseAgent
+
+输入：
+
+1. `qaSetTitle`
+2. `statsJson`
+3. `itemsJson`
+4. `retryHint`
+
+输出：
 
 ```json
 {
-  "overallComment": "",
-  "reviewGuidance": "",
   "strengths": [
     {
-      "title": "",
-      "analysis": ""
+      "title": "string",
+      "analysis": "string"
     }
   ],
   "weaknesses": [
     {
-      "title": "",
-      "analysis": ""
+      "title": "string",
+      "analysis": "string"
     }
   ]
 }
 ```
 
-`memory_clue_json` 根节点直接是数组：
+### 7.2 AdviseAgent
+
+输入：
+
+1. `qaSetTitle`
+2. `statsJson`
+3. `diagnosis`
+4. `itemBriefsJson`
+5. `retryHint`
+
+输出：
+
+```json
+{
+  "overallComment": "string",
+  "reviewGuidance": "string"
+}
+```
+
+### 7.3 RecordAgent
+
+输入：
+
+1. `qaSetTitle`
+2. `statsJson`
+3. `itemsJson`
+4. `retryHint`
+
+输出根节点直接是数组，Java 再包成 `RecordResult.clues`：
 
 ```json
 [
   {
     "type": "CONCEPT_WEAKNESS",
-    "observation": "",
+    "observation": "string",
     "importance": "HIGH"
   }
 ]
 ```
 
-允许的 `type`：
+允许值：
+
+`type`
 
 1. `CONCEPT_WEAKNESS`
 2. `EXPRESSION_WEAKNESS`
@@ -103,148 +247,107 @@ AssessAgent 是 QA_Agent 系统的整轮练习评估链路。它只在一轮练�
 4. `UNKNOWN_PATTERN`
 5. `STABLE_STRENGTH`
 
-允许的 `importance`：
+`importance`
 
 1. `HIGH`
 2. `MEDIUM`
 3. `LOW`
 
-## 四、DAG
+## 8. 清洗与 fallback
 
-```text
-Java prepare step
-  -> parallel(
-       user assessment sequence:
-         DiagnoseAgent -> AdviseAgent,
-       RecordAgent
-     )
-  -> Java save step
-```
+`AssessResultCleaner` 当前负责：
 
-说明：
+1. `DiagnoseResult` 条目裁剪和去空
+2. `AdviseResult` 去空和 trim
+3. `RecordResult` 的 type / importance 归一
 
-1. prepare 和 save 是 Java step，不进入 DAG scope；DAG scope 只保存阶段输出。
-2. `DiagnoseAgent` 输出 `strengths / weaknesses`。
-3. `AdviseAgent` 基于诊断结果和单题简要摘要输出 `overallComment / reviewGuidance`。
-4. `RecordAgent` 并发输出 `memory_clue_json`。
-5. `AssessAgentFactory` 只负责组装 DAG；业务阶段逻辑留在 `AssessAgent`。
+当前上限：
 
-## 五、输入上下文
+- `strengths` / `weaknesses` / `clues` 最多保留 3 条
 
-`stats` 由 Java 计算：
+fallback：
+
+1. `DiagnoseAgent` 失败 -> `strengths = []`, `weaknesses = []`
+2. `AdviseAgent` 失败 -> Java 生成基础 `overallComment` / `reviewGuidance`
+3. `RecordAgent` 失败 -> `clues = []`
+
+## 9. 保存逻辑
+
+`AssessSaver.save()` 会：
+
+1. 从 scope 读取 `DiagnoseResult`
+2. 从 scope 读取 `AdviseResult`
+3. 从 scope 读取 `RecordResult`
+4. 组装 `AssessDetail`
+5. 组装 `AssessSaveCommand`
+6. 调用 `agentRepository.saveAssessResult(...)`
+
+### 9.1 practice_session 更新
+
+`saveAssessResult()` 会写：
+
+1. `status = FINISHED`
+2. `score`
+3. `accuracy`
+4. `correct_count`
+5. `deficient_count`
+6. `wrong_count`
+7. `unknown_count`
+8. `summary = assessDetail.overallComment`
+9. `assessment_detail_json`
+10. `memory_clue_json`
+11. `finished_at = 首次完成时间`
+12. `updated_at`
+
+### 9.2 qa_set 聚合刷新
+
+评估成功后会重算：
+
+1. `practice_count`
+2. `average_score`
+3. `best_score`
+4. `average_accuracy`
+5. `best_accuracy`
+6. `last_practiced_at`
+
+## 10. 返回模型
+
+### 10.1 `AssessDetail`
 
 ```json
 {
-  "totalQuestions": 10,
-  "score": 75,
-  "accuracy": 80.00,
-  "correctCount": 3,
-  "deficientCount": 5,
-  "wrongCount": 1,
-  "unknownCount": 1
+  "overallComment": "string",
+  "reviewGuidance": "string",
+  "strengths": [
+    {
+      "title": "string",
+      "analysis": "string"
+    }
+  ],
+  "weaknesses": [
+    {
+      "title": "string",
+      "analysis": "string"
+    }
+  ]
 }
 ```
 
-`items` 给 `DiagnoseAgent` 和 `RecordAgent`：
+### 10.2 `memory_clue_json`
+
+根节点是数组，不包额外对象：
 
 ```json
-{
-  "question": "",
-  "moduleTag": "",
-  "difficulty": "",
-  "standardAnswer": "",
-  "userAnswer": "",
-  "result": "",
-  "score": 0,
-  "feedbackSummary": "",
-  "missingPoints": [],
-  "wrongPoints": []
-}
+[
+  {
+    "type": "STABLE_STRENGTH",
+    "observation": "string",
+    "importance": "LOW"
+  }
+]
 ```
 
-`itemBriefs` 给 `AdviseAgent`：
-
-```json
-{
-  "question": "",
-  "standardAnswer": "",
-  "userAnswer": "",
-  "result": "",
-  "score": 0,
-  "feedbackSummary": ""
-}
-```
-
-不传给 LLM：
-
-1. `sessionId`
-2. `answerStyle`
-3. `feedbackStyle`
-4. `selectedModule`
-5. Profile
-6. sourceChunks
-
-## 六、计算规则
-
-Java 负责稳定指标：
-
-| 指标 | 规则 |
-| --- | --- |
-| `score` | 所有单题 `score` 平均值，四舍五入为整数 |
-| `accuracy` | `(PERFECT + CORRECT + DEFICIENT) / totalQuestions * 100`，保留 2 位小数 |
-| `correctCount` | `PERFECT + CORRECT` 数量 |
-| `deficientCount` | `DEFICIENT` 数量 |
-| `wrongCount` | `WRONG` 数量 |
-| `unknownCount` | `UNKNOWN` 数量 |
-
-LLM 不参与打分，不允许推翻单题结果。
-
-## 七、完成校验
-
-执行 LLM 前校验：
-
-1. `sessionId` 非空。
-2. `practice_session` 存在且属于当前用户。
-3. 当前 session 下 item 数大于 0。
-4. item 数等于 `practice_session.total_questions`。
-5. 所有 item 都有 `answered_at`。
-6. 所有 item 都有 `result` 和 `score`。
-7. 用户 LLM 配置完整。
-
-未完成或数据不完整时返回 `40906 PRACTICE_SESSION_NOT_COMPLETED`。
-
-## 八、保存规则
-
-成功后更新当前 `practice_session`：
-
-```text
-status = FINISHED
-score = Java 计算结果
-accuracy = Java 计算结果
-correct_count / deficient_count / wrong_count / unknown_count
-summary = assessDetail.overallComment
-assessment_detail_json = assessDetail
-memory_clue_json = RecordAgent 输出数组
-finished_at = COALESCE(finished_at, now)
-updated_at = now
-```
-
-每次评估成功后重算 `qa_set` 聚合：
-
-```text
-practice_count = count(FINISHED sessions)
-average_score = avg(score)
-best_score = max(score)
-average_accuracy = avg(accuracy)
-best_accuracy = max(accuracy)
-last_practiced_at = max(finished_at)
-```
-
-重复调用允许覆盖 `assessment_detail_json` 和 `memory_clue_json`，但不刷新已有 `finished_at`。
-
-## 九、Prompt 与容错
-
-Prompt 文件：
+## 11. Prompt 文件
 
 ```text
 prompt/assess/assess-diagnose.txt
@@ -252,58 +355,14 @@ prompt/assess/assess-advise.txt
 prompt/assess/assess-record.txt
 ```
 
-Prompt 必须明确：
+当前 prompt 与代码对齐点：
 
-1. 不重新判分。
-2. 不逐题复述。
-3. 不输出 Markdown。
-4. 只输出指定 JSON。
-5. `RecordAgent` 只输出内部线索，不输出用户话术。
+1. diagnose / record 最多 3 条
+2. advise 只输出 `overallComment` / `reviewGuidance`
+3. record 顶层必须是 JSON 数组
 
-容错：
+## 12. 当前代码口径
 
-1. `DiagnoseAgent` 失败时 fallback 为空 strengths/weaknesses。
-2. `AdviseAgent` 失败时使用 Java 规则生成基础 overallComment/reviewGuidance。
-3. `RecordAgent` 失败时 fallback 为空数组。
-4. DB 保存失败必须中断。
-
-## 十、代码组织
-
-```text
-domain/agent/service/assess/
-  IAssessAgent.java
-  AssessAgent.java
-  model/
-    command/
-      AssessSaveCommand.java
-    context/
-      AssessContext.java
-      AssessSessionContext.java
-      DiagnoseContext.java
-      AdviseContext.java
-      RecordContext.java
-    enumeration/
-    result/
-  subagent/
-    DiagnoseAgent.java
-    AdviseAgent.java
-    RecordAgent.java
-  support/
-    AssessAgentFactory.java
-    AssessSaver.java
-    AssessDetailAssembler.java
-    AssessmentMetricCalculator.java
-    AssessResultSanitizer.java
-
-application/src/main/resources/prompt/assess/
-  assess-diagnose.txt
-  assess-advise.txt
-  assess-record.txt
-```
-
-## 十一、测试边界
-
-1. 单元测试覆盖指标计算、结果清洗、DAG 路径。
-2. 编译验证 `mvn -pl qa-agent-application -am compile`。
-3. 启动验证 `mvn -pl qa-agent-application spring-boot:run`。
-4. 不做自动接口场景验证，不做前端修改，不做真实 LLM 质量评测。
+1. 代码组织已经是 `SessionContext` / `AssessContext` / `AssessStatCalculator` / `AssessResultCleaner` / `AssessSaver`，不要再使用旧版 `AssessSessionContext`、`AssessmentMetricCalculator`、`AssessResultSanitizer` 名称。
+2. `memory_clue_json` 不返回前端，但会持久化供后续 V6 Memory 使用。
+3. 评估是同步接口，失败直接走全局异常，不存在任务表或阶段消息留档。

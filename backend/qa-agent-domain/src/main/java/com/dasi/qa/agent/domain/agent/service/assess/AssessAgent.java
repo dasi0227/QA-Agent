@@ -122,6 +122,7 @@ public class AssessAgent implements IAssessAgent {
         ResultWithAgenticScope<String> result = assessAgent.invokeWithAgenticScope(Map.of());
 
         // 6. 保存并返回结果
+        log.info("【整轮评估】DAG 执行完成: sessionId={}", sessionContext.getSessionId());
         return assessSaver.save(result.agenticScope(), sessionContext, userId);
     }
 
@@ -144,7 +145,11 @@ public class AssessAgent implements IAssessAgent {
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
-                log.warn("【整轮评估】DiagnoseAgent 调用失败: attempt={}, sessionId={}", attempt + 1, diagnoseContext.getSessionId(), exception);
+                if (attempt == MAX_RETRY) {
+                    log.warn("【整轮评估】DiagnoseAgent 最终失败: maxRetries={}, sessionId={}", MAX_RETRY, diagnoseContext.getSessionId(), exception);
+                } else {
+                    log.warn("【整轮评估】DiagnoseAgent 调用失败，重试: attempt={}, sessionId={}", attempt + 1, diagnoseContext.getSessionId(), exception);
+                }
             }
         }
         writeDiagnosisResult(scope, result);
@@ -170,7 +175,11 @@ public class AssessAgent implements IAssessAgent {
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
-                log.warn("【整轮评估】AdviseAgent 调用失败: attempt={}, sessionId={}", attempt + 1, adviseContext.getSessionId(), exception);
+                if (attempt == MAX_RETRY) {
+                    log.warn("【整轮评估】AdviseAgent 最终失败: maxRetries={}, sessionId={}", MAX_RETRY, adviseContext.getSessionId(), exception);
+                } else {
+                    log.warn("【整轮评估】AdviseAgent 调用失败，重试: attempt={}, sessionId={}", attempt + 1, adviseContext.getSessionId(), exception);
+                }
             }
         }
         writeAdviceResult(scope, adviseResult, adviseContext.getStats());
@@ -195,7 +204,11 @@ public class AssessAgent implements IAssessAgent {
                 break;
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
-                log.warn("【整轮评估】RecordAgent 调用失败: attempt={}, sessionId={}", attempt + 1, recordContext.getSessionId(), exception);
+                if (attempt == MAX_RETRY) {
+                    log.warn("【整轮评估】RecordAgent 最终失败: maxRetries={}, sessionId={}", MAX_RETRY, recordContext.getSessionId(), exception);
+                } else {
+                    log.warn("【整轮评估】RecordAgent 调用失败，重试: attempt={}, sessionId={}", attempt + 1, recordContext.getSessionId(), exception);
+                }
             }
         }
         writeRecordResult(scope, result);
@@ -218,14 +231,23 @@ public class AssessAgent implements IAssessAgent {
     }
 
     private void writeDiagnosisResult(AgenticScope scope, DiagnoseResult result) {
+        if (result == null) {
+            log.warn("【整轮评估】DiagnoseAgent LLM 输出无效，启用兜底");
+        }
         scope.writeState(AssessPhase.DIAGNOSE.getScopeKey(), result != null ? result : fallbackDiagnosis());
     }
 
     private void writeAdviceResult(AgenticScope scope, AdviseResult result, AssessStats stats) {
+        if (result == null) {
+            log.warn("【整轮评估】AdviseAgent LLM 输出无效，启用兜底");
+        }
         scope.writeState(AssessPhase.ADVISE.getScopeKey(), result != null ? result : fallbackAdvice(stats));
     }
 
     private void writeRecordResult(AgenticScope scope, RecordResult result) {
+        if (result == null) {
+            log.warn("【整轮评估】RecordAgent LLM 输出无效，启用兜底");
+        }
         scope.writeState(AssessPhase.RECORD.getScopeKey(), result != null ? result : fallbackRecord());
     }
 

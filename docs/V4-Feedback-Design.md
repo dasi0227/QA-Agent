@@ -1,78 +1,36 @@
-# V4 反馈 Agent DAG 设计说明
+# V4 Feedback Agent 设计说明
 
-## 一、反馈 Agent 是什么
+本文以当前代码实现为准，核心文件包括：
 
-反馈 Agent 是 QA_Agent 系统的**单题即时反馈链路**。它服务练习会话中的某一道题，接收用户回答后同步返回判定、分数、反馈详情和资料依据。
+- `PracticeController`
+- `FeedbackAgent`
+- `FeedbackAgentFactory`
+- `FeedbackSaver`
+- `FeedbackScoreCorrector`
+- `AgentRepository.getPracticeVO()` / `saveFeedbackResult()`
 
-核心职责：让用户每答完一道题就知道当前回答是否达标、缺了什么、哪里错了，以及如何改进。本版本不做整轮评分、不做长期记忆、不做异步任务。
+## 1. 当前目标
 
-## 二、用例：用户视角
+FeedbackAgent 负责同步返回单题反馈。输入是一道练习题和用户作答，输出是：
 
-1. 用户进入某个问答集的练习会话。
-2. 用户对一道题提交回答，或点击“不会”。
-3. 后端同步执行 FeedbackAgent。
-4. 前端拿到本题反馈结果并展示：
-   - 有效回答：判定、分数、摘要、缺失点、错误点、改进建议、优化回答。
-   - 不会分支：记忆技巧和情绪支持。
-   - 原始资料依据：折叠展示 `sourceChunks`。
+1. 判定结果
+2. 分数
+3. 摘要反馈
+4. 结构化改进建议或不会提示
+5. 资料切片引用
 
-## 三、整体架构
+当前链路不做：
 
-```
-POST /qa-agent/api/v1/practice/session-item/feedback
-        │
-        ▼
-┌─────────────────────────────┐
-│     PracticeController       │
-│  接收 FeedbackRequest         │
-└─────────────┬───────────────┘
-              │
-              ▼
-┌─────────────────────────────────────────────────────┐
-│                FeedbackAgent.execute()              │
-│                                                     │
-│  1. 获取当前 userId                                 │
-│  2. 读取用户 LLM 配置并构建 ChatModel                │
-│  3. 构建 FeedbackWorkflowContext                    │
-│  4. FeedbackAgentFactory.build()                    │
-│  5. UntypedAgent.invokeWithAgenticScope()           │
-└─────────────┬───────────────────────────────────────┘
-              │
-              ▼
-┌─────────────────────────────────────────────────────┐
-│             AgenticServices DAG                      │
-│                                                     │
-│  PREPARE Java action                                │
-│    - 读取 practice_session_item / practice_session  │
-│    - 校验 session.user_id                           │
-│    - 读取 qa_item / user_profile / sourceChunks      │
-│    - 根据 unknown 或空白 userAnswer 写入 isUnknown   │
-│                                                     │
-│  ROUTE conditionalBuilder                           │
-│    - isUnknown=true  -> HINT                        │
-│    - isUnknown=false -> JUDGE                       │
-│                                                     │
-│  HINT Java action                                   │
-│    - 调 HintAgent                                   │
-│    - 输出 memoryTip / encouragement                 │
-│                                                     │
-│  JUDGE Java action                                  │
-│    - 调 JudgeAgent                                  │
-│    - 输出 result / score / feedback detail          │
-│    - 后端校验 result + score                         │
-│                                                     │
-│  SAVE Java action                                   │
-│    - 覆盖 practice_session_item 最新反馈             │
-│    - 首次作答时 answered_count + 1                  │
-│    - 写入 FeedbackResponse 到 scope                  │
-└─────────────────────────────────────────────────────┘
-```
+1. 整轮评估
+2. SSE
+3. 异步任务
+4. RAG 二次检索
 
-## 四、接口设计
+## 2. 对外接口
 
-### 4.1 请求
+接口：`POST /practice/session-item/feedback`
 
-`POST /practice/session-item/feedback`
+请求：
 
 ```json
 {
@@ -84,12 +42,11 @@ POST /qa-agent/api/v1/practice/session-item/feedback
 
 规则：
 
-1. `sessionItemId` 必填。
-2. `unknown=true` 时允许 `userAnswer` 为空。
-3. `unknown=false` 但 `userAnswer` 为空白时，后端仍按 UNKNOWN 分支处理。
-4. 不做“不会/不知道”等自然语言短语识别，前端应通过 `unknown` 明确表达。
+1. `sessionItemId` 必填
+2. `unknown = true` 时允许 `userAnswer` 为空
+3. `unknown = false` 但 `userAnswer` 为空白时，后端仍按 unknown 分支处理
 
-### 4.2 响应
+响应 `FeedbackResponse`：
 
 ```json
 {
@@ -114,46 +71,107 @@ POST /qa-agent/api/v1/practice/session-item/feedback
       "content": "string"
     }
   ],
-  "answeredAt": "2026-05-16T01:00:00"
+  "answeredAt": "2026-05-18T12:00:00"
 }
 ```
 
-`sourceChunks` 由后端根据 `qa_item.source_chunk_ids_json` 回查 `document_chunk`。它只返回给前端折叠展示，不传给 `JudgeAgent` 或 `HintAgent`。
+## 3. 主流程
 
-## 五、结果与分数
+```text
+FeedbackAgent.execute()
+  -> 取当前 userId
+  -> UserLlmModelProvider.getUserLlmModel()
+  -> AgentRepository.getPracticeVO(sessionItemId, userId)
+  -> 规范化 userAnswer
+  -> 根据 unknown / 空白回答路由
+  -> 构建 HintContext / JudgeContext
+  -> FeedbackAgentFactory.build()
+  -> invokeWithAgenticScope(routeFlag)
+  -> FeedbackSaver.save()
+```
 
-### 5.1 result
+## 4. DB 快照输入
 
-| result | 含义 |
+`AgentRepository.getPracticeVO()` 会读取：
+
+1. `practice_session_item`
+2. `practice_session`
+3. `qa_item`
+4. `user_profile.answer_style`
+5. `user_profile.feedback_style`
+6. `qa_item.source_chunk_ids_json` 对应的 `document_chunk`
+
+组装结果 `PracticeVO`：
+
+| 字段 | 说明 |
 | --- | --- |
-| `CORRECT` | 方向正确，核心点完整或基本完整 |
-| `DEFICIENT` | 部分正确，但关键点缺失、表达不足或理解不完整 |
-| `WRONG` | 主体错误、答偏或核心概念混乱 |
-| `UNKNOWN` | 空答、明确不会或无法形成有效回答 |
+| `sessionItemId` | 当前练习题 ID |
+| `sessionId` | 练习会话 ID |
+| `qaItemId` | 原题 ID |
+| `question` | 题目 |
+| `standardAnswer` | 标准答案 |
+| `knowledgeNote` | 复习笔记 |
+| `tip` | 证据边界提示 |
+| `answerStyle` | 用户答案风格 |
+| `feedbackStyle` | 用户反馈风格 |
+| `sourceChunks` | 资料切片列表 |
 
-### 5.2 score
+## 5. DAG 结构
 
-| result | 可选分数 |
+```text
+conditional
+  -> routeFlag = true  : HINT
+  -> routeFlag = false : JUDGE
+```
+
+当前 `FeedbackContext` 只承担：
+
+1. 用户模型
+2. `hintStep`
+3. `judgeStep`
+4. route flag key
+
+scope 中只保存一个阶段输出：
+
+| key | 类型 |
 | --- | --- |
-| `CORRECT` | 80 / 90 / 100 |
-| `DEFICIENT` | 40 / 50 / 60 / 70 |
-| `WRONG` | 0 / 10 / 20 / 30 |
-| `UNKNOWN` | 0 |
+| `hintResult` | `HintResult` |
+| `judgeResult` | `JudgeResult` |
 
-`JudgeAgent` 输出 `result + score`，后端通过 `FeedbackScorePolicy` 二次校验。不合法时修正为默认分：
+## 6. HINT 分支
 
-| result | 默认分 |
-| --- | ---: |
-| `CORRECT` | 90 |
-| `DEFICIENT` | 60 |
-| `WRONG` | 20 |
-| `UNKNOWN` | 0 |
+SubAgent：`HintAgent`
 
-## 六、Agent 分支
+输入：
 
-### 6.1 JudgeAgent
+1. `question`
+2. `standardAnswer`
+3. `knowledgeNote`
+4. `tip`
+5. `answerStyle`
+6. `feedbackStyle`
+7. `retryHint`
 
-触发条件：`unknown=false` 且 `userAnswer` 非空白。
+输出模型：
+
+```json
+{
+  "memoryTip": "string",
+  "encouragement": "string"
+}
+```
+
+后端固定补充：
+
+| 字段 | 值 |
+| --- | --- |
+| `result` | `UNKNOWN` |
+| `score` | `0` |
+| `feedbackSummary` | `这题已标记为不会。` |
+
+## 7. JUDGE 分支
+
+SubAgent：`JudgeAgent`
 
 输入：
 
@@ -166,19 +184,92 @@ POST /qa-agent/api/v1/practice/session-item/feedback
 7. `feedbackStyle`
 8. `retryHint`
 
-依据优先级：
-
-1. `standardAnswer`：最高判定标准。
-2. `tip`：证据边界提示。
-3. `knowledgeNote`：辅助识别缺失点和易混淆点。
-
-输出：
+输出模型 `JudgeResult`：
 
 ```json
 {
-  "result": "DEFICIENT",
-  "score": 60,
+  "result": "PERFECT|CORRECT|DEFICIENT|WRONG",
+  "score": 80,
   "feedbackSummary": "string",
+  "missingPoints": ["string"],
+  "wrongPoints": ["string"],
+  "improvementAdvice": "string",
+  "betterAnswer": "string"
+}
+```
+
+注意：
+
+1. prompt 明确禁止输出 `UNKNOWN`
+2. `FeedbackResult.fromValue()` 会把空值、非法值和 `UNKNOWN` 兜底成 `DEFICIENT`
+
+## 8. 结果与分数校准
+
+`FeedbackScoreCorrector` 当前规则：
+
+| result | 允许分数 |
+| --- | --- |
+| `PERFECT` | `100` |
+| `CORRECT` | `80`, `90` |
+| `DEFICIENT` | `50`, `60`, `70` |
+| `WRONG` | `0`, `10`, `20`, `30`, `40` |
+| `UNKNOWN` | `0` |
+
+默认修正分：
+
+| result | 默认分 |
+| --- | --- |
+| `PERFECT` | `100` |
+| `CORRECT` | `90` |
+| `DEFICIENT` | `60` |
+| `WRONG` | `20` |
+| `UNKNOWN` | `0` |
+
+## 9. 保存逻辑
+
+`FeedbackSaver.save()` 的行为：
+
+1. 从 scope 读取 `HintResult` 或 `JudgeResult`
+2. 组装 `FeedbackSaveCommand`
+3. 调 `agentRepository.saveFeedbackResult(...)`
+4. 把 `PracticeVO.sourceChunks` 转成 `FeedbackResponse.sourceChunks`
+
+### 9.1 数据库存储
+
+`practice_session_item` 当前使用两个字段存结构化详情：
+
+| 字段 | 内容 |
+| --- | --- |
+| `feedback_judge_detail` | `JudgeDetail` JSON |
+| `feedback_hint_detail` | `HintDetail` JSON |
+
+当前已经不再使用旧版 `feedback_detail_json`。
+
+### 9.2 覆盖规则
+
+每次反馈都会覆盖：
+
+1. `user_answer`
+2. `result`
+3. `score`
+4. `feedback_summary`
+5. `feedback_judge_detail`
+6. `feedback_hint_detail`
+7. `answered_at`
+8. `updated_at`
+
+如果本题此前 `answered_at` 为空，则：
+
+- `practice_session.answered_count + 1`
+
+重复提交只覆盖，不重复累加。
+
+## 10. 返回对象
+
+### 10.1 `judgeDetail`
+
+```json
+{
   "missingPoints": [],
   "wrongPoints": [],
   "improvementAdvice": "string",
@@ -186,19 +277,7 @@ POST /qa-agent/api/v1/practice/session-item/feedback
 }
 ```
 
-### 6.2 HintAgent
-
-触发条件：`unknown=true` 或 `userAnswer` 为空白。
-
-后端直接确定：
-
-```text
-result = UNKNOWN
-score = 0
-feedbackSummary = 这题已标记为不会。
-```
-
-`HintAgent` 只输出：
+### 10.2 `hintDetail`
 
 ```json
 {
@@ -207,101 +286,21 @@ feedbackSummary = 这题已标记为不会。
 }
 ```
 
-边界：
+## 11. Prompt 文件
 
-1. 不判分。
-2. 不复述标准答案。
-3. 不输出完整讲解。
-4. `encouragement` 偏情绪支持，不承担教学职责。
-
-## 七、数据落库
-
-`practice_session_item` 新增：
-
-```sql
-feedback_detail_json JSON NULL
+```text
+prompt/feedback/feedback-judge.txt
+prompt/feedback/feedback-hint.txt
 ```
 
-有效回答分支：
+当前 prompt 与代码的关键对齐点：
 
-```json
-{
-  "type": "JUDGE",
-  "judgeDetail": {
-    "missingPoints": [],
-    "wrongPoints": [],
-    "improvementAdvice": "",
-    "betterAnswer": ""
-  },
-  "hintDetail": null
-}
-```
+1. `feedback-judge` 只输出 `PERFECT|CORRECT|DEFICIENT|WRONG`
+2. `feedback-hint` 只输出 `memoryTip` / `encouragement`
+3. JSON-only 约束由 subagent `userMessage` 再补一次
 
-不会分支：
+## 12. 当前代码口径
 
-```json
-{
-  "type": "HINT",
-  "judgeDetail": null,
-  "hintDetail": {
-    "memoryTip": "",
-    "encouragement": ""
-  }
-}
-```
-
-保存规则：
-
-1. 同一个 `practice_session_item` 只保留最新反馈。
-2. 每次提交覆盖 `user_answer`、`result`、`score`、`feedback_summary`、`feedback_detail_json`、`answered_at`。
-3. 如果本题之前 `answered_at` 为空，`practice_session.answered_count + 1`。
-4. 重复提交只覆盖反馈，不重复增加 `answered_count`。
-5. V4 不更新 `practice_session.score`、`accuracy`、`summary`。
-
-## 八、代码组织
-
-```
-domain/agent/service/feedback/
-  IFeedbackAgent.java
-  FeedbackAgent.java
-  model/
-    context/
-      FeedbackContext.java
-      FeedbackWorkflowContext.java
-      JudgeContext.java
-      HintContext.java
-    enumeration/
-      FeedbackPhase.java
-    exception/
-      FeedbackException.java
-    result/
-      JudgeResult.java
-      HintResult.java
-  subagent/
-    JudgeAgent.java
-    HintAgent.java
-  support/
-    FeedbackAgentFactory.java
-    FeedbackScorePolicy.java
-    FeedbackLlmModelProvider.java
-
-application/src/main/resources/prompt/feedback/
-  feedback-judge.txt
-  feedback-hint.txt
-```
-
-说明：
-
-1. `FeedbackAgentFactory` 只组装 DAG，不写 DB。
-2. `FeedbackAgent` 负责阶段方法、重试、fallback、落库协调。
-3. 复用 `IAgentRepository`，不新建反馈专属 Repository。
-4. `JudgeAgent`、`HintAgent` 是 LangChain4J 子 Agent 接口，不写实现类。
-
-## 九、V4 边界
-
-1. 不做前端改造。
-2. 不做 SSE、轮询、后台任务或任务消息表。
-3. 不保存多次反馈历史。
-4. 不做整轮评分和整体总结。
-5. 不引入 Memory。
-6. 不让 Agent 读取 `sourceChunks.content`；资料正文只回显给前端。
+1. 当前 `FeedbackPhase.FEEDBACK` 只用于顶层命名，不存 scope 数据。
+2. `FeedbackException` 仍然保留，用于保存失败时抛出链路异常。
+3. `sourceChunks` 只返回给前端展示，不会传给 `JudgeAgent` / `HintAgent`。
