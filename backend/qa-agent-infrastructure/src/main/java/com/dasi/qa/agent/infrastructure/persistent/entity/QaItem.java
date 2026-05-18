@@ -32,7 +32,9 @@ public class QaItem {
     
     private String difficulty;
     
-    private String tip;
+    private String keywords;
+
+    private Boolean sourceReliable;
     
     private String sourceChunkIdsJson;
     

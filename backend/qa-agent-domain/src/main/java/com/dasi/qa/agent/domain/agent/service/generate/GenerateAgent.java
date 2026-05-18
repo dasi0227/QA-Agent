@@ -720,7 +720,8 @@ public class GenerateAgent implements IGenerateAgent {
                     .answer(evidence)
                     .tag(planItem.getModule())
                     .difficulty("MEDIUM")
-                    .tip(evidence.isEmpty() ? "资料证据不足" : "")
+                    .keywords("核心概念,关键机制,适用场景")
+                    .sourceReliable(Boolean.TRUE)
                     .sourceChunkIds(sourceChunkIds)
                     .build());
         }

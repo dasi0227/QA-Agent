@@ -12,7 +12,6 @@ const mockQuestion = {
     tags: ["Redis", "缓存策略"],
     difficulty: "MEDIUM",
     hint: "从键过期的作用讲起，再分别说明惰性删除和定期删除的机制与互补关系。",
-    tip: "注意不要把 Redis 的过期策略和内存淘汰策略（如 LRU）混为一谈。",
     scoringRubric: {
         answerStructure: "先从职责、访问模型、边界和取舍切入，再补项目例子。",
         keyPoints: ["惰性删除", "定期删除", "两者互补", "内存淘汰区别"],
@@ -86,14 +85,6 @@ export function QAPage() {
                 </div>
 
                 <p className="qa-text">{mockQuestion.hint}</p>
-
-                {mockQuestion.tip ? (
-                    <div className="qa-feedback" style={{ marginBottom: 18 }}>
-                        <strong>证据边界</strong>
-                        <div className="qa-text">{mockQuestion.tip}</div>
-                    </div>
-                ) : null}
-
                 {supportHintVisible ? (
                     <div className="qa-feedback" style={{ marginBottom: 18 }}>
                         <strong>提示</strong>

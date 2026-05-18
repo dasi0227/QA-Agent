@@ -354,7 +354,8 @@ public class AgentRepository implements IAgentRepository {
             item.setAnswer(draftResult.getAnswer());
             item.setModuleTag(draftResult.getTag());
             item.setDifficulty(draftResult.getDifficulty());
-            item.setTip(draftResult.getTip());
+            item.setKeywords(draftResult.getKeywords());
+            item.setSourceReliable(draftResult.getSourceReliable() == null ? Boolean.FALSE : draftResult.getSourceReliable());
             item.setSourceChunkIdsJson(JSON.toJSONString(draftResult.getSourceChunkIds() != null ? draftResult.getSourceChunkIds() : List.of()));
             item.setSortOrder(sortOrder++);
             qaItemMapper.insert(item);
@@ -395,7 +396,8 @@ public class AgentRepository implements IAgentRepository {
                 .question(qaItem.getQuestion())
                 .standardAnswer(qaItem.getAnswer())
                 .knowledgeNote(qaItem.getKnowledgeNote())
-                .tip(qaItem.getTip())
+                .keywords(qaItem.getKeywords())
+                .sourceReliable(Boolean.TRUE.equals(qaItem.getSourceReliable()))
                 .answerStyle(style == null ? "" : style.getAnswerStyle())
                 .feedbackStyle(style == null ? "" : style.getFeedbackStyle())
                 .sourceChunks(sourceChunks)

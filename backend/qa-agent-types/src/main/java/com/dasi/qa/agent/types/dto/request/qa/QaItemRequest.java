@@ -20,7 +20,8 @@ public class QaItemRequest extends BaseRequest {
     private String answer;
     private String moduleTag;
     private String difficulty;
-    private String tip;
+    private String keywords;
+    private Boolean sourceReliable;
     private String sourceChunkIdsJson;
     private Integer sortOrder;
 }

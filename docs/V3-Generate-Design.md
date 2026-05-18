@@ -199,13 +199,14 @@ SubAgent：`DraftAgent`
 | `knowledgeNote` | 复习笔记 |
 | `tag` | 题目标签，允许 1~2 个逗号分隔 |
 | `difficulty` | `EASY` / `MEDIUM` / `HARD` |
-| `tip` | 原文引证句子或证据缺口说明 |
+| `keywords` | 回答时应尽量覆盖的关键短语，逗号分隔 |
+| `sourceReliable` | 资料对当前题目是否可靠 |
 | `sourceChunkIds` | 来源切片 ID 列表 |
 
 注意：
 
-1. 当前没有旧版文档里的 `conflictTip` 和 `evidence` 字段。
-2. `qa_item.tip` 最终直接来自 `DraftResult.tip`。
+1. 当前没有旧版文档里的“冲突提示”和 `evidence` 字段。
+2. `qa_item.keywords` 与 `qa_item.source_reliable` 最终直接来自 `DraftResult`。
 
 ### 6.5 VALIDATE
 

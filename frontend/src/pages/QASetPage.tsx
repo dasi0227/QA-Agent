@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { Plus, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
@@ -14,6 +15,13 @@ import {
 } from "@/lib/api/hooks";
 import { cn } from "@/lib/cn";
 
+const TAG_OPTIONS = [
+    "JavaSE", "OOP", "JVM", "IO", "JUC", "JCF", "MCP", "SKILL", "AGENT", "Harness",
+    "SpringAI", "LangChain4J", "SpringFramework", "SpringMVC", "SpringBoot", "SpringCloud",
+    "MyBatis", "MySQL", "PostgreSQL", "Redis", "MQ", "Linux", "Docker", "Maven", "Git",
+    "Zookeeper", "Elasticsearch", "K8s", "Grafana", "分布式", "高并发", "微服务", "设计模式",
+    "数据结构与算法", "计算机网络", "操作系统", "测试", "运维", "安全",
+] as const;
 
 export function QASetPage() {
     const params = useParams();
@@ -22,6 +30,8 @@ export function QASetPage() {
     const [setTitleDraft, setSetTitleDraft] = useState("");
     const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
     const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false);
+    const [tagDialogOpen, setTagDialogOpen] = useState(false);
+    const [selectedTagsDraft, setSelectedTagsDraft] = useState<string[]>([]);
 
     const questionSetsQuery = useQuestionSetsQuery();
 
@@ -42,6 +52,7 @@ export function QASetPage() {
         }
         setSetTitleDraft(selectedSetQuery.data.title);
         setSetDescriptionDraft(selectedSetQuery.data.description);
+        setSelectedTagsDraft(parseModuleTags(selectedSetQuery.data.moduleTagsJson));
     }, [selectedSetQuery.data]);
 
     const selectedSetDescription = selectedSetQuery.data?.description?.trim();
@@ -49,6 +60,12 @@ export function QASetPage() {
         ? selectedSetQuery.data.questionCount * selectedSetQuery.data.practiceCount
         : 0;
     const itemList = selectedSetItemsQuery.data ?? [];
+    const selectedTags = parseModuleTags(selectedSetQuery.data?.moduleTagsJson);
+    const availableTags = useMemo(
+        () => TAG_OPTIONS.filter((tag) => !selectedTagsDraft.includes(tag)),
+        [selectedTagsDraft],
+    );
+    const firstItemId = itemList[0]?.id ?? "";
 
     return (
         <div className="page-frame">
@@ -60,9 +77,10 @@ export function QASetPage() {
                         <button className="choice-btn" type="button" disabled title="题目详情页自动切换">题目表</button>
                     </div>
                     <div className="tree">
-                        <div className="tree-item">
-                            <span className="tree-item__label">问答集</span>
-                            <span className="tree-item__meta">{questionSetsQuery.data?.length ?? 0}</span>
+                        <div className="sidebar__upload-area sidebar__action-area">
+                            <LinkButton to="/create" variant="soft" className="sidebar__upload-btn">
+                                新增题集
+                            </LinkButton>
                         </div>
                         <div className="subtree tree">
                             {questionSetsQuery.isLoading ? (
@@ -226,13 +244,19 @@ export function QASetPage() {
                                                 </p>
                                             )}
                                         </div>
-                                        {parseModuleTags(selectedSetQuery.data.moduleTagsJson).length ? (
-                                            <div className="repository-header__tags" style={{ marginTop: 12 }}>
-                                                {parseModuleTags(selectedSetQuery.data.moduleTagsJson).map((tag) => (
-                                                    <Tag key={tag}>{tag}</Tag>
-                                                ))}
-                                            </div>
-                                        ) : null}
+                                        <div className="repository-header__tags" style={{ marginTop: 12 }}>
+                                            {selectedTags.map((tag) => (
+                                                <Tag key={tag}>{tag}</Tag>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                className="repository-tag-add"
+                                                aria-label="管理标签"
+                                                onClick={() => setTagDialogOpen(true)}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
                                     </div>
                                     <section className="repository-overview-card">
                                         <div className="repository-overview-card__grid">
@@ -259,6 +283,13 @@ export function QASetPage() {
                                 <div style={{ marginTop: 24, marginBottom: 28, display: "flex", gap: 12, flexWrap: "wrap" }}>
                                     <LinkButton to={`/quiz?questionSetId=${selectedSetQuery.data.id}`} variant="primary">
                                         开始练习
+                                    </LinkButton>
+                                    <LinkButton
+                                        to={firstItemId ? `/repository/question?qaSetId=${selectedSetQuery.data.id}&itemId=${firstItemId}` : "#"}
+                                        variant="soft"
+                                        className={cn("repository-detail-btn", !firstItemId && "repository-detail-btn--disabled")}
+                                    >
+                                        题目详情
                                     </LinkButton>
                                     {editingSetMeta ? (
                                         <>
@@ -291,7 +322,7 @@ export function QASetPage() {
                                         </>
                                     ) : (
                                         <BaseButton
-                                            variant="ghost"
+                                            variant="soft"
                                             type="button"
                                             onClick={() => {
                                                 setSetTitleDraft(selectedSetQuery.data.title);
@@ -387,6 +418,92 @@ export function QASetPage() {
                 }}
                 onCancel={() => setDeleteSetDialogOpen(false)}
             />
+
+            {tagDialogOpen ? (
+                <div className="doc-select-dialog" role="presentation" onClick={() => setTagDialogOpen(false)}>
+                    <div className="tag-dialog__card" role="dialog" aria-modal="true" aria-label="选择标签" onClick={(event) => event.stopPropagation()}>
+                        <div className="doc-select-dialog__header">
+                            <h3 className="doc-select-dialog__title">管理问答集标签</h3>
+                            <button type="button" className="doc-select-dialog__close" onClick={() => setTagDialogOpen(false)}>
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="tag-dialog__body">
+                            <section className="tag-dialog__section">
+                                <div className="tag-dialog__section-head">
+                                    <strong>已选标签</strong>
+                                    <span>{selectedTagsDraft.length} 个</span>
+                                </div>
+                                <div className="tag-dialog__selected-list">
+                                    {selectedTagsDraft.length ? selectedTagsDraft.map((tag) => (
+                                        <div key={tag} className="tag-dialog__selected-item">
+                                            <span>{tag}</span>
+                                            <button
+                                                type="button"
+                                                className="tag-dialog__selected-remove"
+                                                aria-label={`移除 ${tag}`}
+                                                onClick={() => setSelectedTagsDraft((current) => current.filter((item) => item !== tag))}
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    )) : (
+                                        <div className="tag-dialog__empty">还没有选择标签</div>
+                                    )}
+                                </div>
+                            </section>
+                            <section className="tag-dialog__section">
+                                <div className="tag-dialog__section-head">
+                                    <strong>标签池</strong>
+                                </div>
+                                <div className="tag-dialog__pool">
+                                    {availableTags.map((tag) => (
+                                        <button
+                                            key={tag}
+                                            type="button"
+                                            className="tag-dialog__pool-item"
+                                            onClick={() => setSelectedTagsDraft((current) => [...current, tag])}
+                                        >
+                                            {tag}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+                        </div>
+                        <div className="modal-card__footer">
+                            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                <BaseButton
+                                    variant="soft"
+                                    type="button"
+                                    disabled={updateQuestionSetMutation.isPending}
+                                    onClick={async () => {
+                                        if (!selectedSetQuery.data) return;
+                                        await updateQuestionSetMutation.mutateAsync({
+                                            questionSetId: selectedSetQuery.data.id,
+                                            title: selectedSetQuery.data.title,
+                                            description: selectedSetQuery.data.description,
+                                            moduleTagsJson: JSON.stringify(selectedTagsDraft),
+                                        });
+                                        setTagDialogOpen(false);
+                                    }}
+                                >
+                                    {updateQuestionSetMutation.isPending ? "保存中" : "保存标签"}
+                                </BaseButton>
+                                <BaseButton
+                                    variant="ghost"
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedTagsDraft(selectedTags);
+                                        setTagDialogOpen(false);
+                                    }}
+                                >
+                                    取消
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }

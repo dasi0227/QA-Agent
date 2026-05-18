@@ -95,7 +95,8 @@ export type QuestionItem = {
     answer: string;
     moduleTag: string;
     difficulty: string;
-    tip: string;
+    keywords: string;
+    sourceReliable: boolean;
     sourceChunkIdsJson: string;
     sortOrder: number;
 };
@@ -106,14 +107,16 @@ export type QuestionItemDraft = {
     answer: string;
     moduleTag: string;
     difficulty: string;
-    tip: string;
+    keywords: string;
+    sourceReliable: boolean;
     sourceChunkIdsJson: string;
 };
 
 export type UpdateQuestionSetInput = {
     questionSetId: string;
-    title: string;
-    description: string;
+    title?: string;
+    description?: string;
+    moduleTagsJson?: string;
 };
 
 export type UpdateQuestionItemInput = QuestionItemDraft & {

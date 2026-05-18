@@ -83,7 +83,8 @@ public class FeedbackAgent implements IFeedbackAgent {
                 .question(StringUtils.hasText(practice.getQuestion()) ? practice.getQuestion() : "")
                 .standardAnswer(StringUtils.hasText(practice.getStandardAnswer()) ? practice.getStandardAnswer() : "")
                 .knowledgeNote(StringUtils.hasText(practice.getKnowledgeNote()) ? practice.getKnowledgeNote() : "")
-                .tip(StringUtils.hasText(practice.getTip()) ? practice.getTip() : "")
+                .keywords(StringUtils.hasText(practice.getKeywords()) ? practice.getKeywords() : "")
+                .sourceReliable(practice.getSourceReliable())
                 .answerStyle(StringUtils.hasText(practice.getAnswerStyle()) ? practice.getAnswerStyle() : "")
                 .feedbackStyle(StringUtils.hasText(practice.getFeedbackStyle()) ? practice.getFeedbackStyle() : "")
                 .build();
@@ -92,7 +93,8 @@ public class FeedbackAgent implements IFeedbackAgent {
                 .question(StringUtils.hasText(practice.getQuestion()) ? practice.getQuestion() : "")
                 .standardAnswer(StringUtils.hasText(practice.getStandardAnswer()) ? practice.getStandardAnswer() : "")
                 .knowledgeNote(StringUtils.hasText(practice.getKnowledgeNote()) ? practice.getKnowledgeNote() : "")
-                .tip(StringUtils.hasText(practice.getTip()) ? practice.getTip() : "")
+                .keywords(StringUtils.hasText(practice.getKeywords()) ? practice.getKeywords() : "")
+                .sourceReliable(practice.getSourceReliable())
                 .userAnswer(userAnswer)
                 .answerStyle(StringUtils.hasText(practice.getAnswerStyle()) ? practice.getAnswerStyle() : "")
                 .feedbackStyle(StringUtils.hasText(practice.getFeedbackStyle()) ? practice.getFeedbackStyle() : "")
@@ -133,7 +135,8 @@ public class FeedbackAgent implements IFeedbackAgent {
                         hintContext.getQuestion(),
                         hintContext.getStandardAnswer(),
                         hintContext.getKnowledgeNote(),
-                        hintContext.getTip(),
+                        hintContext.getKeywords(),
+                        hintContext.getSourceReliable(),
                         hintContext.getAnswerStyle(),
                         hintContext.getFeedbackStyle(),
                         retryHint
@@ -164,7 +167,8 @@ public class FeedbackAgent implements IFeedbackAgent {
                         judgeContext.getQuestion(),
                         judgeContext.getStandardAnswer(),
                         judgeContext.getKnowledgeNote(),
-                        judgeContext.getTip(),
+                        judgeContext.getKeywords(),
+                        judgeContext.getSourceReliable(),
                         judgeContext.getUserAnswer(),
                         judgeContext.getAnswerStyle(),
                         judgeContext.getFeedbackStyle(),

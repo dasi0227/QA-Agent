@@ -15,7 +15,8 @@ public interface JudgeAgent {
             题目：{{question}}
             标准答案：{{standardAnswer}}
             复习笔记：{{knowledgeNote}}
-            证据边界提示：{{tip}}
+            答题要点：{{keywords}}
+            资料可靠性：{{sourceReliable}}
             用户回答：{{userAnswer}}
             答案风格：{{answerStyle}}
             反馈风格：{{feedbackStyle}}
@@ -33,7 +34,8 @@ public interface JudgeAgent {
     String judge(@V("question") String question,
                  @V("standardAnswer") String standardAnswer,
                  @V("knowledgeNote") String knowledgeNote,
-                 @V("tip") String tip,
+                 @V("keywords") String keywords,
+                 @V("sourceReliable") Boolean sourceReliable,
                  @V("userAnswer") String userAnswer,
                  @V("answerStyle") String answerStyle,
                  @V("feedbackStyle") String feedbackStyle,

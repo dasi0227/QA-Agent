@@ -59,8 +59,17 @@ const toBooleanValue = (value: unknown, fallback = false) => {
     if (typeof value === "boolean") {
         return value;
     }
+    if (typeof value === "number") {
+        return value !== 0;
+    }
     if (typeof value === "string") {
-        return value === "true";
+        const normalized = value.trim().toLowerCase();
+        if (normalized === "true" || normalized === "1") {
+            return true;
+        }
+        if (normalized === "false" || normalized === "0") {
+            return false;
+        }
     }
     return fallback;
 };
@@ -73,6 +82,7 @@ export const apiKeys = {
     questionSets: ["question-sets"] as const,
     questionSet: (id: string) => ["question-sets", id] as const,
     questionSetItems: (id: string) => ["question-sets", id, "items"] as const,
+    questionItem: (id: string) => ["question-items", id] as const,
     taskStatus: (taskId: string) => ["task-status", taskId] as const,
     taskMessages: (taskId: string) => ["task-messages", taskId] as const,
     taskList: ["task-list"] as const,
@@ -196,7 +206,8 @@ export function normalizeQuestionItem(raw: unknown): QuestionItem {
         answer: toStringValue(pick(raw, "answer")),
         moduleTag: toStringValue(pick(raw, "moduleTag", "module_tag")),
         difficulty: toStringValue(pick(raw, "difficulty")),
-        tip: toStringValue(pick(raw, "tip")),
+        keywords: toStringValue(pick(raw, "keywords")),
+        sourceReliable: toBooleanValue(pick(raw, "sourceReliable", "source_reliable"), true),
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
         sortOrder: toNumberValue(pick(raw, "sortOrder", "sort_order")),
     };
@@ -209,6 +220,18 @@ export function parseModuleTags(value?: string) {
     try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed) ? parsed.map((item) => toStringValue(item)).filter(Boolean) : [];
+    } catch {
+        return value.split(",").map((item) => item.trim()).filter(Boolean);
+    }
+}
+
+export function parseDelimitedValues(value?: string) {
+    if (!value?.trim()) {
+        return [];
+    }
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.map((item) => toStringValue(item).trim()).filter(Boolean) : [];
     } catch {
         return value.split(",").map((item) => item.trim()).filter(Boolean);
     }
@@ -238,6 +261,7 @@ function toQuestionSetPayload(input: UpdateQuestionSetInput) {
         id: input.questionSetId,
         title: input.title,
         description: input.description,
+        moduleTagsJson: input.moduleTagsJson,
     };
 }
 
@@ -250,7 +274,8 @@ function toQuestionItemPayload(input: QuestionItemDraft & { qaSetId?: string; qu
         answer: input.answer,
         moduleTag: input.moduleTag,
         difficulty: input.difficulty,
-        tip: input.tip,
+        keywords: parseDelimitedValues(input.keywords).join(","),
+        sourceReliable: input.sourceReliable,
         sourceChunkIdsJson: input.sourceChunkIdsJson,
     };
 }
@@ -458,6 +483,16 @@ export function useQuestionSetItemsQuery(questionSetId?: string) {
     });
 }
 
+export function useQuestionItemQuery(questionItemId?: string) {
+    return useQuery({
+        queryKey: apiKeys.questionItem(questionItemId ?? ""),
+        enabled: Boolean(questionItemId),
+        queryFn: async () => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/detail", {
+            query: { id: questionItemId ?? "" },
+        })),
+    });
+}
+
 export function useDeleteQuestionSetMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -498,6 +533,7 @@ export function useUpdateQuestionItemMutation() {
         onSuccess: async (_result, variables) => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(variables.questionItemId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
         },
     });
@@ -516,6 +552,7 @@ export function useDeleteQuestionItemMutation() {
         onSuccess: async (_result, variables) => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(variables.questionItemId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
         },
     });

@@ -106,11 +106,7 @@ export function DocumentPage() {
                         <button className="choice-btn" type="button" disabled title="题目详情页自动切换">题目表</button>
                     </div>
                     <div className="tree">
-                        <div className="tree-item">
-                            <span className="tree-item__label">资料文件</span>
-                            <span className="tree-item__meta">{documentsQuery.data?.length ?? 0}</span>
-                        </div>
-                        <div className="sidebar__upload-area">
+                        <div className="sidebar__upload-area sidebar__action-area">
                             <input
                                 ref={uploadFileInputRef}
                                 type="file"
@@ -131,7 +127,7 @@ export function DocumentPage() {
                                 onClick={() => uploadFileInputRef.current?.click()}
                                 disabled={uploadDocumentMutation.isPending}
                             >
-                                {uploadDocumentMutation.isPending ? "上传中..." : "上传资料"}
+                                {uploadDocumentMutation.isPending ? "上传中..." : "新增资料"}
                             </button>
                         </div>
                         <div className="subtree tree">

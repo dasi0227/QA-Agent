@@ -29,8 +29,11 @@ public class DraftResult {
     @Description("题目难度，必须是 EASY / MEDIUM / HARD 之一")
     private String difficulty;
 
-    @Description("无冲突时为从证据块引用的原文句子，有冲突时写明具体问题")
-    private String tip;
+    @Description("回答本题时应尽量覆盖的关键短语，逗号分隔，最多 6 个")
+    private String keywords;
+
+    @Description("用户资料对当前题目是否可靠；仅在资料明显错误或明显冲突时为 false")
+    private Boolean sourceReliable;
 
     @Description("来源切片 ID 列表")
     private List<String> sourceChunkIds;

@@ -18,7 +18,8 @@ public class JudgeContext {
     private String question;
     private String standardAnswer;
     private String knowledgeNote;
-    private String tip;
+    private String keywords;
+    private Boolean sourceReliable;
     private String userAnswer;
     private String answerStyle;
     private String feedbackStyle;

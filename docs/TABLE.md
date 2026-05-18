@@ -216,7 +216,8 @@
 | `answer` | `LONGTEXT` | 标准回答 |
 | `module_tag` | `VARCHAR(120)` | 模块标签 |
 | `difficulty` | `VARCHAR(32)` | `EASY` / `MEDIUM` / `HARD` |
-| `tip` | `LONGTEXT` | 引证句子或证据缺口说明 |
+| `keywords` | `LONGTEXT` | 回答本题时应尽量覆盖的关键短语，逗号分隔 |
+| `source_reliable` | `TINYINT(1)` | 资料对当前题目是否可靠，默认 `1` |
 | `source_chunk_ids_json` | `JSON` | 来源切片 ID 数组 |
 | `sort_order` | `INT` | 题目顺序 |
 | `created_at` | `DATETIME` | 创建时间 |
