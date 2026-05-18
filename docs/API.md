@@ -113,6 +113,31 @@
 | `vectorScore` | 语义检索得分 |
 | `keywordScore` | 关键词检索得分 |
 
+### 4.3 切片查询接口
+
+| 方法 | 路径 | 鉴权 | 请求 |
+| --- | --- | --- | --- |
+| POST | `/document/chunk/query` | 是 | `["chunk-id-1", "chunk-id-2", ...]` |
+
+请求示例：
+
+```json
+["chunk-001", "chunk-002", "chunk-003"]
+```
+
+响应元素 `DocumentChunkResponse`：
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 切片 ID |
+| `documentId` | 所属资料 ID |
+| `fileName` | 所属资料文件名 |
+| `chunkIndex` | 在资料内的顺序号 |
+| `titlePath` | 标题路径，如 `Redis > 持久化 > RDB` |
+| `content` | 切片正文 |
+| `summary` | AI 摘要（≤80 字） |
+| `moduleTagsJson` | 模块标签 JSON 数组字符串 |
+
 ## 5. QA
 
 ### 5.1 题集接口

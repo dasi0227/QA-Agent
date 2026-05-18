@@ -28,4 +28,6 @@ public interface IDocumentCrudService {
     DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request);
 
     void deleteDocumentChunk(String id);
+
+    List<DocumentChunkResponse> batchQueryDocumentChunk(List<String> chunkIds);
 }

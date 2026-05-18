@@ -70,6 +70,17 @@ export type DocumentRecord = {
     updatedAt?: string;
 };
 
+export type DocumentChunkRecord = {
+    id: string;
+    documentId: string;
+    fileName: string;
+    chunkIndex: number;
+    titlePath: string;
+    content: string;
+    summary: string;
+    moduleTagsJson: string;
+};
+
 export type QuestionSet = {
     id: string;
     taskId: string;

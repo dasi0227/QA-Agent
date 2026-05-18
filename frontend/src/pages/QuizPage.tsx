@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton, ChoiceButton, LinkButton } from "@/components/base/button";
@@ -15,12 +15,19 @@ const feedbackModes = [
     { label: "整轮反馈", value: "AFTER_ALL" as const, className: "choice-btn--quiz-tone" },
 ];
 
+const QUIZ_CAROUSEL_ANIMATION_MS = 480;
+
+type CarouselDirection = -1 | 0 | 1;
+
 export function QuizPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const questionSetsQuery = useQuestionSetsQuery();
     const [practiceMode, setPracticeMode] = useState<"SEQUENTIAL" | "RANDOM">("SEQUENTIAL");
     const [feedbackMode, setFeedbackMode] = useState<"ITEM_BY_ITEM" | "AFTER_ALL">("ITEM_BY_ITEM");
+    const [isAnimating, setIsAnimating] = useState(false);
+    const [transitioningDirection, setTransitioningDirection] = useState<CarouselDirection>(0);
+    const animationTimerRef = useRef<number | null>(null);
 
     const selectedSetId = searchParams.get("questionSetId") ?? questionSetsQuery.data?.[0]?.id ?? "";
     const activeSet = useMemo(
@@ -48,6 +55,27 @@ export function QuizPage() {
         });
     }, [activeSetIndex, questionSets]);
 
+    const enteringCard = useMemo(() => {
+        if (!questionSets.length || activeSetIndex < 0 || !isAnimating || transitioningDirection === 0 || questionSets.length <= 2) {
+            return null;
+        }
+        const enteringOffset = transitioningDirection === 1 ? 2 : -2;
+        const enteringIndex = (activeSetIndex + enteringOffset + questionSets.length) % questionSets.length;
+        const enteringSide = transitioningDirection === 1 ? "right" : "left";
+        return {
+            item: questionSets[enteringIndex],
+            enteringSide,
+        };
+    }, [activeSetIndex, isAnimating, questionSets, transitioningDirection]);
+
+    useEffect(() => {
+        return () => {
+            if (animationTimerRef.current) {
+                window.clearTimeout(animationTimerRef.current);
+            }
+        };
+    }, []);
+
     const setActiveSetByIndex = (index: number) => {
         if (!questionSets.length) return;
         const nextIndex = (index + questionSets.length) % questionSets.length;
@@ -57,8 +85,59 @@ export function QuizPage() {
     };
 
     const handleCarouselMove = (direction: -1 | 1) => {
-        if (!hasCarouselNavigation || activeSetIndex < 0) return;
-        setActiveSetByIndex(activeSetIndex + direction);
+        if (!hasCarouselNavigation || activeSetIndex < 0 || isAnimating) return;
+        if (animationTimerRef.current) {
+            window.clearTimeout(animationTimerRef.current);
+            animationTimerRef.current = null;
+        }
+        setTransitioningDirection(direction);
+        setIsAnimating(true);
+        animationTimerRef.current = window.setTimeout(() => {
+            setActiveSetByIndex(activeSetIndex + direction);
+            setIsAnimating(false);
+            setTransitioningDirection(0);
+            animationTimerRef.current = null;
+        }, QUIZ_CAROUSEL_ANIMATION_MS);
+    };
+
+    const getCardMotion = (offset: number) => {
+        const resting = {
+            shift: offset === 0 ? "0%" : offset < 0 ? "-42%" : "42%",
+            scale: offset === 0 ? 1 : 0.84,
+            opacity: offset === 0 ? 1 : 0.38,
+            blur: offset === 0 ? "none" : "saturate(0.78) brightness(0.92)",
+            tilt: offset === 0 ? "0deg" : offset < 0 ? "16deg" : "-16deg",
+            lift: offset === 0 ? "-10px" : "12px",
+            zIndex: offset === 0 ? 3 : 1,
+        };
+
+        if (!isAnimating || transitioningDirection === 0) {
+            return resting;
+        }
+
+        if (transitioningDirection === 1) {
+            if (offset === -1) {
+                return { shift: "-88%", scale: 0.72, opacity: 0.08, blur: "saturate(0.6) brightness(0.82)", tilt: "20deg", lift: "20px", zIndex: 1 };
+            }
+            if (offset === 0) {
+                return { shift: "-42%", scale: 0.84, opacity: 0.38, blur: "saturate(0.78) brightness(0.92)", tilt: "16deg", lift: "12px", zIndex: 2 };
+            }
+            if (offset === 1) {
+                return { shift: "0%", scale: 1, opacity: 1, blur: "none", tilt: "0deg", lift: "-10px", zIndex: 3 };
+            }
+        }
+
+        if (offset === 1) {
+            return { shift: "88%", scale: 0.72, opacity: 0.08, blur: "saturate(0.6) brightness(0.82)", tilt: "-20deg", lift: "20px", zIndex: 1 };
+        }
+        if (offset === 0) {
+            return { shift: "42%", scale: 0.84, opacity: 0.38, blur: "saturate(0.78) brightness(0.92)", tilt: "-16deg", lift: "12px", zIndex: 2 };
+        }
+        if (offset === -1) {
+            return { shift: "0%", scale: 1, opacity: 1, blur: "none", tilt: "0deg", lift: "-10px", zIndex: 3 };
+        }
+
+        return resting;
     };
 
     return (
@@ -118,26 +197,21 @@ export function QuizPage() {
                                     type="button"
                                     onClick={() => handleCarouselMove(-1)}
                                     aria-label="切换到上一个测试集"
-                                    disabled={!hasCarouselNavigation}
+                                    disabled={!hasCarouselNavigation || isAnimating}
                                 >
                                     <ChevronLeft size={28} strokeWidth={1.8} />
                                 </button>
-                                <div className="quiz-carousel__stage">
+                                <div className={`quiz-carousel__stage${isAnimating ? " quiz-carousel__stage--animating" : ""}`}>
                                     <div className="quiz-carousel__counter" aria-live="polite">
                                         {activeSetPosition} / {questionSets.length || 0}
                                     </div>
                                     {carouselCards.map(({ item, offset }) => {
                                         const isActiveCard = offset === 0;
-                                        const shift = offset === 0 ? "0%" : offset < 0 ? "-42%" : "42%";
-                                        const scale = offset === 0 ? 1 : 0.84;
-                                        const opacity = offset === 0 ? 1 : 0.38;
-                                        const blur = offset === 0 ? "none" : "saturate(0.78) brightness(0.92)";
-                                        const tilt = offset === 0 ? "0deg" : offset < 0 ? "16deg" : "-16deg";
-                                        const lift = offset === 0 ? "-10px" : "12px";
+                                        const motion = getCardMotion(offset);
 
                                         return (
                                             <button
-                                                key={`slot-${offset}`}
+                                                key={item.id}
                                                 type="button"
                                                 className={
                                                     isActiveCard
@@ -145,12 +219,13 @@ export function QuizPage() {
                                                         : "quiz-carousel__card quiz-carousel__card--ghost"
                                                 }
                                                 style={{
-                                                    transform: `translate(-50%, -50%) translateX(${shift}) translateY(${lift}) scale(${scale}) rotateY(${tilt})`,
-                                                    opacity,
-                                                    filter: blur,
-                                                    zIndex: isActiveCard ? 3 : 1,
+                                                    transform: `translate(-50%, -50%) translateX(${motion.shift}) translateY(${motion.lift}) scale(${motion.scale}) rotateY(${motion.tilt})`,
+                                                    opacity: motion.opacity,
+                                                    filter: motion.blur,
+                                                    zIndex: motion.zIndex,
                                                 }}
                                                 onClick={() => {
+                                                    if (isAnimating) return;
                                                     if (isActiveCard) {
                                                         navigate(`/repository/qa-set/${item.id}`);
                                                     } else {
@@ -180,13 +255,47 @@ export function QuizPage() {
                                             </button>
                                         );
                                     })}
+                                    {enteringCard ? (
+                                        <button
+                                            key={enteringCard.item.id}
+                                            type="button"
+                                            className={`quiz-carousel__card quiz-carousel__card--ghost quiz-carousel__card--entering quiz-carousel__card--entering-${enteringCard.enteringSide}`}
+                                            style={{
+                                                zIndex: 1,
+                                            }}
+                                            onClick={() => {
+                                                if (isAnimating) return;
+                                                setActiveSetByIndex(questionSets.findIndex((set) => set.id === enteringCard.item.id));
+                                            }}
+                                            aria-label={`切换到 ${enteringCard.item.title}`}
+                                        >
+                                            <div className="quiz-focus-card__center">
+                                                <div className="quiz-focus-card__title">{enteringCard.item.title}</div>
+                                                <div className="quiz-focus-card__meta" style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+                                                    <span>平均分 {enteringCard.item.averageScore}</span>
+                                                    <span>正确率 {enteringCard.item.averageAccuracy}%</span>
+                                                    <span>共 {enteringCard.item.questionCount} 题</span>
+                                                    <span>已做 {enteringCard.item.practiceCount} 轮</span>
+                                                </div>
+                                                {parseModuleTags(enteringCard.item.moduleTagsJson).length ? (
+                                                    <div className="quiz-focus-card__tags">
+                                                        {parseModuleTags(enteringCard.item.moduleTagsJson).map((tag) => (
+                                                            <span key={tag} className="quiz-badge">
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        </button>
+                                    ) : null}
                                 </div>
                                 <button
                                     className="quiz-carousel__arrow quiz-carousel__arrow--right"
                                     type="button"
                                     onClick={() => handleCarouselMove(1)}
                                     aria-label="切换到下一个测试集"
-                                    disabled={!hasCarouselNavigation}
+                                    disabled={!hasCarouselNavigation || isAnimating}
                                 >
                                     <ChevronRight size={28} strokeWidth={1.8} />
                                 </button>

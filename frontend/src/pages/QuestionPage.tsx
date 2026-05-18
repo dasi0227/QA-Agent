@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea } from "@/components/base/field";
 import {
     parseDelimitedValues,
+    useDocumentChunksQuery,
     useQuestionItemQuery,
     useQuestionSetItemsQuery,
     useUpdateQuestionItemMutation,
@@ -67,10 +68,20 @@ export function QuestionPage() {
     const [selectedModuleDraft, setSelectedModuleDraft] = useState<string[]>([]);
     const [selectedKeywordsDraft, setSelectedKeywordsDraft] = useState<string[]>([]);
     const [keywordInput, setKeywordInput] = useState("");
+    const [selectedEvidenceChunkId, setSelectedEvidenceChunkId] = useState("");
 
     const keywordList = useMemo(() => parseDelimitedValues(activeItem?.keywords), [activeItem?.keywords]);
     const moduleTagList = useMemo(() => parseDelimitedValues(activeItem?.moduleTag), [activeItem?.moduleTag]);
     const sourceChunkIdList = useMemo(() => parseDelimitedValues(activeItem?.sourceChunkIdsJson), [activeItem?.sourceChunkIdsJson]);
+    const evidenceChunksQuery = useDocumentChunksQuery(sourceChunkIdList);
+    const evidenceChunkMap = useMemo(() => {
+        const map = new Map<string, NonNullable<typeof evidenceChunksQuery.data>[number]>();
+        (evidenceChunksQuery.data ?? []).forEach((chunk) => {
+            map.set(chunk.id, chunk);
+        });
+        return map;
+    }, [evidenceChunksQuery.data]);
+    const selectedEvidenceChunk = selectedEvidenceChunkId ? evidenceChunkMap.get(selectedEvidenceChunkId) ?? null : null;
     const availableModules = useMemo(
         () => MODULE_OPTIONS.filter((moduleTag) => !selectedModuleDraft.includes(moduleTag)),
         [selectedModuleDraft],
@@ -93,6 +104,7 @@ export function QuestionPage() {
 
     useEffect(() => {
         setEditDialogOpen(false);
+        setSelectedEvidenceChunkId("");
     }, [activeItemId]);
 
     useEffect(() => {
@@ -255,12 +267,29 @@ export function QuestionPage() {
                                                 <h2>证据原文</h2>
                                             </div>
                                             <div className="question-evidence-panel__body question-evidence-panel__body--expanded">
+                                                {sourceChunkIdList.length && evidenceChunksQuery.isLoading ? (
+                                                    <div className="question-evidence-panel__empty">证据摘要加载中...</div>
+                                                ) : null}
+                                                {sourceChunkIdList.length && evidenceChunksQuery.isError ? (
+                                                    <div className="question-evidence-panel__empty">
+                                                        {evidenceChunksQuery.error instanceof Error ? evidenceChunksQuery.error.message : "证据加载失败"}
+                                                    </div>
+                                                ) : null}
                                                 {sourceChunkIdList.length ? (
-                                                    sourceChunkIdList.map((sourceChunkId) => (
-                                                        <div key={sourceChunkId} className="question-evidence-panel__item">
-                                                            {sourceChunkId}
-                                                        </div>
-                                                    ))
+                                                    sourceChunkIdList.map((sourceChunkId) => {
+                                                        const chunk = evidenceChunkMap.get(sourceChunkId);
+                                                        const summaryText = (chunk?.summary || chunk?.content || "暂无摘要").trim();
+                                                        return (
+                                                            <button
+                                                                key={sourceChunkId}
+                                                                type="button"
+                                                                className="question-evidence-panel__item question-evidence-panel__item--button"
+                                                                onClick={() => setSelectedEvidenceChunkId(sourceChunkId)}
+                                                            >
+                                                                <span className="question-evidence-panel__summary">{summaryText}</span>
+                                                            </button>
+                                                        );
+                                                    })
                                                 ) : (
                                                     <div className="question-evidence-panel__empty">暂无证据片段 ID</div>
                                                 )}
@@ -503,6 +532,51 @@ export function QuestionPage() {
                                     取消
                                 </BaseButton>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {selectedEvidenceChunkId ? (
+                <div className="doc-select-dialog" role="presentation" onClick={() => setSelectedEvidenceChunkId("")}>
+                    <div
+                        className="question-evidence-dialog"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="证据详情"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="doc-select-dialog__header">
+                            <h3 className="doc-select-dialog__title">证据详情</h3>
+                            <button type="button" className="doc-select-dialog__close" onClick={() => setSelectedEvidenceChunkId("")}>
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="question-evidence-dialog__body">
+                            {selectedEvidenceChunk ? (
+                                <>
+                                    <div className="question-evidence-dialog__meta">
+                                        <span className="question-evidence-dialog__label">资料</span>
+                                        <button
+                                            type="button"
+                                            className="question-evidence-dialog__file-link"
+                                            onClick={() => navigate(`/repository/document?documentId=${selectedEvidenceChunk.documentId}`)}
+                                        >
+                                            {selectedEvidenceChunk.fileName || "未命名资料"}
+                                        </button>
+                                    </div>
+                                    <div className="question-evidence-dialog__meta">
+                                        <span className="question-evidence-dialog__label">标题路径</span>
+                                        <div className="question-evidence-dialog__value">{selectedEvidenceChunk.titlePath || "暂无标题路径"}</div>
+                                    </div>
+                                    <div className="question-evidence-dialog__meta">
+                                        <span className="question-evidence-dialog__label">正文</span>
+                                        <div className="question-evidence-dialog__content">{selectedEvidenceChunk.content || "暂无正文"}</div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="question-evidence-dialog__content">未找到该证据详情。</div>
+                            )}
                         </div>
                     </div>
                 </div>

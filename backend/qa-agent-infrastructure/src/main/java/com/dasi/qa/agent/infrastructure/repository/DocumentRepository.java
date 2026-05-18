@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Repository
 public class DocumentRepository implements IDocumentRepository {
@@ -127,6 +128,27 @@ public class DocumentRepository implements IDocumentRepository {
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public void deleteDocumentChunk(String id, String userId) {
         documentChunkMapper.deleteById(id);
+    }
+
+    @Override
+    public List<DocumentChunkResponse> batchQueryDocumentChunk(List<String> chunkIds) {
+        if (chunkIds == null || chunkIds.isEmpty()) {
+            return List.of();
+        }
+        List<DocumentChunk> chunks = documentChunkMapper.selectBatchIds(chunkIds);
+        List<String> documentIds = chunks.stream()
+                .map(DocumentChunk::getDocumentId)
+                .distinct()
+                .toList();
+        Map<String, String> fileNameMap = sourceDocumentMapper.selectBatchIds(documentIds).stream()
+                .collect(Collectors.toMap(SourceDocument::getId, SourceDocument::getFileName, (a, b) -> a));
+        return chunks.stream()
+                .map(entity -> {
+                    DocumentChunkResponse response = toResponse(entity, DocumentChunkResponse.class);
+                    response.setFileName(fileNameMap.getOrDefault(entity.getDocumentId(), ""));
+                    return response;
+                })
+                .toList();
     }
 
     // ======================== V2 RAG: MySQL batch ========================

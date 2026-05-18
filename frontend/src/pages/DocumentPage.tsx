@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { TextArea } from "@/components/base/field";
@@ -35,6 +35,7 @@ function formatCompactDateTime(value?: string) {
 
 export function DocumentPage() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [activeDocumentId, setActiveDocumentId] = useState("");
     const [documentEditorMode, setDocumentEditorMode] = useState<"view" | "edit">("view");
     const [documentDraft, setDocumentDraft] = useState("");
@@ -44,7 +45,8 @@ export function DocumentPage() {
     const uploadDocumentMutation = useUploadDocumentMutation();
     const uploadFileInputRef = useRef<HTMLInputElement>(null);
 
-    const activeDocumentIdValue = activeDocumentId || documentsQuery.data?.[0]?.id || "";
+    const requestedDocumentId = searchParams.get("documentId") ?? "";
+    const activeDocumentIdValue = activeDocumentId || requestedDocumentId || documentsQuery.data?.[0]?.id || "";
     const selectedDocumentQuery = useDocumentQuery(activeDocumentIdValue);
     const deleteDocumentMutation = useDeleteDocumentMutation();
     const updateDocumentMutation = useUpdateDocumentMutation();
@@ -54,10 +56,25 @@ export function DocumentPage() {
     const documentErrorMessage = documentsQuery.error instanceof Error ? documentsQuery.error.message : "";
 
     useEffect(() => {
-        if (!activeDocumentId && documentsQuery.data?.[0]?.id) {
+        if (!documentsQuery.data?.length) {
+            return;
+        }
+        const matchedRequestedDocument = requestedDocumentId
+            ? documentsQuery.data.find((item) => item.id === requestedDocumentId)
+            : null;
+        if (matchedRequestedDocument && activeDocumentId !== matchedRequestedDocument.id) {
+            setActiveDocumentId(matchedRequestedDocument.id);
+            return;
+        }
+        if (!activeDocumentId && documentsQuery.data[0]?.id) {
             setActiveDocumentId(documentsQuery.data[0].id);
         }
-    }, [activeDocumentId, documentsQuery.data]);
+    }, [activeDocumentId, documentsQuery.data, requestedDocumentId]);
+
+    const handleSelectDocument = (documentId: string) => {
+        setActiveDocumentId(documentId);
+        setSearchParams({ documentId }, { replace: true });
+    };
 
     useEffect(() => {
         if (!selectedDocumentQuery.data) {
@@ -144,7 +161,7 @@ export function DocumentPage() {
                                         key={item.id}
                                         className={cn("tree-item", "tree-item--entry", isActive && "tree-item--active")}
                                         type="button"
-                                        onClick={() => setActiveDocumentId(item.id)}
+                                        onClick={() => handleSelectDocument(item.id)}
                                     >
                                         <span className="tree-item__label">{item.fileName}</span>
                                     </button>

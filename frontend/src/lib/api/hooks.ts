@@ -5,6 +5,7 @@ import type {
     AuthSession,
     AuthUser,
     DeleteQuestionItemInput,
+    DocumentChunkRecord,
     DocumentRecord,
     LoginInput,
     Profile,
@@ -79,6 +80,7 @@ export const apiKeys = {
     profile: ["profile"] as const,
     documents: ["documents"] as const,
     document: (id: string) => ["documents", id] as const,
+    documentChunks: (idsKey: string) => ["document-chunks", idsKey] as const,
     questionSets: ["question-sets"] as const,
     questionSet: (id: string) => ["question-sets", id] as const,
     questionSetItems: (id: string) => ["question-sets", id, "items"] as const,
@@ -175,6 +177,19 @@ export function normalizeDocument(raw: unknown): DocumentRecord {
         deleted: toBooleanValue(pick(raw, "deleted")),
         createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
         updatedAt: toStringValue(pick(raw, "updatedAt", "updated_at")),
+    };
+}
+
+export function normalizeDocumentChunk(raw: unknown): DocumentChunkRecord {
+    return {
+        id: toStringValue(pick(raw, "id")),
+        documentId: toStringValue(pick(raw, "documentId", "document_id")),
+        fileName: toStringValue(pick(raw, "fileName", "file_name")),
+        chunkIndex: toNumberValue(pick(raw, "chunkIndex", "chunk_index")),
+        titlePath: toStringValue(pick(raw, "titlePath", "title_path")),
+        content: toStringValue(pick(raw, "content")),
+        summary: toStringValue(pick(raw, "summary")),
+        moduleTagsJson: toStringValue(pick(raw, "moduleTagsJson", "module_tags_json")),
     };
 }
 
@@ -412,6 +427,19 @@ export function useDocumentQuery(documentId?: string) {
         queryFn: async () => normalizeDocument(await apiRequest<unknown>("/document/source/detail", {
             query: { id: documentId ?? "" },
         })),
+    });
+}
+
+export function useDocumentChunksQuery(chunkIds: string[]) {
+    const normalizedChunkIds = Array.from(new Set(chunkIds.map((item) => item.trim()).filter(Boolean)));
+    const queryKey = normalizedChunkIds.join(",");
+    return useQuery({
+        queryKey: apiKeys.documentChunks(queryKey),
+        enabled: normalizedChunkIds.length > 0,
+        queryFn: async () => (await apiRequest<unknown[]>("/document/chunk/query", {
+            method: "POST",
+            body: normalizedChunkIds as unknown as Record<string, unknown>,
+        })).map(normalizeDocumentChunk),
     });
 }
 

@@ -7,6 +7,7 @@ import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
+import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.result.Result;
@@ -74,6 +75,13 @@ public class DocumentController {
     public Result<Void> sourceDocumentDelete(@RequestBody SourceDocumentRequest request) {
         documentService.deleteSourceDocument(request.getId());
         return Result.success();
+    }
+
+    // ======================== chunk query ========================
+
+    @PostMapping("/chunk/query")
+    public Result<List<DocumentChunkResponse>> chunkBatchQuery(@RequestBody List<String> chunkIds) {
+        return Result.success(documentService.batchQueryDocumentChunk(chunkIds));
     }
 
     // ======================== V2 RAG endpoints ========================

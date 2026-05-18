@@ -2076,6 +2076,7 @@ button {
   width: 100%;
   padding: 10px 0 0;
   isolation: isolate;
+  --quiz-carousel-duration: 480ms;
 }
 
 .quiz-carousel__stage {
@@ -2162,9 +2163,9 @@ button {
   display: grid;
   gap: 16px;
   transition:
-    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 360ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform var(--quiz-carousel-duration) cubic-bezier(0.22, 1, 0.36, 1),
+    opacity var(--quiz-carousel-duration) cubic-bezier(0.22, 1, 0.36, 1),
+    filter var(--quiz-carousel-duration) cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 360ms cubic-bezier(0.22, 1, 0.36, 1),
     background-color 360ms cubic-bezier(0.22, 1, 0.36, 1);
   cursor: pointer;
@@ -2186,6 +2187,54 @@ button {
 
 .quiz-carousel__card:hover {
   box-shadow: 0 22px 48px rgba(77, 63, 40, 0.08);
+}
+
+.quiz-carousel__stage--animating .quiz-carousel__card {
+  pointer-events: none;
+}
+
+.quiz-carousel__card--entering {
+  pointer-events: none;
+}
+
+.quiz-carousel__card--entering-right {
+  transform: translate(-50%, -50%) translateX(42%) translateY(12px) scale(0.84) rotateY(-16deg);
+  opacity: 0.38;
+  filter: saturate(0.78) brightness(0.92);
+  animation: quiz-card-entering-right var(--quiz-carousel-duration) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.quiz-carousel__card--entering-left {
+  transform: translate(-50%, -50%) translateX(-42%) translateY(12px) scale(0.84) rotateY(16deg);
+  opacity: 0.38;
+  filter: saturate(0.78) brightness(0.92);
+  animation: quiz-card-entering-left var(--quiz-carousel-duration) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes quiz-card-entering-right {
+  from {
+    transform: translate(-50%, -50%) translateX(88%) translateY(20px) scale(0.72) rotateY(-20deg);
+    opacity: 0.08;
+    filter: saturate(0.6) brightness(0.82);
+  }
+  to {
+    transform: translate(-50%, -50%) translateX(42%) translateY(12px) scale(0.84) rotateY(-16deg);
+    opacity: 0.38;
+    filter: saturate(0.78) brightness(0.92);
+  }
+}
+
+@keyframes quiz-card-entering-left {
+  from {
+    transform: translate(-50%, -50%) translateX(-88%) translateY(20px) scale(0.72) rotateY(20deg);
+    opacity: 0.08;
+    filter: saturate(0.6) brightness(0.82);
+  }
+  to {
+    transform: translate(-50%, -50%) translateX(-42%) translateY(12px) scale(0.84) rotateY(16deg);
+    opacity: 0.38;
+    filter: saturate(0.78) brightness(0.92);
+  }
 }
 
 .quiz-focus-card__center {
@@ -2698,11 +2747,97 @@ button {
 .question-evidence-panel__item,
 .question-evidence-panel__empty {
   padding-left: 14px;
-  border-left: 2px solid rgba(142, 100, 45, 0.24);
+  border-left: 3px solid rgba(142, 100, 45, 0.24);
   color: var(--ink-soft);
   font-size: 14px;
   line-height: 1.82;
   word-break: break-all;
+}
+
+.question-evidence-panel__item--button {
+  width: 100%;
+  text-align: left;
+  padding: 0 0 0 14px;
+  background: transparent;
+  cursor: pointer;
+  border-left: 3px solid rgba(142, 100, 45, 0.24);
+  transition: border-color 180ms ease, color 180ms ease;
+}
+
+.question-evidence-panel__item--button:hover {
+  border-left-color: rgba(142, 100, 45, 0.56);
+  color: var(--ink);
+}
+
+.question-evidence-panel__summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.78;
+  max-height: calc(1.78em * 2);
+  word-break: break-word;
+}
+
+.question-evidence-dialog {
+  width: min(840px, 100%);
+  max-height: min(80vh, 780px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  padding: 24px 24px 22px;
+  border-radius: 36px;
+  border: 1px solid rgba(23, 22, 20, 0.08);
+  background: rgba(250, 246, 239, 0.98);
+  box-shadow: var(--shadow);
+}
+
+.question-evidence-dialog__body {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.question-evidence-dialog__meta {
+  display: grid;
+  gap: 8px;
+}
+
+.question-evidence-dialog__label {
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.question-evidence-dialog__file-link {
+  width: fit-content;
+  color: #7a623d;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.question-evidence-dialog__file-link:hover {
+  color: #5f4b2d;
+}
+
+.question-evidence-dialog__value {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.74;
+}
+
+.question-evidence-dialog__content {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.84;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .question-detail-edit-grid {

@@ -37,6 +37,8 @@ public interface IDocumentRepository {
 
     void deleteDocumentChunksByDocumentId(String documentId);
 
+    List<DocumentChunkResponse> batchQueryDocumentChunk(List<String> chunkIds);
+
     String getDocumentUserId(String documentId);
 
     // -- V2 RAG: PostgreSQL chunk_search operations --

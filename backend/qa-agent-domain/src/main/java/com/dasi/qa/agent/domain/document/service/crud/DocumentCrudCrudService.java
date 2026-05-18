@@ -88,6 +88,11 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         repository.deleteDocumentChunk(id, currentUserId());
     }
 
+    @Override
+    public List<DocumentChunkResponse> batchQueryDocumentChunk(List<String> chunkIds) {
+        return repository.batchQueryDocumentChunk(chunkIds);
+    }
+
     private String currentUserId() {
         return contextUtil.getUserId();
     }
