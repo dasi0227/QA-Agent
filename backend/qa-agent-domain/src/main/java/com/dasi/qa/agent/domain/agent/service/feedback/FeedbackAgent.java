@@ -7,8 +7,10 @@ import com.dasi.qa.agent.domain.agent.service.feedback.model.context.HintContext
 import com.dasi.qa.agent.domain.agent.service.feedback.model.context.JudgeContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackPhase;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.enumeration.FeedbackResult;
+import com.dasi.qa.agent.domain.agent.service.feedback.model.exception.FeedbackException;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.result.HintResult;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.result.JudgeResult;
+import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.feedback.subagent.HintAgent;
 import com.dasi.qa.agent.domain.agent.service.feedback.subagent.JudgeAgent;
 import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackAgentFactory;
@@ -110,7 +112,12 @@ public class FeedbackAgent implements IFeedbackAgent {
         ));
 
         // 6. 保存并返回结果
-        return feedbackSaver.save(result.agenticScope(), practice, unknown, userAnswer, userId);
+        try {
+            return feedbackSaver.save(result.agenticScope(), practice, unknown, userAnswer, userId);
+        } catch (Exception exception) {
+            log.error("【单题反馈】反馈 DAG 执行或保存失败: sessionItemId={}", sessionItemId, exception);
+            throw new FeedbackException(AgentErrorType.UNKNOWN, "反馈流程执行失败: " + exception.getMessage());
+        }
     }
 
     /**

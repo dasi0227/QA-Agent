@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.model.sse;
+package com.dasi.qa.agent.domain.agent.service.shared;
 
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
@@ -19,6 +19,7 @@ public class EventPublisher {
     private final Consumer<SseEvent> eventSink;
     private final AtomicInteger totalTokens;
     private final IJsonUtil jsonUtil;
+    private int lastPublishedTotal = 0;
 
     public EventPublisher(IAgentRepository agentRepository,
                           String taskId,
@@ -34,15 +35,18 @@ public class EventPublisher {
         this.jsonUtil = jsonUtil;
     }
 
-    public void publishEvent(GeneratePhase phase, GenerateStatus status, String message, int currentTokens) {
+    public void publishEvent(GeneratePhase phase, GenerateStatus status, String message) {
+        int total = totalTokens.get();
+        int current = total - lastPublishedTotal;
+        lastPublishedTotal = total;
         SseEvent sseEvent = SseEvent.builder()
                 .taskId(taskId)
                 .stage(phase.getGenerateStage())
                 .status(status.name())
                 .message(message)
                 .timestamp(System.currentTimeMillis())
-                .currentTokens(currentTokens)
-                .totalTokens(totalTokens.get())
+                .currentTokens(current)
+                .totalTokens(total)
                 .isCompleted(status.isTerminated())
                 .build();
         log.info("【SSE事件】事件已发送: stage={}, message={}", phase.getGenerateStage(), message);
@@ -52,23 +56,26 @@ public class EventPublisher {
 
     public void publishFailure(AgentErrorType agentErrorType, String errorMessage) {
         agentRepository.markTaskFailed(taskId, agentErrorType, errorMessage);
-        publishEvent(GeneratePhase.FAIL, GenerateStatus.UNSOLVED, errorMessage, 0);
+        publishEvent(GeneratePhase.FAIL, GenerateStatus.UNSOLVED, errorMessage);
     }
 
     public void publishCanceled(AgentErrorType agentErrorType, String errorMessage) {
-        agentRepository.markTaskFailed(taskId, agentErrorType, errorMessage);
-        publishEvent(GeneratePhase.FAIL, GenerateStatus.CANCELED, errorMessage, 0);
+        agentRepository.markTaskCanceled(taskId);
+        publishEvent(GeneratePhase.FAIL, GenerateStatus.CANCELED, errorMessage);
     }
 
     public void publishProgress(String stage, String message) {
+        int total = totalTokens.get();
+        int current = total - lastPublishedTotal;
+        lastPublishedTotal = total;
         SseEvent sseEvent = SseEvent.builder()
                 .taskId(taskId)
                 .stage(stage)
                 .status(GenerateStatus.PROCESSING.name())
                 .message(message)
                 .timestamp(System.currentTimeMillis())
-                .currentTokens(0)
-                .totalTokens(totalTokens.get())
+                .currentTokens(current)
+                .totalTokens(total)
                 .isCompleted(false)
                 .build();
         log.info("【SSE事件】事件已发送: stage={}, message={}", stage, message);

@@ -8,7 +8,7 @@ public interface IPromptUtil {
 
     String loadWebSearchPrompt();
 
-    String loadRewritterPrompt();
+    String loadRewriterPrompt();
 
     String loadPrompt(String path) throws IOException;
 

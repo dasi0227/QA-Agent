@@ -1,7 +1,5 @@
 package com.dasi.qa.agent.domain.agent.service.generate;
 
-import com.dasi.qa.agent.domain.agent.model.sse.EventPublisher;
-import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
@@ -14,9 +12,12 @@ import com.dasi.qa.agent.domain.agent.service.generate.model.exception.GenerateE
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.*;
 import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentFactory;
+import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSaver;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import com.dasi.qa.agent.domain.agent.service.generate.support.RagEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.generate.support.WebEvidenceProvider;
+import com.dasi.qa.agent.domain.agent.service.shared.EventPublisher;
+import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
@@ -25,6 +26,7 @@ import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
+import dev.langchain4j.agentic.scope.ResultWithAgenticScope;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
@@ -37,7 +39,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,6 +47,7 @@ import java.util.function.Consumer;
 
 @Service
 @Slf4j
+@SuppressWarnings("unchecked")
 public class GenerateAgent implements IGenerateAgent {
 
     private static final int BATCH_SIZE = 10;
@@ -59,6 +62,7 @@ public class GenerateAgent implements IGenerateAgent {
     private final UserLlmModelProvider userLlmModelProvider;
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
+    private final GenerateSaver generateSaver;
 
     public GenerateAgent(IJsonUtil jsonUtil,
                          IPromptUtil promptUtil,
@@ -68,7 +72,8 @@ public class GenerateAgent implements IGenerateAgent {
                          RagEvidenceProvider ragEvidenceProvider,
                          WebEvidenceProvider webEvidenceProvider,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
-                         @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
+                         @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor,
+                         GenerateSaver generateSaver) {
         this.jsonUtil = jsonUtil;
         this.promptUtil = promptUtil;
         this.agentRepository = agentRepository;
@@ -78,47 +83,7 @@ public class GenerateAgent implements IGenerateAgent {
         this.webEvidenceProvider = webEvidenceProvider;
         this.supervisorChatModel = supervisorModel;
         this.applicationTaskExecutor = applicationTaskExecutor;
-    }
-
-    /**
-     * 模拟生成流程，推送与真实链路一致的 SSE 事件，并写入 DB 供前端开发测试。
-     */
-    @Override
-    public void executeTest(String userId, CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler) {
-        String taskId = "mock-" + UUID.randomUUID().toString().substring(0, 8);
-        AtomicInteger totalTokens = new AtomicInteger(0);
-        EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, userId, sseEventHandler, totalTokens, jsonUtil);
-
-        UserProfileAllowVO allow = agentRepository.getUserProfileAllow(userId);
-        agentRepository.createGenerationTask(taskId, userId, request, allow);
-
-        try {
-            eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建", 0);
-            Thread.sleep(10000);
-            eventPublisher.publishEvent(GeneratePhase.DECIDE, GenerateStatus.PROCESSING, "您的需求符合技术面试问答集生成场景，系统已确认进入生成流程。", 120);
-            Thread.sleep(2000);
-            eventPublisher.publishEvent(GeneratePhase.PLAN, GenerateStatus.PROCESSING, "计划覆盖 Redis、JVM、Spring 三大核心模块，共规划 10 道题目，难度分布均衡。", 350);
-            Thread.sleep(2000);
-
-            eventPublisher.publishEvent(GeneratePhase.DRAFT, GenerateStatus.PROCESSING, "已生成 4 道 Redis 核心题目，覆盖跳表、持久化 RDB/AOF、缓存淘汰策略、数据结构对比。", 850);
-            Thread.sleep(4800);
-            eventPublisher.publishEvent(GeneratePhase.DRAFT, GenerateStatus.PROCESSING, "已生成 3 道 JVM 模块题目，涉及类加载机制、GC 算法选择、JMM 内存模型与并发。", 680);
-            Thread.sleep(3600);
-            eventPublisher.publishEvent(GeneratePhase.DRAFT, GenerateStatus.PROCESSING, "已生成 3 道 Spring 模块题目，涵盖 IoC 与 AOP 原理、事务传播机制、循环依赖解决方案。", 620);
-            Thread.sleep(5000);
-
-            eventPublisher.publishEvent(GeneratePhase.EVALUATE, GenerateStatus.PROCESSING, "已完成首轮审校，8 题通过，2 题需修订。修订项：Redis 缓存淘汰策略、JVM GC 算法对比。", 420);
-            Thread.sleep(2500);
-            eventPublisher.publishEvent(GeneratePhase.AMEND, GenerateStatus.PROCESSING, "已完成 2 道题目的修订。", 380);
-            Thread.sleep(1500);
-            eventPublisher.publishEvent(GeneratePhase.EVALUATE, GenerateStatus.PROCESSING, "已完成修订后复审，全部 10 题通过。", 310);
-            Thread.sleep(1500);
-
-            eventPublisher.publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, "共生成 10 道技术面试题，全部通过审校，覆盖 Redis、JVM、Spring 三大模块。", 0);
-            agentRepository.markTaskCompleted(taskId, null);
-        } catch (Exception e) {
-            log.error("【生成问答集】测试模拟生成异常", e);
-        }
+        this.generateSaver = generateSaver;
     }
 
     /**
@@ -153,7 +118,7 @@ public class GenerateAgent implements IGenerateAgent {
         EventPublisher eventPublisher = new EventPublisher(agentRepository, taskId, userId, sseEventHandler, totalTokens, jsonUtil);
 
         // 发送任务创建事件
-        eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建", 0);
+        eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建");
 
         try {
             // 读取并构建用户专属模型
@@ -212,7 +177,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .taskId(taskId)
                     .userId(userId)
                     .request(request)
-                    .executor(Executors.newFixedThreadPool(3))
+                    .executor(applicationTaskExecutor)
                     .ragEvidenceProvider(ragEvidenceProvider)
                     .webEvidenceProvider(Boolean.TRUE.equals(allow.getAllowWebSearch()) ? webEvidenceProvider : null)
                     .targetCompany(info.getTargetCompany() != null ? info.getTargetCompany() : "")
@@ -243,7 +208,13 @@ public class GenerateAgent implements IGenerateAgent {
             );
 
             // 执行智能体
-            generateAgent.invoke(initialData);
+            ResultWithAgenticScope<?> dagResult = generateAgent.invokeWithAgenticScope(initialData);
+
+            // 落库并标记完成
+            generateSaver.save(dagResult.agenticScope(), taskId, userId, request);
+
+            // 发送终态完成事件
+            eventPublisher.publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, "问答集生成完成");
         }
         // 已知业务异常：按类型发布失败事件
         catch (GenerateException exception) {
@@ -673,12 +644,12 @@ public class GenerateAgent implements IGenerateAgent {
     }
 
     /**
-     * SummarizeAgent 负责落库最终问答集并生成完成说明。
+     * SummarizeAgent 负责生成完成说明并写入 scope。
      */
     private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext summarizeContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(summarizeContext.getTaskId(), GeneratePhase.SUMMARIZE);
-        summarizeContext.getEventPublisher().publishEvent(GeneratePhase.SUMMARIZE, GenerateStatus.PROCESSING, "💾 正在保存问答集...", 0);
+        summarizeContext.getEventPublisher().publishEvent(GeneratePhase.SUMMARIZE, GenerateStatus.PROCESSING, "正在生成完成摘要...");
 
         // 2. 计划结果
         PlanResult planResult = readPlanResult(scope);
@@ -686,16 +657,7 @@ public class GenerateAgent implements IGenerateAgent {
         // 3. 生成结果
         List<DraftResult> validatedResult = readValidateResult(scope);
 
-        // 4. 保存 QA Set
-        String qaSetId = agentRepository.saveGeneratedQaSet(
-                summarizeContext.getTaskId(),
-                summarizeContext.getUserId(),
-                summarizeContext.getRequest(),
-                planResult,
-                validatedResult
-        );
-
-        // 5. 解析结果
+        // 4. 解析结果
         int requiredCount = summarizeContext.getRequest().getRequestedQuestionCount();
         int generatedCount = validatedResult.size();
         String modules = planResult.getPlanItems().stream()
@@ -710,7 +672,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
 
-        // 6. 调用智能体
+        // 5. 调用智能体
         String summaryMessage;
         try {
             summaryMessage = summarizeAgent.summarize(
@@ -718,7 +680,7 @@ public class GenerateAgent implements IGenerateAgent {
                     summarizeContext.getRequest().getUserPrompt(),
                     summarizeContext.getRequest().getJobDescription(),
                     summarizeContext.getUserProfileJson(),
-                    summarizeContext.getRequest().getTitle(),
+                    planResult.getTitle() != null && !planResult.getTitle().isEmpty() ? planResult.getTitle() : summarizeContext.getRequest().getTitle(),
                     planResult.getDescription() != null ? planResult.getDescription() : "",
                     requiredCount,
                     generatedCount,
@@ -731,9 +693,8 @@ public class GenerateAgent implements IGenerateAgent {
             summaryMessage = fallbackSummarize(requiredCount, generatedCount, modules, tags);
         }
 
-        // 7. 标记任务完成
-        agentRepository.markTaskCompleted(summarizeContext.getTaskId(), qaSetId);
-        summarizeContext.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage, 0);
+        // 6. 发送消息
+        summarizeContext.getEventPublisher().publishEvent(GeneratePhase.COMPLETE, GenerateStatus.SOLVED, summaryMessage);
     }
 
     private DecideResult fallbackDecide() {
@@ -795,12 +756,10 @@ public class GenerateAgent implements IGenerateAgent {
         return (PlanResult) scope.readState(GeneratePhase.PLAN.getScopeKey());
     }
 
-    @SuppressWarnings("unchecked")
     private List<DraftResult> readValidateResult(AgenticScope scope) {
         return (List<DraftResult>) scope.readState(GeneratePhase.VALIDATE.getScopeKey());
     }
 
-    @SuppressWarnings("unchecked")
     private List<DraftResult> readDraftResult(AgenticScope scope) {
         return (List<DraftResult>) scope.readState(GeneratePhase.WRITE.getScopeKey());
     }

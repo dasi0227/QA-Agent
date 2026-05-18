@@ -87,7 +87,7 @@ public class RagSearchService implements IRagSearchService {
     private String rewrite(String query) {
         try {
             String rewritten = rewriterModel.chat(
-                    SystemMessage.from(promptUtil.loadRewritterPrompt()),
+                    SystemMessage.from(promptUtil.loadRewriterPrompt()),
                     UserMessage.from(query)
             ).aiMessage().text().trim();
             return rewritten;

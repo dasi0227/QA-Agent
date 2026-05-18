@@ -14,11 +14,11 @@ public class PromptUtil implements IPromptUtil {
 
     public static final String SUPERVISOR_PROMPT_PATH = "prompt/generate/supervisor-summary.txt";
     public static final String WEBSEARCH_PROMPT_PATH = "prompt/generate/web-search.txt";
-    public static final String REWRITTER_PROMPT_PATH = "prompt/query-rewrite.txt";
+    public static final String REWRITER_PROMPT_PATH = "prompt/query-rewrite.txt";
 
     private static final String SUPERVISOR_PROMPT_FALLBACK = "你是生成链路监督助手。请根据给定阶段与产出，输出一句简洁中文进度总结，不要编造不存在的信息。";
     private static final String WEB_SEARCH_PROMPT_FALLBACK = "你是面试信息检索助手。请基于用户查询返回结构化、可验证的面试经验要点，不要输出与查询无关内容。";
-    private static final String REWRITTER_PROMPT_FALLBACK = "你是一个检索查询优化器，将用户问题改写为更适合向量检索和关键词检索的查询文本，只输出改写文本，不加任何前缀、引号或解释。";
+    private static final String REWRITER_PROMPT_FALLBACK = "你是一个检索查询优化器，将用户问题改写为更适合向量检索和关键词检索的查询文本，只输出改写文本，不加任何前缀、引号或解释。";
 
     @Override
     public String loadSupervisorPrompt() {
@@ -39,11 +39,11 @@ public class PromptUtil implements IPromptUtil {
     }
 
     @Override
-    public String loadRewritterPrompt() {
+    public String loadRewriterPrompt() {
         try {
-            return loadPrompt(REWRITTER_PROMPT_PATH);
+            return loadPrompt(REWRITER_PROMPT_PATH);
         } catch (IOException e) {
-            return REWRITTER_PROMPT_FALLBACK;
+            return REWRITER_PROMPT_FALLBACK;
         }
     }
 

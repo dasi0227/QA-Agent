@@ -36,6 +36,8 @@ public interface IAgentRepository {
 
     void markTaskFailed(String taskId, AgentErrorType agentErrorType, String errorMessage);
 
+    void markTaskCanceled(String taskId);
+
     void appendTaskMessage(String taskId, String userId, String stage, String message, String content);
 
     TaskStatusResponse getTaskStatus(String taskId, String userId);

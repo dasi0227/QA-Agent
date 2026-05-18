@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.generate.model.context;
 
-import com.dasi.qa.agent.domain.agent.model.sse.EventPublisher;
+import com.dasi.qa.agent.domain.agent.service.shared.EventPublisher;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

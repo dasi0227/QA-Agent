@@ -47,7 +47,7 @@ public class AssessSaver {
                 .weaknesses(toAssessmentPoints(diagnoseResult == null ? null : diagnoseResult.getWeaknesses()))
                 .build();
         AssessStats stats = context.getStats();
-        List<MemoryClueResult> memoryClues = recordResult.getClues() == null ? List.of() : recordResult.getClues();
+        List<MemoryClueResult> memoryClues = recordResult == null || recordResult.getClues() == null ? List.of() : recordResult.getClues();
         AssessSaveCommand command = AssessSaveCommand.builder()
                 .score(stats.getScore())
                 .accuracy(stats.getAccuracy())

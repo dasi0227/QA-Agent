@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum FeedbackPhase {
-    FEEDBACK("FeedbackAgent", "执行单题反馈链路。", "feedbackResult"),
+    FEEDBACK("FeedbackAgent", "执行单题反馈链路。", null),
     HINT("HintAgent", "用户不会时生成记忆技巧和情绪支持。", "hintResult"),
     JUDGE("JudgeAgent", "用户有效作答时判定回答质量并生成反馈。", "judgeResult");
 

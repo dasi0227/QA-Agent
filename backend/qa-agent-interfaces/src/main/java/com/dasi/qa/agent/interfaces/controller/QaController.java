@@ -2,22 +2,17 @@ package com.dasi.qa.agent.interfaces.controller;
 
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
+import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.qa.service.crud.IQaCrudService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
+import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
-import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
-import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
-import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
-import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
-import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
-import com.dasi.qa.agent.domain.agent.model.sse.SseEvent;
-import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
+import com.dasi.qa.agent.types.dto.response.qa.*;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -78,19 +73,6 @@ public class QaController {
         String userId = contextUtil.getUserId();
         applicationTaskExecutor.execute(() -> generationAgent.execute(userId, request, sseEventHandler));
 
-        return emitter;
-    }
-
-    @Profile("dev")
-    @PostMapping("/set/create/test")
-    public SseEmitter qaSetCreateTest(@RequestBody @Valid CreateQaSetRequest request) {
-        SseEmitter emitter = new SseEmitter(120000L);
-        emitter.onTimeout(emitter::complete);
-        emitter.onError(emitter::completeWithError);
-
-        Consumer<SseEvent> sseEventHandler = new SseEventHandler(emitter);
-        String userId = contextUtil.getUserId();
-        applicationTaskExecutor.execute(() -> generationAgent.executeTest(userId, request, sseEventHandler));
         return emitter;
     }
 

@@ -151,6 +151,15 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
+    public void markTaskCanceled(String taskId) {
+        QaGenerationTask entity = requireTask(taskId);
+        entity.setStatus(GenerateStatus.CANCELED.name());
+        entity.setStage(GeneratePhase.FAIL.getGenerateStage());
+        entity.setCompletedAt(LocalDateTime.now());
+        taskMapper.updateById(entity);
+    }
+
+    @Override
     public void appendTaskMessage(String taskId, String userId, String stage, String message, String content) {
         QaGenerationTaskMessage entity = new QaGenerationTaskMessage();
         entity.setId(UUID.randomUUID().toString());

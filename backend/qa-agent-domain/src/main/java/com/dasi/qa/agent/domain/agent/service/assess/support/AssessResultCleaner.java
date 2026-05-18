@@ -19,9 +19,12 @@ import java.util.List;
 @Component
 public class AssessResultCleaner {
 
-    private static final int MAX_POINTS = 5;
+    private static final int MAX_POINTS = 3;
 
     public DiagnoseResult cleanDiagnosis(DiagnoseResult result) {
+        if (result == null) {
+            return null;
+        }
         return DiagnoseResult.builder()
                 .strengths(cleanDiagnoseItems(result.getStrengths()))
                 .weaknesses(cleanDiagnoseItems(result.getWeaknesses()))
@@ -49,6 +52,9 @@ public class AssessResultCleaner {
     }
 
     public AdviseResult cleanAdvise(AdviseResult result) {
+        if (result == null || result.getOverallComment() == null || result.getReviewGuidance() == null) {
+            return null;
+        }
         return AdviseResult.builder()
                 .overallComment(result.getOverallComment().trim())
                 .reviewGuidance(result.getReviewGuidance().trim())
