@@ -9,18 +9,20 @@ import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class QaCrudService implements IQaCrudService {
 
     private final IQaRepository repository;
     private final IContextUtil contextUtil;
+    private final IIdUtil idUtil;
 
-    public QaCrudService(IQaRepository repository, IContextUtil contextUtil) {
+    public QaCrudService(IQaRepository repository, IContextUtil contextUtil, IIdUtil idUtil) {
         this.repository = repository;
         this.contextUtil = contextUtil;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -56,7 +58,7 @@ public class QaCrudService implements IQaCrudService {
     @Override
     public QaItemResponse createQaItem(QaItemRequest request) {
         if (!StringUtils.hasText(request.getId())) {
-            request.setId(UUID.randomUUID().toString());
+            request.setId(idUtil.nextId());
         }
         return repository.createQaItem(request, currentUserId());
     }

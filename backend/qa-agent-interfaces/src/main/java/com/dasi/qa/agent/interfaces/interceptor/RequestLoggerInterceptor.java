@@ -12,9 +12,10 @@ public class RequestLoggerInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String uri = request.getRequestURI();
-        log.info("【请求】请求进入: uri={}", uri);
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+        log.info("【请求】请求进入: uri={}", request.getRequestURI());
         return true;
     }
-
 }

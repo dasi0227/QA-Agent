@@ -24,8 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.Random;
-import java.util.UUID;
 
 @Service
 public class AuthService implements IAuthService {
@@ -37,13 +37,15 @@ public class AuthService implements IAuthService {
     private final IOssUtil ossUtil;
     private final IRedisUtil redisUtil;
     private final IEmailUtil emailUtil;
+    private final IIdUtil idUtil;
 
     @Value("${qa-agent.avatar.default-url:}")
     private String defaultAvatarUrl;
 
     public AuthService(IIdentityRepository identityRepository, PasswordEncoder passwordEncoder,
                        IJwtUtil IJwtUtil, IContextUtil contextUtil, IOssUtil ossUtil,
-                       IRedisUtil redisUtil, IEmailUtil emailUtil) {
+                       IRedisUtil redisUtil, IEmailUtil emailUtil,
+                       IIdUtil idUtil) {
         this.identityRepository = identityRepository;
         this.passwordEncoder = passwordEncoder;
         this.IJwtUtil = IJwtUtil;
@@ -51,6 +53,7 @@ public class AuthService implements IAuthService {
         this.ossUtil = ossUtil;
         this.redisUtil = redisUtil;
         this.emailUtil = emailUtil;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -71,7 +74,7 @@ public class AuthService implements IAuthService {
         }
         redisUtil.delete(codeKey);
         UserAccountRequest accountRequest = new UserAccountRequest();
-        accountRequest.setId(UUID.randomUUID().toString());
+        accountRequest.setId(idUtil.nextId());
         accountRequest.setUsername(request.getUsername());
         accountRequest.setEmail(request.getEmail());
         accountRequest.setPassword(passwordEncoder.encode(request.getPassword()));

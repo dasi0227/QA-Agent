@@ -9,18 +9,20 @@ import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class PracticeCrudService implements IPracticeCrudService {
 
     private final IPracticeRepository repository;
     private final IContextUtil contextUtil;
+    private final IIdUtil idUtil;
 
-    public PracticeCrudService(IPracticeRepository repository, IContextUtil contextUtil) {
+    public PracticeCrudService(IPracticeRepository repository, IContextUtil contextUtil, IIdUtil idUtil) {
         this.repository = repository;
         this.contextUtil = contextUtil;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -36,7 +38,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     public PracticeSessionResponse createPracticeSession(PracticeSessionRequest request) {
         if (!StringUtils.hasText(request.getId())) {
-            request.setId(UUID.randomUUID().toString());
+            request.setId(idUtil.nextId());
         }
         return repository.createPracticeSession(request, currentUserId());
     }
@@ -64,7 +66,7 @@ public class PracticeCrudService implements IPracticeCrudService {
     @Override
     public PracticeSessionItemResponse createPracticeSessionItem(PracticeSessionItemRequest request) {
         if (!StringUtils.hasText(request.getId())) {
-            request.setId(UUID.randomUUID().toString());
+            request.setId(idUtil.nextId());
         }
         return repository.createPracticeSessionItem(request, currentUserId());
     }

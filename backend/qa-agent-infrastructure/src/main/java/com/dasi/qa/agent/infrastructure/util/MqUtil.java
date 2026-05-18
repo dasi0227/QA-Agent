@@ -1,6 +1,7 @@
 package com.dasi.qa.agent.infrastructure.util;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJob;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
@@ -10,7 +11,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -19,11 +19,14 @@ public class MqUtil implements IMqUtil {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final MessageJobMapper messageJobMapper;
+    private final IIdUtil idUtil;
 
     public MqUtil(KafkaTemplate<String, String> kafkaTemplate,
-                  MessageJobMapper messageJobMapper) {
+                  MessageJobMapper messageJobMapper,
+                  IIdUtil idUtil) {
         this.kafkaTemplate = kafkaTemplate;
         this.messageJobMapper = messageJobMapper;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -40,7 +43,7 @@ public class MqUtil implements IMqUtil {
         } else {
             // first send: insert
             MessageJob job = MessageJob.builder()
-                    .id(UUID.randomUUID().toString())
+                    .id(idUtil.nextId())
                     .jobId(jobId)
                     .jobStatus(JobStatus.UNSOLVED.name())
                     .jobRetry(0)

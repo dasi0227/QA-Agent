@@ -17,9 +17,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 资料索引服务，执行切片、摘要生成、向量化并同步写入 MySQL 和 PostgreSQL 检索引擎。
@@ -34,19 +34,22 @@ public class IndexService implements IIndexService {
     private final ChatModel summarizerModel;
     private final IPromptUtil promptUtil;
     private final IJsonUtil jsonUtil;
+    private final IIdUtil idUtil;
 
     public IndexService(IDocumentRepository documentRepository,
                         MarkdownChunker markdownChunker,
                         IDashScopeService IDashScopeService,
                         @Qualifier("summarizerModel") ChatModel summarizerModel,
                         IPromptUtil promptUtil,
-                        IJsonUtil jsonUtil) {
+                        IJsonUtil jsonUtil,
+                        IIdUtil idUtil) {
         this.documentRepository = documentRepository;
         this.markdownChunker = markdownChunker;
         this.IDashScopeService = IDashScopeService;
         this.summarizerModel = summarizerModel;
         this.promptUtil = promptUtil;
         this.jsonUtil = jsonUtil;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -72,7 +75,7 @@ public class IndexService implements IIndexService {
         log.info("【文本嵌入】资料切片完成: documentId={}, chunkCount={}", documentId, drafts.size());
 
         for (ChunkDraft draft : drafts) {
-            draft.setChunkId(UUID.randomUUID().toString());
+            draft.setChunkId(idUtil.nextId());
         }
 
         // 批量生成所有切片的摘要

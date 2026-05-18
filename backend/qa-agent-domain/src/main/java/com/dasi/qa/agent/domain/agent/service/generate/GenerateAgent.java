@@ -19,6 +19,7 @@ import com.dasi.qa.agent.domain.agent.service.generate.support.WebEvidenceProvid
 import com.dasi.qa.agent.domain.agent.service.shared.EventPublisher;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
@@ -63,6 +64,7 @@ public class GenerateAgent implements IGenerateAgent {
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
     private final GenerateSaver generateSaver;
+    private final IIdUtil idUtil;
 
     public GenerateAgent(IJsonUtil jsonUtil,
                          IPromptUtil promptUtil,
@@ -73,7 +75,8 @@ public class GenerateAgent implements IGenerateAgent {
                          WebEvidenceProvider webEvidenceProvider,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor,
-                         GenerateSaver generateSaver) {
+                         GenerateSaver generateSaver,
+                         IIdUtil idUtil) {
         this.jsonUtil = jsonUtil;
         this.promptUtil = promptUtil;
         this.agentRepository = agentRepository;
@@ -84,6 +87,7 @@ public class GenerateAgent implements IGenerateAgent {
         this.supervisorChatModel = supervisorModel;
         this.applicationTaskExecutor = applicationTaskExecutor;
         this.generateSaver = generateSaver;
+        this.idUtil = idUtil;
     }
 
     /**
@@ -100,7 +104,7 @@ public class GenerateAgent implements IGenerateAgent {
     @Override
     public void execute(String userId, CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler) {
         // 生成本次任务唯一标识
-        String taskId = UUID.randomUUID().toString();
+        String taskId = idUtil.nextId();
 
         // 读取用户信息
         UserProfileInfoVO info = agentRepository.getUserProfileInfo(userId);

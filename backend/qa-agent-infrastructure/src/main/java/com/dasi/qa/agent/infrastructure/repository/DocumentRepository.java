@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.document.model.ChunkDraft;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunk;
@@ -42,7 +43,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Repository
 public class DocumentRepository implements IDocumentRepository {
@@ -50,13 +50,16 @@ public class DocumentRepository implements IDocumentRepository {
     private final SourceDocumentMapper sourceDocumentMapper;
     private final DocumentChunkMapper documentChunkMapper;
     private final JdbcTemplate postgresJdbc;
+    private final IIdUtil idUtil;
 
     public DocumentRepository(SourceDocumentMapper sourceDocumentMapper,
                               DocumentChunkMapper documentChunkMapper,
-                              @Qualifier("postgresDataSource") DataSource postgresDataSource) {
+                              @Qualifier("postgresDataSource") DataSource postgresDataSource,
+                              IIdUtil idUtil) {
         this.sourceDocumentMapper = sourceDocumentMapper;
         this.documentChunkMapper = documentChunkMapper;
         this.postgresJdbc = new JdbcTemplate(postgresDataSource);
+        this.idUtil = idUtil;
     }
 
     // ======================== existing methods ========================
@@ -139,7 +142,7 @@ public class DocumentRepository implements IDocumentRepository {
         // insert new chunks
         for (ChunkDraft draft : drafts) {
             DocumentChunk entity = new DocumentChunk();
-            entity.setId(draft.getChunkId() != null ? draft.getChunkId() : UUID.randomUUID().toString());
+            entity.setId(draft.getChunkId() != null ? draft.getChunkId() : idUtil.nextId());
             entity.setDocumentId(documentId);
             entity.setUserId(userId);
             entity.setChunkIndex(draft.getChunkIndex());

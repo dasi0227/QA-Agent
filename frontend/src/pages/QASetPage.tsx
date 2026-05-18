@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
+import { Field, TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
 import {
     useDeleteQuestionSetMutation,
@@ -26,11 +27,10 @@ const TAG_OPTIONS = [
 export function QASetPage() {
     const params = useParams();
     const navigate = useNavigate();
-    const [editingSetMeta, setEditingSetMeta] = useState(false);
     const [setTitleDraft, setSetTitleDraft] = useState("");
     const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
     const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false);
-    const [tagDialogOpen, setTagDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [selectedTagsDraft, setSelectedTagsDraft] = useState<string[]>([]);
 
     const questionSetsQuery = useQuestionSetsQuery();
@@ -66,6 +66,34 @@ export function QASetPage() {
         [selectedTagsDraft],
     );
     const firstItemId = itemList[0]?.id ?? "";
+
+    const openEditDialog = () => {
+        if (!selectedSetQuery.data) return;
+        setSetTitleDraft(selectedSetQuery.data.title);
+        setSetDescriptionDraft(selectedSetQuery.data.description);
+        setSelectedTagsDraft(parseModuleTags(selectedSetQuery.data.moduleTagsJson));
+        setEditDialogOpen(true);
+    };
+
+    const closeEditDialog = () => {
+        if (selectedSetQuery.data) {
+            setSetTitleDraft(selectedSetQuery.data.title);
+            setSetDescriptionDraft(selectedSetQuery.data.description);
+            setSelectedTagsDraft(parseModuleTags(selectedSetQuery.data.moduleTagsJson));
+        }
+        setEditDialogOpen(false);
+    };
+
+    const saveEditDialog = async () => {
+        if (!selectedSetQuery.data || !setTitleDraft.trim()) return;
+        await updateQuestionSetMutation.mutateAsync({
+            questionSetId: selectedSetQuery.data.id,
+            title: setTitleDraft.trim(),
+            description: setDescriptionDraft.trim(),
+            moduleTagsJson: JSON.stringify(selectedTagsDraft),
+        });
+        setEditDialogOpen(false);
+    };
 
     return (
         <div className="page-frame">
@@ -156,106 +184,16 @@ export function QASetPage() {
                             <>
                                 <div className="repository-header">
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div
-                                            style={{
-                                                minHeight: 72,
-                                                padding: editingSetMeta ? "14px 12px" : 0,
-                                                borderRadius: 22,
-                                                border: editingSetMeta ? "1px solid var(--line-strong)" : "1px solid transparent",
-                                                background: editingSetMeta ? "rgba(255,255,255,0.4)" : "transparent",
-                                            }}
-                                        >
-                                            {editingSetMeta ? (
-                                                <div style={{ display: "flex", alignItems: "center", gap: 10, height: 44 }}>
-                                                    <input
-                                                        value={setTitleDraft}
-                                                        onChange={(event) => {
-                                                            if (event.target.value.length <= 50) setSetTitleDraft(event.target.value);
-                                                        }}
-                                                        placeholder="输入问答集标题"
-                                                        maxLength={50}
-                                                        style={{
-                                                            flex: 1,
-                                                            minWidth: 0,
-                                                            height: 44,
-                                                            border: 0,
-                                                            outline: "none",
-                                                            fontSize: 34,
-                                                            fontWeight: 600,
-                                                            letterSpacing: "-0.05em",
-                                                            lineHeight: "44px",
-                                                            fontFamily: "var(--font-serif)",
-                                                            color: "var(--ink)",
-                                                            background: "transparent",
-                                                            padding: 0,
-                                                        }}
-                                                    />
-                                                    <span style={{ flexShrink: 0, fontSize: 11, color: "var(--ink-faint)", fontFamily: "var(--font-sans)" }}>
-                                                        {setTitleDraft.length}/50
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <h1 className="hero-title" style={{ fontSize: 34, margin: 0 }}>
-                                                    {selectedSetQuery.data.title}
-                                                </h1>
-                                            )}
-                                        </div>
-                                        <div
-                                            style={{
-                                                height: editingSetMeta ? 200 : undefined,
-                                                minHeight: 64,
-                                                marginTop: 12,
-                                                padding: editingSetMeta ? "8px 12px 28px" : 0,
-                                                borderRadius: 22,
-                                                border: editingSetMeta ? "1px solid var(--line-strong)" : "1px solid transparent",
-                                                background: editingSetMeta ? "rgba(255,255,255,0.4)" : "transparent",
-                                            }}
-                                        >
-                                            {editingSetMeta ? (
-                                                <div style={{ position: "relative", height: "100%" }}>
-                                                    <textarea
-                                                        value={setDescriptionDraft}
-                                                        onChange={(event) => {
-                                                            if (event.target.value.length <= 300) setSetDescriptionDraft(event.target.value);
-                                                        }}
-                                                        placeholder="输入问答集描述"
-                                                        maxLength={300}
-                                                        style={{
-                                                            width: "100%",
-                                                            height: "100%",
-                                                            border: 0,
-                                                            outline: "none",
-                                                            fontSize: 15,
-                                                            lineHeight: 1.75,
-                                                            fontFamily: "var(--font-serif)",
-                                                            color: "var(--ink-soft)",
-                                                            background: "transparent",
-                                                            padding: 0,
-                                                            resize: "none",
-                                                        }}
-                                                    />
-                                                    <span style={{ position: "absolute", right: 0, bottom: -22, fontSize: 11, color: "var(--ink-faint)", fontFamily: "var(--font-sans)" }}>
-                                                        {setDescriptionDraft.length}/300
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <p className="page-copy" style={{ margin: 0 }}>
-                                                    {selectedSetDescription || "本问答集用于维护训练资产，支持逐题打磨问题、知识笔记和标准答案。"}
-                                                </p>
-                                            )}
-                                        </div>
+                                        <h1 className="hero-title" style={{ fontSize: 34, margin: 0 }}>
+                                            {selectedSetQuery.data.title}
+                                        </h1>
+                                        <p className="page-copy" style={{ margin: "12px 0 0" }}>
+                                            {selectedSetDescription || "本问答集用于维护训练资产，支持逐题打磨问题、知识笔记和标准答案。"}
+                                        </p>
                                         <div className="repository-header__tags" style={{ marginTop: 12 }}>
                                             {selectedTags.map((tag) => (
                                                 <Tag key={tag}>{tag}</Tag>
                                             ))}
-                                            <button
-                                                type="button"
-                                                className="repository-tag-add"
-                                                aria-label="管理标签"
-                                                onClick={() => setTagDialogOpen(true)}
-                                            >
-                                                <Plus size={14} />
-                                            </button>
                                         </div>
                                     </div>
                                     <section className="repository-overview-card">
@@ -291,48 +229,9 @@ export function QASetPage() {
                                     >
                                         题目详情
                                     </LinkButton>
-                                    {editingSetMeta ? (
-                                        <>
-                                            <BaseButton
-                                                variant="ghost"
-                                                type="button"
-                                                disabled={updateQuestionSetMutation.isPending || !setTitleDraft.trim()}
-                                                onClick={async () => {
-                                                    await updateQuestionSetMutation.mutateAsync({
-                                                        questionSetId: selectedSetQuery.data.id,
-                                                        title: setTitleDraft.trim(),
-                                                        description: setDescriptionDraft.trim(),
-                                                    });
-                                                    setEditingSetMeta(false);
-                                                }}
-                                            >
-                                                {updateQuestionSetMutation.isPending ? "保存中" : "保存"}
-                                            </BaseButton>
-                                            <BaseButton
-                                                variant="ghost"
-                                                type="button"
-                                                onClick={() => {
-                                                    setEditingSetMeta(false);
-                                                    setSetTitleDraft(selectedSetQuery.data.title);
-                                                    setSetDescriptionDraft(selectedSetQuery.data.description);
-                                                }}
-                                            >
-                                                取消
-                                            </BaseButton>
-                                        </>
-                                    ) : (
-                                        <BaseButton
-                                            variant="soft"
-                                            type="button"
-                                            onClick={() => {
-                                                setSetTitleDraft(selectedSetQuery.data.title);
-                                                setSetDescriptionDraft(selectedSetQuery.data.description);
-                                                setEditingSetMeta(true);
-                                            }}
-                                        >
-                                            编辑信息
-                                        </BaseButton>
-                                    )}
+                                    <BaseButton variant="soft" type="button" onClick={openEditDialog}>
+                                        编辑信息
+                                    </BaseButton>
                                     <BaseButton
                                         variant="outline"
                                         type="button"
@@ -371,16 +270,16 @@ export function QASetPage() {
                                                             className={cn("repository-item-card")}
                                                         >
                                                             <strong>{item.question}</strong>
-                                                            {item.moduleTag?.trim() ? (
-                                                                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                                                                    {item.moduleTag.split(",").map((tag) => tag.trim()).filter(Boolean).map((tag) => (
-                                                                        <Tag key={tag}>{tag}</Tag>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <span>{item.moduleTag}</span>
-                                                            )}
-                                                            <small>{item.difficulty || "未标注难度"}</small>
+                                                            <div className="repository-item-card__meta">
+                                                                <small>{item.difficulty || "未标注难度"}</small>
+                                                                {item.moduleTag?.trim() ? (
+                                                                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                                                        {item.moduleTag.split(",").map((tag) => tag.trim()).filter(Boolean).map((tag) => (
+                                                                            <Tag key={tag}>{tag}</Tag>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : null}
+                                                            </div>
                                                         </Link>
                                                     ))}
                                                 </div>
@@ -419,19 +318,45 @@ export function QASetPage() {
                 onCancel={() => setDeleteSetDialogOpen(false)}
             />
 
-            {tagDialogOpen ? (
-                <div className="doc-select-dialog" role="presentation" onClick={() => setTagDialogOpen(false)}>
-                    <div className="tag-dialog__card" role="dialog" aria-modal="true" aria-label="选择标签" onClick={(event) => event.stopPropagation()}>
+            {editDialogOpen ? (
+                <div className="doc-select-dialog" role="presentation" onClick={closeEditDialog}>
+                    <div className="question-edit-dialog" role="dialog" aria-modal="true" aria-label="编辑问答集信息" onClick={(event) => event.stopPropagation()}>
                         <div className="doc-select-dialog__header">
-                            <h3 className="doc-select-dialog__title">管理问答集标签</h3>
-                            <button type="button" className="doc-select-dialog__close" onClick={() => setTagDialogOpen(false)}>
+                            <h3 className="doc-select-dialog__title">编辑信息</h3>
+                            <button type="button" className="doc-select-dialog__close" onClick={closeEditDialog}>
                                 <X size={16} />
                             </button>
                         </div>
-                        <div className="tag-dialog__body">
+
+                        <div className="question-edit-dialog__body">
+                            <Field label="题目">
+                                <input
+                                    className="input"
+                                    value={setTitleDraft}
+                                    onChange={(event) => {
+                                        if (event.target.value.length <= 50) setSetTitleDraft(event.target.value);
+                                    }}
+                                    placeholder="输入问答集标题"
+                                    maxLength={50}
+                                />
+                            </Field>
+
+                            <Field label="描述">
+                                <TextArea
+                                    className="question-edit-dialog__textarea"
+                                    value={setDescriptionDraft}
+                                    onChange={(event) => {
+                                        if (event.target.value.length <= 300) setSetDescriptionDraft(event.target.value);
+                                    }}
+                                    placeholder="输入问答集描述"
+                                    maxLength={300}
+                                    rows={5}
+                                />
+                            </Field>
+
                             <section className="tag-dialog__section">
                                 <div className="tag-dialog__section-head">
-                                    <strong>已选标签</strong>
+                                    <strong>模块标签</strong>
                                     <span>{selectedTagsDraft.length} 个</span>
                                 </div>
                                 <div className="tag-dialog__selected-list">
@@ -451,11 +376,6 @@ export function QASetPage() {
                                         <div className="tag-dialog__empty">还没有选择标签</div>
                                     )}
                                 </div>
-                            </section>
-                            <section className="tag-dialog__section">
-                                <div className="tag-dialog__section-head">
-                                    <strong>标签池</strong>
-                                </div>
                                 <div className="tag-dialog__pool">
                                     {availableTags.map((tag) => (
                                         <button
@@ -473,29 +393,17 @@ export function QASetPage() {
                         <div className="modal-card__footer">
                             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                                 <BaseButton
-                                    variant="soft"
+                                    variant="primary"
                                     type="button"
-                                    disabled={updateQuestionSetMutation.isPending}
-                                    onClick={async () => {
-                                        if (!selectedSetQuery.data) return;
-                                        await updateQuestionSetMutation.mutateAsync({
-                                            questionSetId: selectedSetQuery.data.id,
-                                            title: selectedSetQuery.data.title,
-                                            description: selectedSetQuery.data.description,
-                                            moduleTagsJson: JSON.stringify(selectedTagsDraft),
-                                        });
-                                        setTagDialogOpen(false);
-                                    }}
+                                    disabled={updateQuestionSetMutation.isPending || !setTitleDraft.trim()}
+                                    onClick={saveEditDialog}
                                 >
-                                    {updateQuestionSetMutation.isPending ? "保存中" : "保存标签"}
+                                    {updateQuestionSetMutation.isPending ? "保存中" : "保存修改"}
                                 </BaseButton>
                                 <BaseButton
                                     variant="ghost"
                                     type="button"
-                                    onClick={() => {
-                                        setSelectedTagsDraft(selectedTags);
-                                        setTagDialogOpen(false);
-                                    }}
+                                    onClick={closeEditDialog}
                                 >
                                     取消
                                 </BaseButton>

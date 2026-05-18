@@ -13,8 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class ProfileCrudService implements IProfileCrudService {
@@ -22,11 +22,14 @@ public class ProfileCrudService implements IProfileCrudService {
     private final IIdentityRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final IContextUtil contextUtil;
+    private final IIdUtil idUtil;
 
-    public ProfileCrudService(IIdentityRepository repository, PasswordEncoder passwordEncoder, IContextUtil contextUtil) {
+    public ProfileCrudService(IIdentityRepository repository, PasswordEncoder passwordEncoder, IContextUtil contextUtil,
+                               IIdUtil idUtil) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.contextUtil = contextUtil;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -45,7 +48,7 @@ public class ProfileCrudService implements IProfileCrudService {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
         if (!StringUtils.hasText(request.getId())) {
-            request.setId(UUID.randomUUID().toString());
+            request.setId(idUtil.nextId());
         }
         request.setStatus(StringUtils.hasText(request.getStatus()) ? request.getStatus() : AccountStatus.ACTIVE.name());
         if (StringUtils.hasText(request.getPassword())) {

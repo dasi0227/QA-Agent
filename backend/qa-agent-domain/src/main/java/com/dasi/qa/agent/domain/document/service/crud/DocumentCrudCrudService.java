@@ -10,8 +10,8 @@ import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class DocumentCrudCrudService implements IDocumentCrudService {
@@ -19,13 +19,16 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     private final IDocumentRepository repository;
     private final IContextUtil contextUtil;
     private final IIndexService indexService;
+    private final IIdUtil idUtil;
 
     public DocumentCrudCrudService(IDocumentRepository repository,
                                    IContextUtil contextUtil,
-                                   IIndexService indexService) {
+                                   IIndexService indexService,
+                                   IIdUtil idUtil) {
         this.repository = repository;
         this.contextUtil = contextUtil;
         this.indexService = indexService;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -41,7 +44,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request) {
         if (!StringUtils.hasText(request.getId())) {
-            request.setId(UUID.randomUUID().toString());
+            request.setId(idUtil.nextId());
         }
         return repository.createSourceDocument(request, currentUserId());
     }
@@ -70,7 +73,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     @Override
     public DocumentChunkResponse createDocumentChunk(DocumentChunkRequest request) {
         if (!StringUtils.hasText(request.getId())) {
-            request.setId(UUID.randomUUID().toString());
+            request.setId(idUtil.nextId());
         }
         return repository.createDocumentChunk(request, currentUserId());
     }

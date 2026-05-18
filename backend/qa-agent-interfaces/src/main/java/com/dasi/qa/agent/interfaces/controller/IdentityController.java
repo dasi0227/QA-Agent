@@ -1,6 +1,7 @@
 package com.dasi.qa.agent.interfaces.controller;
 
 import com.dasi.qa.agent.domain.identity.service.crud.IProfileCrudService;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IOssUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -15,7 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import static com.dasi.qa.agent.types.constant.StringConstant.AVATAR_ROOT_PATH;
 
@@ -26,11 +26,14 @@ public class IdentityController {
     private final IProfileCrudService identityService;
     private final IOssUtil aliOssUtil;
     private final IContextUtil contextUtil;
+    private final IIdUtil idUtil;
 
-    public IdentityController(IProfileCrudService identityService, IOssUtil aliOssUtil, IContextUtil contextUtil) {
+    public IdentityController(IProfileCrudService identityService, IOssUtil aliOssUtil, IContextUtil contextUtil,
+                               IIdUtil idUtil) {
         this.identityService = identityService;
         this.aliOssUtil = aliOssUtil;
         this.contextUtil = contextUtil;
+        this.idUtil = idUtil;
     }
 
     @PostMapping("/account/update")
@@ -80,7 +83,7 @@ public class IdentityController {
         }
 
         byte[] bytes = file.getBytes();
-        String objectKey = AVATAR_ROOT_PATH + UUID.randomUUID() + "." + extension;
+        String objectKey = AVATAR_ROOT_PATH + idUtil.nextId() + "." + extension;
         aliOssUtil.upload(bytes, objectKey);
 
         UserAccountRequest updateRequest = new UserAccountRequest();

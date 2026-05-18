@@ -18,6 +18,7 @@ import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunk;
 import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSession;
 import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItem;
@@ -61,7 +62,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Repository
 public class AgentRepository implements IAgentRepository {
@@ -76,6 +76,7 @@ public class AgentRepository implements IAgentRepository {
     private final DocumentChunkMapper documentChunkMapper;
     private final PracticeSessionMapper practiceSessionMapper;
     private final PracticeSessionItemMapper practiceSessionItemMapper;
+    private final IIdUtil idUtil;
 
     public AgentRepository(QaGenerationTaskMapper taskMapper,
                            QaGenerationTaskMessageMapper taskMessageMapper,
@@ -86,7 +87,8 @@ public class AgentRepository implements IAgentRepository {
                            QaSetDocumentRefMapper qaSetDocumentRefMapper,
                            DocumentChunkMapper documentChunkMapper,
                            PracticeSessionMapper practiceSessionMapper,
-                           PracticeSessionItemMapper practiceSessionItemMapper) {
+                           PracticeSessionItemMapper practiceSessionItemMapper,
+                           IIdUtil idUtil) {
         this.taskMapper = taskMapper;
         this.taskMessageMapper = taskMessageMapper;
         this.userProfileMapper = userProfileMapper;
@@ -97,6 +99,7 @@ public class AgentRepository implements IAgentRepository {
         this.documentChunkMapper = documentChunkMapper;
         this.practiceSessionMapper = practiceSessionMapper;
         this.practiceSessionItemMapper = practiceSessionItemMapper;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -162,7 +165,7 @@ public class AgentRepository implements IAgentRepository {
     @Override
     public void appendTaskMessage(String taskId, String userId, String stage, String message, String content) {
         QaGenerationTaskMessage entity = new QaGenerationTaskMessage();
-        entity.setId(UUID.randomUUID().toString());
+        entity.setId(idUtil.nextId());
         entity.setUserId(userId);
         entity.setTaskId(taskId);
         entity.setStage(stage);
@@ -331,7 +334,7 @@ public class AgentRepository implements IAgentRepository {
     @CacheEvict(cacheNames = {RedisConstant.QA_SET_CACHE, RedisConstant.QA_ITEM_CACHE}, allEntries = true)
     public String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
                                      PlanResult planResult, List<DraftResult> draftResults) {
-        String qaSetId = UUID.randomUUID().toString();
+        String qaSetId = idUtil.nextId();
         QaSet qaSet = new QaSet();
         qaSet.setId(qaSetId);
         qaSet.setUserId(userId);
@@ -346,7 +349,7 @@ public class AgentRepository implements IAgentRepository {
         int sortOrder = 1;
         for (DraftResult draftResult : draftResults) {
             QaItem item = new QaItem();
-            item.setId(UUID.randomUUID().toString());
+            item.setId(idUtil.nextId());
             item.setQaSetId(qaSetId);
             item.setUserId(userId);
             item.setQuestion(draftResult.getQuestion());
@@ -363,7 +366,7 @@ public class AgentRepository implements IAgentRepository {
 
         for (String documentId : request.getDocumentIds()) {
             QaSetDocumentRef ref = new QaSetDocumentRef();
-            ref.setId(UUID.randomUUID().toString());
+            ref.setId(idUtil.nextId());
             ref.setQaSetId(qaSetId);
             ref.setDocumentId(documentId);
             ref.setCreatedAt(LocalDateTime.now());
