@@ -2470,6 +2470,7 @@ button {
   line-height: 1.85;
 }
 
+.status-card,
 .qa-feedback {
   display: grid;
   gap: 14px;

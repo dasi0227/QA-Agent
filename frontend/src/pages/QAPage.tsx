@@ -6,6 +6,7 @@ import { Chip, Tag } from "@/components/base/tag";
 import { Field, TextArea } from "@/components/base/field";
 import { GlassCard } from "@/components/base/card";
 import { cn } from "@/lib/cn";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const mockQuestion = {
     question: "请描述 Redis 的过期键删除策略，并说明惰性删除和定期删除各自解决了什么问题？",
@@ -23,19 +24,23 @@ export function QAPage() {
     const [revealed, setRevealed] = useState(false);
     const [answerText, setAnswerText] = useState("");
     const [submitted, setSubmitted] = useState(false);
+    const { showErrorDialog, showUnimplemented } = useGlobalErrorDialog();
 
     const handleSubmit = () => {
         if (answerText.trim().length < 12) {
-            alert("请至少写一点回答（最低 12 字）");
+            showErrorDialog({
+                title: "作答内容过短",
+                message: "请至少写一点回答（最低 12 字）。",
+            });
             return;
         }
-        alert("接口尚未实现");
+        showUnimplemented("提交答案链路尚未接入后端。");
     };
 
     const handleMarkUnknown = () => {
         setRevealed(true);
         setAnswerText("");
-        alert("接口尚未实现");
+        showUnimplemented("“不会”标记链路尚未接入后端。");
     };
 
     return (
@@ -86,7 +91,7 @@ export function QAPage() {
 
                 <p className="qa-text">{mockQuestion.hint}</p>
                 {supportHintVisible ? (
-                    <div className="qa-feedback" style={{ marginBottom: 18 }}>
+                    <div className="status-card" style={{ marginBottom: 18 }}>
                         <strong>提示</strong>
                         <div className="qa-text">
                             {mockQuestion.scoringRubric.answerStructure}
@@ -113,7 +118,7 @@ export function QAPage() {
                     </Field>
 
                     {revealed ? (
-                        <div className="qa-feedback">
+                        <div className="status-card">
                             <div className="sidebar__split">
                                 <strong>反馈</strong>
                                 <Chip>已提交</Chip>
@@ -147,14 +152,14 @@ export function QAPage() {
                                 variant="outline"
                                 type="button"
                                 disabled={submitted}
-                                onClick={() => alert("接口尚未实现")}
+                                onClick={() => showUnimplemented("下一题功能尚未接入后端。")}
                             >
                                 下一题
                             </BaseButton>
                             <BaseButton
                                 variant="soft"
                                 type="button"
-                                onClick={() => alert("接口尚未实现")}
+                                onClick={() => showUnimplemented("结束练习功能尚未接入后端。")}
                             >
                                 结束练习
                             </BaseButton>

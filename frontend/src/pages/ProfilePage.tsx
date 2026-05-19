@@ -1,15 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { z } from "zod";
-import Cropper, { type Area } from "react-easy-crop";
-import "react-easy-crop/react-easy-crop.css";
 import { BaseButton } from "@/components/base/button";
 import { Field, TextInput } from "@/components/base/field";
+import { LoadingCard } from "@/components/base/loading-card";
+import type { CropArea } from "@/components/profile/ProfileAvatarCropper";
 import { cn } from "@/lib/cn";
 import { clearAccessToken, useAuthState } from "@/lib/auth";
 import { useProfileQuery, useSaveProfileMutation, useUploadAvatarMutation } from "@/lib/api/hooks";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const profileSchema = z.object({
     targetRole: z.string().min(1, "请输入目标岗位"),
@@ -47,7 +48,13 @@ const defaultProfile: ProfileForm = {
     llmModelName: "",
 };
 
-function getCroppedImg(imageSrc: string, crop: Area): Promise<Blob> {
+const LazyProfileAvatarCropper = lazy(() =>
+    import("@/components/profile/ProfileAvatarCropper").then((module) => ({
+        default: module.ProfileAvatarCropper,
+    })),
+);
+
+function getCroppedImg(imageSrc: string, crop: CropArea): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const image = new Image();
         image.src = imageSrc;
@@ -89,6 +96,7 @@ export function ProfilePage() {
     const uploadAvatarMutation = useUploadAvatarMutation();
     const authState = useAuthState();
     const currentUser = authState.user;
+    const { showErrorDialog } = useGlobalErrorDialog();
 
     const form = useForm<ProfileForm>({
         resolver: zodResolver(profileSchema),
@@ -115,13 +123,16 @@ export function ProfilePage() {
     const [cropSrc, setCropSrc] = useState("");
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
-    const [croppedArea, setCroppedArea] = useState<Area | null>(null);
+    const [croppedArea, setCroppedArea] = useState<CropArea | null>(null);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
         if (!file.type.startsWith("image/")) {
-            alert("请选择图片文件");
+            showErrorDialog({
+                title: "文件类型错误",
+                message: "请选择图片文件后再上传头像。",
+            });
             return;
         }
         const url = URL.createObjectURL(file);
@@ -131,7 +142,7 @@ export function ProfilePage() {
         setCroppedArea(null);
     };
 
-    const handleCropComplete = useCallback((_: Area, cropped: Area) => {
+    const handleCropComplete = useCallback((_: CropArea, cropped: CropArea) => {
         setCroppedArea(cropped);
     }, []);
 
@@ -143,7 +154,10 @@ export function ProfilePage() {
             setAvatarPreview(URL.createObjectURL(blob));
             await uploadAvatarMutation.mutateAsync(file);
         } catch {
-            alert("裁剪失败，请重试");
+            showErrorDialog({
+                title: "裁剪失败",
+                message: "头像裁剪失败，请稍后重试。",
+            });
         } finally {
             setCropSrc("");
             URL.revokeObjectURL(cropSrc);
@@ -168,7 +182,7 @@ export function ProfilePage() {
             >
                 <div className="profile-form__body profile-form__body--flat">
                     {isError ? (
-                        <div className="qa-feedback">
+                        <div className="status-card">
                             <strong>Profile 加载失败</strong>
                             <div className="qa-text">{errorMessage || "请重试后继续编辑。"}</div>
                             <div>
@@ -331,12 +345,6 @@ export function ProfilePage() {
 
                 <div className="profile-form__footer">
                     <div className="profile-form__actions profile-form__actions--left">
-                        {saveMutation.isError ? (
-                            <div className="profile-form__error">
-                                保存失败：
-                                {saveMutation.error instanceof Error ? saveMutation.error.message : "请稍后重试"}
-                            </div>
-                        ) : null}
                         <BaseButton variant="primary" className="btn--profile-save" type="submit" disabled={saveMutation.isPending}>
                             {saveMutation.isPending ? "保存中" : "保存设置"}
                         </BaseButton>
@@ -361,16 +369,30 @@ export function ProfilePage() {
                             <h3 className="modal-card__title">裁剪</h3>
                         </div>
                         <div className="modal-card__body" style={{ position: "relative", minHeight: 320 }}>
-                            <Cropper
-                                image={cropSrc}
-                                crop={crop}
-                                zoom={zoom}
-                                aspect={1}
-                                cropShape="rect"
-                                onCropChange={setCrop}
-                                onZoomChange={setZoom}
-                                onCropComplete={handleCropComplete}
-                            />
+                            <Suspense
+                                fallback={
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            inset: 0,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                    >
+                                        <LoadingCard />
+                                    </div>
+                                }
+                            >
+                                <LazyProfileAvatarCropper
+                                    image={cropSrc}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    onCropChange={setCrop}
+                                    onZoomChange={setZoom}
+                                    onCropComplete={handleCropComplete}
+                                />
+                            </Suspense>
                         </div>
                         <div className="modal-card__footer">
                             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

@@ -71,7 +71,7 @@ public class DashScopeService implements IDashScopeService {
                 TextEmbeddingResult result = new TextEmbedding().call(param);
                 TextEmbeddingOutput output = result.getOutput();
                 if (output == null || output.getEmbeddings() == null) {
-                    throw new ApiException(ResultCode.INTERNAL_ERROR.getCode(), "Embedding returned empty output");
+                    throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding returned empty output");
                 }
                 List<float[]> vectors = new ArrayList<>();
                 for (TextEmbeddingResultItem item : output.getEmbeddings()) {
@@ -93,15 +93,15 @@ public class DashScopeService implements IDashScopeService {
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new ApiException(ResultCode.INTERNAL_ERROR.getCode(), "Embedding interrupted");
+                        throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding interrupted");
                     }
                 } else {
                     log.error("【文本嵌入】嵌入请求最终失败: maxRetries={}", MAX_RETRIES, e);
-                    throw new ApiException(ResultCode.INTERNAL_ERROR.getCode(), "Embedding failed: " + e.getMessage());
+                    throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding failed: " + e.getMessage());
                 }
             }
         }
-        throw new ApiException(ResultCode.INTERNAL_ERROR.getCode(), "Embedding failed");
+        throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding failed");
     }
 
     // ======================== rerank ========================

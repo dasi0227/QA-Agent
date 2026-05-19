@@ -177,14 +177,14 @@ export function DocumentPage() {
                 <GlassCard className="panel repository-main-panel" style={{ padding: 24 }}>
                     <div className="fade-in">
                         {selectedDocumentQuery.isLoading ? (
-                            <div className="qa-feedback">
+                            <div className="status-card">
                                 <strong>正在加载资料</strong>
                                 <div className="qa-text">从真实接口读取当前资料详情。</div>
                             </div>
                         ) : null}
 
                         {selectedDocumentQuery.isError ? (
-                            <div className="qa-feedback">
+                            <div className="status-card">
                                 <strong>资料加载失败</strong>
                                 <div className="qa-text">
                                     {selectedDocumentQuery.error instanceof Error
@@ -259,7 +259,7 @@ export function DocumentPage() {
                         ) : null}
 
                         {!selectedDocumentQuery.isLoading && !selectedDocumentQuery.data ? (
-                            <div className="qa-feedback">
+                            <div className="status-card">
                                 <strong>暂无资料可预览</strong>
                             </div>
                         ) : null}

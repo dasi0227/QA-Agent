@@ -23,7 +23,7 @@ export function getApiBaseUrl() {
 
 type ApiRequestOptions = {
     method?: string;
-    body?: BodyInit | Record<string, unknown> | FormData | null;
+    body?: BodyInit | Record<string, unknown> | unknown[] | FormData | null;
     query?: Record<string, string | number | boolean | null | undefined>;
     headers?: HeadersInit;
     signal?: AbortSignal;

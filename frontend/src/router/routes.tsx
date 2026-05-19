@@ -1,52 +1,63 @@
+import { lazy, Suspense, type ReactElement } from "react";
 import { Navigate, createBrowserRouter } from "react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { RequireAuth } from "@/components/layout/RequireAuth";
-import { IndexPage } from "@/pages/IndexPage";
-import { LoginPage } from "@/pages/LoginPage";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { QuizPage } from "@/pages/QuizPage";
-import { RegisterPage } from "@/pages/RegisterPage";
-import { QASetPage } from "@/pages/QASetPage";
-import { QuestionPage } from "@/pages/QuestionPage";
-import { DocumentPage } from "@/pages/DocumentPage";
-import { CreatePage } from "@/pages/CreatePage";
-import { QAPage } from "@/pages/QAPage";
-import { ResultPage } from "@/pages/ResultPage";
-import { NotFoundPage } from "@/pages/NotFoundPage";
+import { RouteLoadingCard } from "@/components/layout/RouteLoadingCard";
+
+const IndexPage = lazy(() => import("@/pages/IndexPage").then((module) => ({ default: module.IndexPage })));
+const LoginPage = lazy(() => import("@/pages/LoginPage").then((module) => ({ default: module.LoginPage })));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage").then((module) => ({ default: module.ProfilePage })));
+const QuizPage = lazy(() => import("@/pages/QuizPage").then((module) => ({ default: module.QuizPage })));
+const RegisterPage = lazy(() => import("@/pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
+const QASetPage = lazy(() => import("@/pages/QASetPage").then((module) => ({ default: module.QASetPage })));
+const QuestionPage = lazy(() => import("@/pages/QuestionPage").then((module) => ({ default: module.QuestionPage })));
+const DocumentPage = lazy(() => import("@/pages/DocumentPage").then((module) => ({ default: module.DocumentPage })));
+const CreatePage = lazy(() => import("@/pages/CreatePage").then((module) => ({ default: module.CreatePage })));
+const QAPage = lazy(() => import("@/pages/QAPage").then((module) => ({ default: module.QAPage })));
+const ResultPage = lazy(() => import("@/pages/ResultPage").then((module) => ({ default: module.ResultPage })));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
+
+function withRouteLoading(element: ReactElement) {
+  return (
+    <Suspense fallback={<RouteLoadingCard />}>
+      {element}
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
   {
     element: <AuthLayout />,
     children: [
-      { path: "/login", element: <LoginPage /> },
-      { path: "/register", element: <RegisterPage /> },
+      { path: "/login", element: withRouteLoading(<LoginPage />) },
+      { path: "/register", element: withRouteLoading(<RegisterPage />) },
     ],
   },
   {
     element: <AppShell />,
     children: [
-      { index: true, element: <IndexPage /> },
+      { index: true, element: withRouteLoading(<IndexPage />) },
       { path: "/index", element: <Navigate to="/" replace /> },
       { path: "/home", element: <Navigate to="/" replace /> },
       {
         element: <RequireAuth />,
         children: [
-          { path: "/profile", element: <ProfilePage /> },
-          { path: "/quiz", element: <QuizPage /> },
-          { path: "/create", element: <CreatePage /> },
+          { path: "/profile", element: withRouteLoading(<ProfilePage />) },
+          { path: "/quiz", element: withRouteLoading(<QuizPage />) },
+          { path: "/create", element: withRouteLoading(<CreatePage />) },
           { path: "/repository", element: <Navigate to="/repository/qa-set" replace /> },
-          { path: "/repository/qa-set", element: <QASetPage /> },
-          { path: "/repository/qa-set/:id", element: <QASetPage /> },
-          { path: "/repository/question", element: <QuestionPage /> },
-          { path: "/repository/document", element: <DocumentPage /> },
-          { path: "/practice/:sessionId", element: <QAPage /> },
-          { path: "/result/:sessionId", element: <ResultPage /> },
+          { path: "/repository/qa-set", element: withRouteLoading(<QASetPage />) },
+          { path: "/repository/qa-set/:id", element: withRouteLoading(<QASetPage />) },
+          { path: "/repository/question", element: withRouteLoading(<QuestionPage />) },
+          { path: "/repository/document", element: withRouteLoading(<DocumentPage />) },
+          { path: "/practice/:sessionId", element: withRouteLoading(<QAPage />) },
+          { path: "/result/:sessionId", element: withRouteLoading(<ResultPage />) },
           { path: "/qa", element: <Navigate to="/quiz" replace /> },
           { path: "/result", element: <Navigate to="/quiz" replace /> },
         ],
       },
-      { path: "*", element: <NotFoundPage /> },
+      { path: "*", element: withRouteLoading(<NotFoundPage />) },
     ],
   },
 ]);

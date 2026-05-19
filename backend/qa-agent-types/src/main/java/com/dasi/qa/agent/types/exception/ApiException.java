@@ -6,16 +6,16 @@ import lombok.Getter;
 @Getter
 public class ApiException extends RuntimeException {
 
-    private final int code;
+    private final ResultCode resultCode;
 
     public ApiException(ResultCode resultCode) {
         super(resultCode.getMsg());
-        this.code = resultCode.getCode();
+        this.resultCode = resultCode;
     }
 
-    public ApiException(int code, String message) {
+    public ApiException(ResultCode resultCode, String message) {
         super(message);
-        this.code = code;
+        this.resultCode = resultCode;
     }
 
 }

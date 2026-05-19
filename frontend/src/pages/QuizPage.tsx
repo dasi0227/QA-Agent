@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton, ChoiceButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { parseModuleTags, useQuestionSetsQuery } from "@/lib/api/hooks";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const practiceModes = [
     { label: "顺序练习", value: "SEQUENTIAL" as const, className: "choice-btn--quiz-tone" },
@@ -23,6 +24,7 @@ export function QuizPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const questionSetsQuery = useQuestionSetsQuery();
+    const { showUnimplemented } = useGlobalErrorDialog();
     const [practiceMode, setPracticeMode] = useState<"SEQUENTIAL" | "RANDOM">("SEQUENTIAL");
     const [feedbackMode, setFeedbackMode] = useState<"ITEM_BY_ITEM" | "AFTER_ALL">("ITEM_BY_ITEM");
     const [isAnimating, setIsAnimating] = useState(false);
@@ -145,14 +147,14 @@ export function QuizPage() {
             <GlassCard className="hero-card hero-card--plain" style={{ width: "min(1180px, 84vw)" }}>
                 <div className="quiz-hero">
                     {questionSetsQuery.isLoading ? (
-                        <div className="qa-feedback" style={{ marginTop: 12, width: "min(720px, 100%)" }}>
+                        <div className="status-card" style={{ marginTop: 12, width: "min(720px, 100%)" }}>
                             <strong>正在加载问答集</strong>
                             <div className="qa-text">从真实接口读取可练习的问答集列表。</div>
                         </div>
                     ) : null}
 
                     {questionSetsQuery.isError ? (
-                        <div className="qa-feedback" style={{ marginTop: 12, width: "min(720px, 100%)" }}>
+                        <div className="status-card" style={{ marginTop: 12, width: "min(720px, 100%)" }}>
                             <strong>问答集加载失败</strong>
                             <div className="qa-text">{errorMessage || "请稍后重试。"}</div>
                             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -327,7 +329,7 @@ export function QuizPage() {
                                             variant="ghost"
                                             className="btn--quiz-action"
                                             type="button"
-                                            onClick={() => alert("接口尚未实现")}
+                                            onClick={() => showUnimplemented("开始练习功能正在接入后端链路。")}
                                         >
                                             开始练习
                                         </BaseButton>
@@ -335,7 +337,7 @@ export function QuizPage() {
                                             variant="ghost"
                                             className="btn--quiz-action"
                                             type="button"
-                                            onClick={() => alert("接口尚未实现")}
+                                            onClick={() => showUnimplemented("继续测试功能正在接入后端链路。")}
                                         >
                                             继续测试
                                         </BaseButton>

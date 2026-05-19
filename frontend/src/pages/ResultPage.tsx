@@ -125,7 +125,7 @@ export function ResultPage() {
                 </LinkButton>
             </div>
 
-            <div className="qa-feedback" style={{ width: "min(480px, 100%)", margin: "0 auto" }}>
+            <div className="status-card" style={{ width: "min(480px, 100%)", margin: "0 auto" }}>
                 <strong>评分链路尚未接入</strong>
                 <div className="qa-text">以上为静态预览数据。评分 Agent、反馈汇总与复习建议将在后续版本接入真实链路。</div>
             </div>

@@ -125,7 +125,7 @@ public class DocumentRepository implements IDocumentRepository {
             String titles = qaSetMapper.selectBatchIds(qaSetIds).stream()
                     .map(QaSet::getTitle).filter(StringUtils::hasText)
                     .reduce((a, b) -> a + "、 " + b).orElse("");
-            throw new ApiException(ResultCode.DOCUMENT_REFERENCED.getCode(),
+            throw new ApiException(ResultCode.DOCUMENT_REFERENCED,
                     "当前资料仍被以下问答集引用，无法删除：" + titles);
         }
         entity.setDeleted(true);

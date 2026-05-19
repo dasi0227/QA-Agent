@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getApiBaseUrl, ApiError } from "./client";
 import { getAccessToken } from "../auth";
+import type { ErrorHandlingMeta } from "@/lib/error/types";
 import type {
     AuthSession,
     AuthUser,
@@ -379,6 +380,9 @@ export function useLoginMutation() {
 
 export function useSendVerifyCodeMutation() {
     return useMutation({
+        meta: {
+            errorMode: "silent",
+        } satisfies ErrorHandlingMeta,
         mutationFn: async (input: SendVerifyCodeInput) => {
             await apiRequest<void>("/auth/send-verify-code", {
                 method: "POST",
@@ -391,6 +395,9 @@ export function useSendVerifyCodeMutation() {
 
 export function useRegisterMutation() {
     return useMutation({
+        meta: {
+            errorMode: "silent",
+        } satisfies ErrorHandlingMeta,
         mutationFn: async (input: RegisterInput) => {
             const session = await apiRequest<AuthSession>("/auth/register", {
                 method: "POST",
@@ -438,7 +445,7 @@ export function useDocumentChunksQuery(chunkIds: string[]) {
         enabled: normalizedChunkIds.length > 0,
         queryFn: async () => (await apiRequest<unknown[]>("/document/chunk/query", {
             method: "POST",
-            body: normalizedChunkIds as unknown as Record<string, unknown>,
+            body: normalizedChunkIds,
         })).map(normalizeDocumentChunk),
     });
 }
@@ -627,6 +634,9 @@ export function useUploadDocumentMutation() {
 export function useCreateQuestionSetStream() {
     const queryClient = useQueryClient();
     return useMutation({
+        meta: {
+            errorMode: "silent",
+        } satisfies ErrorHandlingMeta,
         mutationFn: async (input: CreateQuestionSetInput & { onEvent: (event: SseEvent) => void }) => {
             const token = getAccessToken();
 

@@ -59,7 +59,7 @@ public class AuthService implements IAuthService {
     @Override
     public AuthResponse register(RegisterRequest request) {
         if (identityRepository.findUserAccountByUsername(request.getUsername()) != null) {
-            throw new ApiException(ResultCode.CONFLICT);
+            throw new ApiException(ResultCode.USERNAME_CONFLICT);
         }
         if (identityRepository.findUserAccountByEmail(request.getEmail()) != null) {
             throw new ApiException(ResultCode.EMAIL_ALREADY_REGISTERED);

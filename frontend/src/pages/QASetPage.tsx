@@ -141,14 +141,14 @@ export function QASetPage() {
                 <GlassCard className="panel repository-main-panel" style={{ padding: 24, overflow: "hidden" }}>
                     <div className="fade-in" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
                         {selectedSetQuery.isLoading ? (
-                            <div className="qa-feedback">
+                            <div className="status-card">
                                 <strong>正在加载问答集</strong>
                                 <div className="qa-text">从真实接口读取当前问答集详情和题目列表。</div>
                             </div>
                         ) : null}
 
                         {selectedSetQuery.isError ? (
-                            <div className="qa-feedback">
+                            <div className="status-card">
                                 <strong>问答集加载失败</strong>
                                 <div className="qa-text">
                                     {selectedSetQuery.error instanceof Error ? selectedSetQuery.error.message : "请稍后重试"}
@@ -163,19 +163,8 @@ export function QASetPage() {
                                 </div>
                             </div>
                         ) : null}
-                        {deleteQuestionSetMutation.isError ? (
-                            <div className="qa-feedback">
-                                <strong>删除失败</strong>
-                                <div className="qa-text">
-                                    {deleteQuestionSetMutation.error instanceof Error
-                                        ? deleteQuestionSetMutation.error.message
-                                        : "请稍后重试"}
-                                </div>
-                            </div>
-                        ) : null}
-
                         {!selectedSetQuery.isLoading && !selectedSetQuery.isError && !selectedSetQuery.data ? (
-                            <div className="qa-feedback">
+                            <div className="status-card">
                                 <strong>暂无问答集可预览</strong>
                             </div>
                         ) : null}

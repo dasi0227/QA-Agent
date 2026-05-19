@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/hooks";
 import type { QuestionItem, QuestionItemDraft } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const MODULE_OPTIONS = [
     "JavaSE", "OOP", "JVM", "IO", "JUC", "JCF", "MCP", "SKILL", "AGENT", "Harness",
@@ -54,6 +55,7 @@ export function QuestionPage() {
 
     const selectedSetItemsQuery = useQuestionSetItemsQuery(qaSetId);
     const updateQuestionItemMutation = useUpdateQuestionItemMutation();
+    const { showUnimplemented } = useGlobalErrorDialog();
 
     const itemList = selectedSetItemsQuery.data ?? [];
     const fallbackItemId = itemList[0]?.id ?? "";
@@ -179,7 +181,7 @@ export function QuestionPage() {
                                 <button
                                     type="button"
                                     className="sidebar__upload-btn"
-                                    onClick={() => window.alert("接口尚未实现")}
+                                    onClick={() => showUnimplemented("手动新增题目功能尚未开放。")}
                                 >
                                     新增题目
                                 </button>
@@ -214,13 +216,13 @@ export function QuestionPage() {
                         <div className="fade-in question-detail-page">
                             <div className="repository-detail-view fade-in">
                                 {showMainLoading ? (
-                                    <div className="qa-feedback">
+                                    <div className="status-card">
                                         <strong>正在加载题目详情...</strong>
                                     </div>
                                 ) : null}
 
                                 {showMainError ? (
-                                    <div className="qa-feedback">
+                                    <div className="status-card">
                                         <strong>题目详情加载失败</strong>
                                         <div className="qa-text">
                                             {activeItemQuery.error instanceof Error ? activeItemQuery.error.message : "请稍后重试"}
@@ -371,15 +373,9 @@ export function QuestionPage() {
                             ) : null}
 
                                 {!showMainLoading && !showMainError && !activeItemId && !itemList.length ? (
-                                    <div className="qa-feedback">
+                                    <div className="status-card">
                                         <strong>当前题集暂无题目</strong>
                                         <div className="qa-text">后端暂未开放手动新增题目接口，题目主要由问答集生成任务自动创建。</div>
-                                    </div>
-                                ) : null}
-
-                                {updateQuestionItemMutation.isError ? (
-                                    <div className="page-copy" style={{ color: "var(--ink)" }}>
-                                        保存失败：{updateQuestionItemMutation.error instanceof Error ? updateQuestionItemMutation.error.message : "请稍后重试"}
                                     </div>
                                 ) : null}
                             </div>

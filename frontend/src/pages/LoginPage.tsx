@@ -30,7 +30,6 @@ export function LoginPage() {
     },
   });
 
-  const errorMessage = loginMutation.error instanceof Error ? loginMutation.error.message : "";
   const from = (location.state as { from?: AuthRedirectLocation } | null | undefined)?.from;
 
   return (
@@ -58,11 +57,6 @@ export function LoginPage() {
           <input type="checkbox" {...form.register("remember")} />
           <span>记住登录</span>
         </label>
-        {errorMessage ? (
-          <div className="page-copy" style={{ color: "var(--ink)" }}>
-            登录失败：{errorMessage}
-          </div>
-        ) : null}
         <div className="auth-form__footer">
           <BaseButton variant="primary" type="submit" disabled={loginMutation.isPending}>
             {loginMutation.isPending ? "登录中" : "登录"}

@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { ArrowUp, History, Loader, Plus, Settings, X } from "lucide-react";
 import { Link } from "react-router";
 import { TextArea } from "@/components/base/field";
-import { ErrorDialog } from "@/components/base/error-dialog";
 import {
     apiKeys,
     useDocumentsQuery,
@@ -15,6 +14,7 @@ import {
     parseTaskMessagesToEvents,
 } from "@/lib/api/hooks";
 import type { DocumentRecord, SseEvent, TaskListItem } from "@/lib/api/types";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const STORAGE_KEY = "create-page-draft";
 const ACTIVE_TASK_KEY = "qa-agent.active-task-id";
@@ -90,7 +90,7 @@ export function CreatePage() {
     const [qaSetTitle, setQaSetTitle] = useState("未命名问答集");
     const [requestedCount, setRequestedCount] = useState(20);
     const [jobDescription, setJobDescription] = useState("");
-    const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+    const { showErrorDialog } = useGlobalErrorDialog();
 
     const [streamState, setStreamState] = useState<"idle" | "streaming">("idle");
     const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
@@ -142,16 +142,12 @@ export function CreatePage() {
     useEffect(() => {
         if (!recoveryTrigger) return;
         if (taskStatusQuery.isError) {
-            setErrorDialog({
-                title: "查询失败",
-                message: taskStatusQuery.error instanceof Error ? taskStatusQuery.error.message : "获取任务状态失败",
-            });
+            setStreamError(taskStatusQuery.error instanceof Error ? taskStatusQuery.error.message : "获取任务状态失败");
+            setRecoveryTrigger(0);
         }
         if (taskMessagesQuery.isError) {
-            setErrorDialog({
-                title: "查询失败",
-                message: taskMessagesQuery.error instanceof Error ? taskMessagesQuery.error.message : "获取任务消息失败",
-            });
+            setStreamError(taskMessagesQuery.error instanceof Error ? taskMessagesQuery.error.message : "获取任务消息失败");
+            setRecoveryTrigger(0);
         }
     }, [taskStatusQuery.isError, taskMessagesQuery.isError, recoveryTrigger]);
 
@@ -222,7 +218,10 @@ export function CreatePage() {
 
     const handleSubmit = form.handleSubmit(async (values) => {
         if (selectedDocumentIds.length === 0) {
-            alert("请先添加本次要使用的资料。");
+            showErrorDialog({
+                title: "资料未选择",
+                message: "请先添加本次要使用的资料。",
+            });
             return;
         }
 
@@ -394,7 +393,7 @@ export function CreatePage() {
 
                         {/* Error state */}
                         {streamError ? (
-                            <div className="qa-feedback fade-in" style={{ maxWidth: 720, width: "100%", margin: "0 auto" }}>
+                            <div className="status-card fade-in" style={{ maxWidth: 720, width: "100%", margin: "0 auto" }}>
                                 <strong>生成失败</strong>
                                 <div className="qa-text">{streamError}</div>
                             </div>
@@ -419,7 +418,7 @@ export function CreatePage() {
                 {/* ── Input area (always visible) ── */}
                 <div className="create-page__bottom">
                     {createStream.isError && streamState === "idle" ? (
-                        <div className="qa-feedback" style={{ marginBottom: 16, maxWidth: 720, width: "100%" }}>
+                        <div className="status-card" style={{ marginBottom: 16, maxWidth: 720, width: "100%" }}>
                             <strong>生成失败</strong>
                             <div className="qa-text">
                                 {createStream.error instanceof Error
@@ -494,13 +493,6 @@ export function CreatePage() {
                     onClose={() => setSettingsOpen(false)}
                 />
             ) : null}
-
-            <ErrorDialog
-                open={errorDialog !== null}
-                title={errorDialog?.title || "错误"}
-                message={errorDialog?.message || ""}
-                onConfirm={() => setErrorDialog(null)}
-            />
         </div>
     );
 }
