@@ -70,6 +70,11 @@ export type DocumentRecord = {
     updatedAt?: string;
 };
 
+export type UpdateDocumentInput = {
+    id: string;
+    fileName: string;
+};
+
 export type DocumentChunkRecord = {
     id: string;
     documentId: string;
@@ -87,6 +92,7 @@ export type QuestionSet = {
     title: string;
     description: string;
     moduleTagsJson: string;
+    documentCount: number;
     questionCount: number;
     practiceCount: number;
     averageScore: number;

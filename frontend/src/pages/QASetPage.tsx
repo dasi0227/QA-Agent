@@ -24,6 +24,25 @@ const TAG_OPTIONS = [
     "数据结构与算法", "计算机网络", "操作系统", "测试", "运维", "安全",
 ] as const;
 
+const compactDateFormatter = new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+});
+
+function formatCompactDateTime(value?: string) {
+    if (!value) {
+        return "暂无";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+    return compactDateFormatter.format(date).split("/").join("-");
+}
+
 export function QASetPage() {
     const params = useParams();
     const navigate = useNavigate();
@@ -59,6 +78,7 @@ export function QASetPage() {
     const selectedSetPracticeTotal = selectedSetQuery.data
         ? selectedSetQuery.data.questionCount * selectedSetQuery.data.practiceCount
         : 0;
+    const selectedSetUpdatedAt = selectedSetQuery.data?.updatedAt || selectedSetQuery.data?.createdAt || "";
     const itemList = selectedSetItemsQuery.data ?? [];
     const selectedTags = parseModuleTags(selectedSetQuery.data?.moduleTagsJson);
     const availableTags = useMemo(
@@ -183,6 +203,13 @@ export function QASetPage() {
                                             {selectedTags.map((tag) => (
                                                 <Tag key={tag}>{tag}</Tag>
                                             ))}
+                                        </div>
+                                        <div className="document-detail-view__meta" style={{ marginTop: 10, marginBottom: 0 }}>
+                                            <span>
+                                                添加于 {formatCompactDateTime(selectedSetQuery.data.createdAt || selectedSetUpdatedAt)}
+                                            </span>
+                                            <span>更新于 {formatCompactDateTime(selectedSetUpdatedAt)}</span>
+                                            <span>使用资料 {selectedSetQuery.data.documentCount} 篇</span>
                                         </div>
                                     </div>
                                     <section className="repository-overview-card">

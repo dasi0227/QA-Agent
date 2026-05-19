@@ -27,5 +27,6 @@ public class QaSetResponse extends BaseResponse {
     private Integer bestScore;
     private BigDecimal averageAccuracy;
     private BigDecimal bestAccuracy;
+    private Integer documentCount;
     private LocalDateTime lastPracticedAt;
 }

@@ -27,6 +27,7 @@ import org.springframework.util.StringUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.dasi.qa.agent.types.constant.StringConstant.DB_USER_ID;
 
@@ -57,14 +58,32 @@ public class QaRepository implements IQaRepository {
     @Cacheable(cacheNames = RedisConstant.QA_SET_CACHE,
             key = "@redisUtil.detail(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_DETAIL_KEY, #userId, #id)")
     public QaSetResponse detailQaSet(String id, String userId) {
-        return detail(qaSetMapper, QaSet.class, QaSetResponse.class, id, userId);
+        QaSetResponse response = detail(qaSetMapper, QaSet.class, QaSetResponse.class, id, userId);
+        response.setDocumentCount(countDocumentRefs(id));
+        return response;
     }
 
     @Override
     @Cacheable(cacheNames = RedisConstant.QA_SET_CACHE,
             key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_SET_QUERY_KEY, #userId, #request)")
     public List<QaSetResponse> queryQaSet(QaSetRequest request, String userId) {
-        return query(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
+        List<QaSetResponse> responses = query(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
+        List<String> qaSetIds = responses.stream().map(QaSetResponse::getId).toList();
+        if (qaSetIds.isEmpty()) {
+            return responses;
+        }
+        Map<String, Long> countMap = qaSetDocumentRefMapper.selectList(
+                new LambdaQueryWrapper<QaSetDocumentRef>().in(QaSetDocumentRef::getQaSetId, qaSetIds))
+                .stream().collect(Collectors.groupingBy(QaSetDocumentRef::getQaSetId, Collectors.counting()));
+        for (QaSetResponse response : responses) {
+            response.setDocumentCount(countMap.getOrDefault(response.getId(), 0L).intValue());
+        }
+        return responses;
+    }
+
+    private Integer countDocumentRefs(String qaSetId) {
+        return Math.toIntExact(qaSetDocumentRefMapper.selectCount(
+                new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, qaSetId)));
     }
 
     @Override

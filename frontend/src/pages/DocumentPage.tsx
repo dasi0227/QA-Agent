@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
-import { TextArea } from "@/components/base/field";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import {
     useDeleteDocumentMutation,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/api/hooks";
 import { MarkdownRenderer } from "@/lib/markdown";
 import { cn } from "@/lib/cn";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const compactDateFormatter = new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
@@ -33,13 +33,26 @@ function formatCompactDateTime(value?: string) {
     return compactDateFormatter.format(date).split("/").join("-");
 }
 
+function splitDocumentFileName(fileName: string) {
+    const normalized = fileName.trim();
+    const dotIndex = normalized.lastIndexOf(".");
+    if (dotIndex <= 0) {
+        return { baseName: normalized, extension: "" };
+    }
+    return {
+        baseName: normalized.slice(0, dotIndex),
+        extension: normalized.slice(dotIndex),
+    };
+}
+
 export function DocumentPage() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [activeDocumentId, setActiveDocumentId] = useState("");
-    const [documentEditorMode, setDocumentEditorMode] = useState<"view" | "edit">("view");
-    const [documentDraft, setDocumentDraft] = useState("");
+    const [documentEditorMode, setDocumentEditorMode] = useState<"view" | "rename">("view");
+    const [documentNameDraft, setDocumentNameDraft] = useState("");
     const [deleteDocDialogOpen, setDeleteDocDialogOpen] = useState(false);
+    const { showErrorDialog } = useGlobalErrorDialog();
 
     const documentsQuery = useDocumentsQuery();
     const uploadDocumentMutation = useUploadDocumentMutation();
@@ -78,37 +91,48 @@ export function DocumentPage() {
 
     useEffect(() => {
         if (!selectedDocumentQuery.data) {
-            setDocumentDraft("");
+            setDocumentNameDraft("");
             setDocumentEditorMode("view");
             return;
         }
-        setDocumentDraft(selectedDocumentQuery.data.rawContent || "");
+        setDocumentNameDraft(splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName);
         setDocumentEditorMode("view");
     }, [selectedDocumentId]);
 
     const selectedDocumentUpdatedAt = selectedDocumentQuery.data?.updatedAt || selectedDocumentQuery.data?.createdAt || "";
     const selectedDocumentUseCount = selectedDocumentQuery.data?.referenceCount ?? 0;
-    const documentBody = documentEditorMode === "edit"
-        ? documentDraft
-        : (selectedDocumentQuery.data?.rawContent || "");
+    const documentBody = selectedDocumentQuery.data?.rawContent || "";
 
     const handleStartDocumentEdit = () => {
         if (!selectedDocumentQuery.data) return;
-        setDocumentDraft(selectedDocumentQuery.data.rawContent || "");
-        setDocumentEditorMode("edit");
+        setDocumentNameDraft(splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName);
+        setDocumentEditorMode("rename");
     };
 
     const handleCancelDocumentEdit = () => {
         if (!selectedDocumentQuery.data) return;
-        setDocumentDraft(selectedDocumentQuery.data.rawContent || "");
+        setDocumentNameDraft(splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName);
         setDocumentEditorMode("view");
     };
 
     const handleSaveDocumentEdit = async () => {
         if (!selectedDocumentQuery.data) return;
+        const nameOnly = documentNameDraft.trim();
+        if (!nameOnly) {
+            showErrorDialog({
+                title: "文件名不能为空",
+                message: "请输入有效的文件名后再保存。",
+            });
+            return;
+        }
+        const { baseName, extension } = splitDocumentFileName(selectedDocumentQuery.data.fileName);
+        if (nameOnly === baseName) {
+            setDocumentEditorMode("view");
+            return;
+        }
         await updateDocumentMutation.mutateAsync({
-            ...selectedDocumentQuery.data,
-            rawContent: documentDraft,
+            id: selectedDocumentQuery.data.id,
+            fileName: `${nameOnly}${extension}`,
         });
         setDocumentEditorMode("view");
     };
@@ -156,6 +180,7 @@ export function DocumentPage() {
                             ) : null}
                             {documentsQuery.data?.map((item) => {
                                 const isActive = item.id === activeDocumentIdValue;
+                                const displayFileName = splitDocumentFileName(item.fileName).baseName || item.fileName;
                                 return (
                                     <button
                                         key={item.id}
@@ -163,7 +188,7 @@ export function DocumentPage() {
                                         type="button"
                                         onClick={() => handleSelectDocument(item.id)}
                                     >
-                                        <span className="tree-item__label">{item.fileName}</span>
+                                        <span className="tree-item__label">{displayFileName}</span>
                                     </button>
                                 );
                             })}
@@ -204,9 +229,18 @@ export function DocumentPage() {
                                 <div className="document-detail-view fade-in">
                                     <div className="repository-detail-view__header document-detail-view__header">
                                         <div className="document-detail-view__identity">
-                                            <h1 className="hero-title document-detail-view__title">
-                                                {selectedDocumentQuery.data.fileName}
-                                            </h1>
+                                            {documentEditorMode === "rename" ? (
+                                                <input
+                                                    className="input document-detail-view__title-input"
+                                                    value={documentNameDraft}
+                                                    onChange={(event) => setDocumentNameDraft(event.target.value)}
+                                                    aria-label="资料名称"
+                                                />
+                                            ) : (
+                                                <h1 className="hero-title document-detail-view__title">
+                                                    {splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName || selectedDocumentQuery.data.fileName}
+                                                </h1>
+                                            )}
                                             <div className="document-detail-view__meta">
                                                 <span>添加于 {formatCompactDateTime(selectedDocumentQuery.data.createdAt || selectedDocumentUpdatedAt)}</span>
                                                 <span>更新于 {formatCompactDateTime(selectedDocumentUpdatedAt)}</span>
@@ -216,10 +250,10 @@ export function DocumentPage() {
                                     </div>
 
                                     <div className="document-detail-view__actions">
-                                        {documentEditorMode === "edit" ? (
+                                        {documentEditorMode === "rename" ? (
                                             <>
                                                 <BaseButton variant="primary" type="button" onClick={handleSaveDocumentEdit}>
-                                                    {updateDocumentMutation.isPending ? "保存中" : "保存更改"}
+                                                    {updateDocumentMutation.isPending ? "保存中" : "保存重命名"}
                                                 </BaseButton>
                                                 <BaseButton variant="soft" type="button" onClick={handleCancelDocumentEdit}>
                                                     取消
@@ -227,32 +261,30 @@ export function DocumentPage() {
                                             </>
                                         ) : (
                                             <BaseButton variant="primary" type="button" onClick={handleStartDocumentEdit}>
-                                                更改
+                                                重命名
                                             </BaseButton>
                                         )}
                                         <BaseButton
                                             variant="outline"
                                             type="button"
                                             disabled={deleteDocumentMutation.isPending}
-                                            onClick={() => setDeleteDocDialogOpen(true)}
+                                            onClick={() => {
+                                                if (selectedDocumentUseCount > 0) {
+                                                    showErrorDialog({
+                                                        title: "资料正在被引用",
+                                                        message: `当前资料已被 ${selectedDocumentUseCount} 个问答集引用，暂不允许删除。请先移除引用后再删除。`,
+                                                    });
+                                                    return;
+                                                }
+                                                setDeleteDocDialogOpen(true);
+                                            }}
                                         >
                                             {deleteDocumentMutation.isPending ? "删除中" : "删除资料"}
                                         </BaseButton>
                                     </div>
 
                                     <div className="document-detail-view__body">
-                                        {documentEditorMode === "edit" ? (
-                                            <div className="document-editor">
-                                                <TextArea
-                                                    className="document-editor__textarea"
-                                                    value={documentDraft}
-                                                    onChange={(event) => setDocumentDraft(event.target.value)}
-                                                    aria-label="资料正文编辑"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <MarkdownRenderer content={documentBody} className="document-markdown--doc" />
-                                        )}
+                                        <MarkdownRenderer content={documentBody} className="document-markdown--doc" />
                                     </div>
                                 </div>
                             </>
@@ -273,7 +305,13 @@ export function DocumentPage() {
                 variant="danger"
                 message={
                     <>
-                        <p style={{ margin: 0 }}>确定要删除资料「{selectedDocumentQuery.data?.fileName}」吗？</p>
+                        <p style={{ margin: 0 }}>
+                            确定要删除资料「
+                            {selectedDocumentQuery.data
+                                ? (splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName || selectedDocumentQuery.data.fileName)
+                                : ""}
+                            」吗？
+                        </p>
                         <p style={{ margin: "10px 0 0", color: "#8f4c39", fontSize: 13, fontWeight: 600 }}>
                             删除后资料将从系统中移除，关联的问答集可能受到影响。
                         </p>
@@ -286,7 +324,7 @@ export function DocumentPage() {
                     await deleteDocumentMutation.mutateAsync(selectedDocumentQuery.data.id);
                     setDeleteDocDialogOpen(false);
                     setActiveDocumentId("");
-                    setDocumentDraft("");
+                    setDocumentNameDraft("");
                     setDocumentEditorMode("view");
                 }}
                 onCancel={() => setDeleteDocDialogOpen(false)}

@@ -17,6 +17,7 @@ import type {
     SendVerifyCodeInput,
     UpdateQuestionItemInput,
     UpdateQuestionSetInput,
+    UpdateDocumentInput,
     CreateQuestionSetInput,
     SseEvent,
     TaskListItem,
@@ -201,6 +202,7 @@ export function normalizeQuestionSet(raw: unknown): QuestionSet {
         title: toStringValue(pick(raw, "title")),
         description: toStringValue(pick(raw, "description")),
         moduleTagsJson: toStringValue(pick(raw, "moduleTagsJson", "module_tags_json")),
+        documentCount: toNumberValue(pick(raw, "documentCount", "document_count")),
         questionCount: toNumberValue(pick(raw, "questionCount", "question_count")),
         practiceCount: toNumberValue(pick(raw, "practiceCount", "practice_count")),
         averageScore: toNumberValue(pick(raw, "averageScore", "average_score")),
@@ -453,14 +455,11 @@ export function useDocumentChunksQuery(chunkIds: string[]) {
 export function useUpdateDocumentMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (document: DocumentRecord) => normalizeDocument(await apiRequest<unknown>("/document/source/update", {
+        mutationFn: async (document: UpdateDocumentInput) => normalizeDocument(await apiRequest<unknown>("/document/source/update", {
             method: "POST",
             body: {
                 id: document.id,
                 fileName: document.fileName,
-                fileType: document.fileType,
-                filePath: document.filePath,
-                rawContent: document.rawContent,
             },
         })),
         onSuccess: async (document) => {

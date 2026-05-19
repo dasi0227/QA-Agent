@@ -578,6 +578,17 @@ button {
   margin: 0;
 }
 
+.document-detail-view__title-input {
+  width: min(680px, 100%);
+  font-family: var(--font-serif);
+  font-size: clamp(32px, 3.2vw, 68px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.06;
+  border-radius: 18px;
+  padding: 8px 14px;
+}
+
 .document-detail-view__meta {
   display: flex;
   align-items: center;

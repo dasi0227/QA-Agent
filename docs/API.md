@@ -85,6 +85,20 @@
 3. `delete` 执行软删除（`deleted = true`）。删除前校验 userId 归属，若 `referenceCount > 0` 则返回 `40903` 并提示引用该资料的问答集名称列表。
 4. 当前没有开放 `/document/source/reindex` 接口。
 
+响应元素 `SourceDocumentResponse`：
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 资料 ID |
+| `fileName` | 文件名 |
+| `fileType` | 文件类型 |
+| `filePath` | 文件路径 |
+| `rawContent` | 原始正文 |
+| `referenceCount` | 被问答集引用的次数 |
+| `deleted` | 是否已逻辑删除 |
+| `createdAt` | 创建时间 |
+| `updatedAt` | 最后修改时间 |
+
 ### 4.2 RAG 搜索接口
 
 | 方法 | 路径 | 鉴权 | 请求 |
@@ -160,6 +174,26 @@
 2. `requestedQuestionCount` 当前限制为 `10 ~ 100`。
 3. 删除 `qa_set` 时会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
 4. 当前没有 `/qa/set/create/test` 调试接口。
+
+响应元素 `QaSetResponse`：
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 题集 ID |
+| `taskId` | 生成任务 ID |
+| `title` | 题集标题 |
+| `description` | 题集描述 |
+| `moduleTagsJson` | 模块标签 JSON 数组字符串 |
+| `documentCount` | 引用资料数量 |
+| `questionCount` | 题目数量 |
+| `practiceCount` | 练习次数 |
+| `averageScore` | 平均分 |
+| `bestScore` | 最高分 |
+| `averageAccuracy` | 平均达标率 |
+| `bestAccuracy` | 最高达标率 |
+| `lastPracticedAt` | 最近练习时间 |
+| `createdAt` | 创建时间 |
+| `updatedAt` | 最后修改时间 |
 
 ### 5.2 `/qa/set/create` SSE 事件
 
