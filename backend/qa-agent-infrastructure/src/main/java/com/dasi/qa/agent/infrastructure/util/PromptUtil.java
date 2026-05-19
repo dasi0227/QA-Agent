@@ -12,9 +12,9 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 public class PromptUtil implements IPromptUtil {
 
-    public static final String SUPERVISOR_PROMPT_PATH = "prompt/generate/supervisor-summary.txt";
-    public static final String WEBSEARCH_PROMPT_PATH = "prompt/generate/web-search.txt";
-    public static final String REWRITER_PROMPT_PATH = "prompt/query-rewrite.txt";
+    public static final String SUPERVISOR_PROMPT_PATH = "prompt/external/supervisor-summary.txt";
+    public static final String WEBSEARCH_PROMPT_PATH = "prompt/external/web-search.txt";
+    public static final String REWRITER_PROMPT_PATH = "prompt/external/query-rewrite.txt";
 
     private static final String SUPERVISOR_PROMPT_FALLBACK = "你是生成链路监督助手。请根据给定阶段与产出，输出一句简洁中文进度总结，不要编造不存在的信息。";
     private static final String WEB_SEARCH_PROMPT_FALLBACK = "你是面试信息检索助手。请基于用户查询返回结构化、可验证的面试经验要点，不要输出与查询无关内容。";

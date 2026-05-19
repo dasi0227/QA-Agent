@@ -12,7 +12,7 @@ import dev.langchain4j.service.V;
  */
 public interface EvaluateAgent {
 
-    @SystemMessage(fromResource = "prompt/generate/generation-evaluate.txt")
+    @SystemMessage(fromResource = "prompt/generate/generate-evaluate.txt")
     @UserMessage("""
             待校验题目：{{draftItemsJson}}
             用户备注：{{userPrompt}}

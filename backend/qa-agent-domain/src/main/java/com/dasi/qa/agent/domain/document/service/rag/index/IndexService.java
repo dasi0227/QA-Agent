@@ -82,7 +82,7 @@ public class IndexService implements IIndexService {
         try {
             List<String> chunkContents = drafts.stream().map(ChunkDraft::getContent).toList();
             String response = summarizerModel.chat(
-                    SystemMessage.from(promptUtil.loadPrompt("prompt/chunk-summarize.txt")),
+                    SystemMessage.from(promptUtil.loadPrompt("prompt/external/chunk-summarize.txt")),
                     UserMessage.from(jsonUtil.toJsonString(chunkContents))
             ).aiMessage().text().trim();
             List<String> summaries = jsonUtil.parseJsonArray(response, String.class);

@@ -13,7 +13,7 @@ import dev.langchain4j.service.V;
  */
 public interface PlanAgent {
 
-    @SystemMessage(fromResource = "prompt/generate/generation-plan.txt")
+    @SystemMessage(fromResource = "prompt/generate/generate-plan.txt")
     @UserMessage("""
             资料目录：{{documents}}
             用户资料：{{userProfile}}

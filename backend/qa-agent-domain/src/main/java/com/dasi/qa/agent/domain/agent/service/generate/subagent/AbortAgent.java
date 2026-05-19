@@ -12,7 +12,7 @@ import dev.langchain4j.service.V;
  */
 public interface AbortAgent {
 
-    @SystemMessage(fromResource = "prompt/generate/generation-abort.txt")
+    @SystemMessage(fromResource = "prompt/generate/generate-abort.txt")
     @UserMessage("""
             用户要求：
             {{userPrompt}}

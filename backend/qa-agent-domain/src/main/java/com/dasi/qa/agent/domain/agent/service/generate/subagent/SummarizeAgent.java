@@ -12,7 +12,7 @@ import dev.langchain4j.service.V;
  */
 public interface SummarizeAgent {
 
-    @SystemMessage(fromResource = "prompt/generate/generation-summarize.txt")
+    @SystemMessage(fromResource = "prompt/generate/generate-summarize.txt")
     @UserMessage("""
             用户要求：{{userPrompt}}
             岗位描述：{{jobDescription}}
