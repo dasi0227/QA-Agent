@@ -51,6 +51,9 @@ public class GenerateSupervisor {
                     UserMessage.from(userPrompt)
             );
             message = response.aiMessage().text();
+            if (message == null || message.isEmpty()) {
+                message = phase.getGenerateStage() + " 阶段完成";
+            }
         } catch (Exception e) {
             message = phase.getGenerateStage() + " 阶段完成";
         }

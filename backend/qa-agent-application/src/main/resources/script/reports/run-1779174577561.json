@@ -1,0 +1,111 @@
+{
+    "runId": "run-1779174577561",
+    "startedAt": "2026-05-19T07:09:37.561Z",
+    "endedAt": "2026-05-19T07:15:53.548Z",
+    "args": {
+        "config": null,
+        "dryRun": false,
+        "baseUrl": null
+    },
+    "configSnapshot": {
+        "baseUrl": "http://localhost:8080/qa-agent/api/v1",
+        "username": "root",
+        "notePath": "/Users/wyw/Desktop/Project/QA_Agent/backend/qa-agent-application/src/main/resources/note/OOP.md",
+        "requestedQuestionCount": 20,
+        "prompt": "请基于我上传的 OOP 学习资料生成 20 道 Java 面试问答题",
+        "timeout": {
+            "requestMs": 60000,
+            "indexWaitMs": 180000,
+            "sseMs": 600000
+        },
+        "polling": {
+            "indexIntervalMs": 3000
+        },
+        "runtime": {
+            "autoStopOnFinish": false,
+            "autoStopOnFailure": false,
+            "stopDockerOnStopScript": false
+        },
+        "dryRun": false
+    },
+    "steps": [
+        {
+            "step": "login",
+            "status": "SUCCESS",
+            "startedAt": "2026-05-19T07:09:37.562Z",
+            "endedAt": "2026-05-19T07:09:38.504Z",
+            "durationMs": 942,
+            "evidence": {
+                "userId": "11111111-1111-1111-1111-111111111111",
+                "username": "root"
+            }
+        },
+        {
+            "step": "update_profile",
+            "status": "SUCCESS",
+            "startedAt": "2026-05-19T07:09:38.504Z",
+            "endedAt": "2026-05-19T07:09:38.544Z",
+            "durationMs": 40,
+            "evidence": {
+                "preview": "{\"id\":\"11111111-1111-1111-1111-111111111111\",\"createdAt\":null,\"updatedAt\":null,\"targetRole\":null,\"targetDomain\":null,\"targetCompany\":null,\"allowGeneralKnowledge\":false,\"allowWebSearch\":true,\"answerStyle\":null,\"feedbackStyle\":null,\"grade\":null,\"major\":null,\"stage\":null,\"llmBaseUrl..."
+            }
+        },
+        {
+            "step": "read_source_note",
+            "status": "SUCCESS",
+            "startedAt": "2026-05-19T07:09:38.545Z",
+            "endedAt": "2026-05-19T07:09:38.545Z",
+            "durationMs": 0,
+            "evidence": {
+                "preview": "# OOP\n\n* [三大要素](#三大要素)\n   * [封装](#封装)\n   * [继承](#继承)\n   * [重载与重写](#重载与重写)\n   * [多态](#多态)\n* [Object 方法](#object-方法)\n   * [equals](#equals)\n   * [hashCode](#hashcode)\n   * [getClass](#getclass)\n   * [toString](#tostring)\n* [static](#static)\n   * [类变量](#类变量)\n   * [类方法](#类方法)\n* [code..."
+            }
+        },
+        {
+            "step": "upload_source_note",
+            "status": "SUCCESS",
+            "startedAt": "2026-05-19T07:09:38.545Z",
+            "endedAt": "2026-05-19T07:09:38.617Z",
+            "durationMs": 72,
+            "evidence": {
+                "documentId": "0QE1ANHFBSJK7",
+                "fileName": "OOP-run-1779174577561.md"
+            }
+        },
+        {
+            "step": "wait_index_ready",
+            "status": "SUCCESS",
+            "startedAt": "2026-05-19T07:09:38.617Z",
+            "endedAt": "2026-05-19T07:11:12.402Z",
+            "durationMs": 93785,
+            "evidence": {
+                "preview": "{\"searchHits\":10}"
+            }
+        },
+        {
+            "step": "generate_qa_set_sse",
+            "status": "FAILED",
+            "startedAt": "2026-05-19T07:11:12.402Z",
+            "endedAt": "2026-05-19T07:15:53.545Z",
+            "durationMs": 281143,
+            "errorType": "SSE_TERMINAL_FAIL",
+            "reason": "SSE 未接收到终态事件",
+            "evidence": {
+                "receivedEvents": 27,
+                "taskId": "0QE1B104BSJ15"
+            },
+            "impact": "无法确认是否生成成功，流程终止"
+        }
+    ],
+    "artifacts": {
+        "documentId": "0QE1ANHFBSJK7"
+    },
+    "result": {
+        "status": "FAILED",
+        "exitCode": 1,
+        "errorType": "SSE_TERMINAL_FAIL",
+        "reason": "SSE 未接收到终态事件",
+        "impact": "无法确认是否生成成功，流程终止"
+    },
+    "finishedAt": "2026-05-19T07:15:53.548Z",
+    "durationMs": 375987
+}

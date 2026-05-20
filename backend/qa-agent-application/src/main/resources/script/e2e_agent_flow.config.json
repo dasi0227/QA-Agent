@@ -1,0 +1,37 @@
+{
+    "baseUrl": "http://localhost:8080/qa-agent/api/v1",
+    "auth": {
+        "username": "root",
+        "password": "123456"
+    },
+    "profile": {
+        "allowGeneralKnowledge": false,
+        "allowWebSearch": true
+    },
+    "generate": {
+        "titlePrefix": "OOP 自动测试题集",
+        "prompt": "请基于我上传的 OOP 学习资料生成 20 道 Java 面试问答题",
+        "jobDescription": "",
+        "requestedQuestionCount": 20
+    },
+    "sourceNote": {
+        "path": "../note/OOP.md",
+        "fileType": "MARKDOWN"
+    },
+    "timeouts": {
+        "requestMs": 60000,
+        "indexWaitMs": 180000,
+        "sseMs": 600000
+    },
+    "polling": {
+        "indexIntervalMs": 3000
+    },
+    "runtime": {
+        "autoStopOnFinish": false,
+        "autoStopOnFailure": false,
+        "stopDockerOnStopScript": false
+    },
+    "report": {
+        "dir": "./reports"
+    }
+}
