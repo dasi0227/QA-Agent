@@ -3,8 +3,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton, ChoiceButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
-import { parseModuleTags, useQuestionSetsQuery } from "@/lib/api/hooks";
-import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
+import {
+    parseModuleTags,
+    useExistingPracticeSessionQuery,
+    useQuestionSetsQuery,
+    useRestartPracticeMutation,
+    useStartPracticeMutation,
+} from "@/lib/api/hooks";
 
 const practiceModes = [
     { label: "顺序练习", value: "SEQUENTIAL" as const, className: "choice-btn--quiz-tone" },
@@ -24,7 +29,6 @@ export function QuizPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const questionSetsQuery = useQuestionSetsQuery();
-    const { showUnimplemented } = useGlobalErrorDialog();
     const [practiceMode, setPracticeMode] = useState<"SEQUENTIAL" | "RANDOM">("SEQUENTIAL");
     const [feedbackMode, setFeedbackMode] = useState<"ITEM_BY_ITEM" | "AFTER_ALL">("ITEM_BY_ITEM");
     const [isAnimating, setIsAnimating] = useState(false);
@@ -36,6 +40,9 @@ export function QuizPage() {
         () => questionSetsQuery.data?.find((item) => item.id === selectedSetId) ?? questionSetsQuery.data?.[0],
         [questionSetsQuery.data, selectedSetId],
     );
+    const existingPracticeQuery = useExistingPracticeSessionQuery(activeSet?.id, { enabled: Boolean(activeSet?.id) });
+    const startPracticeMutation = useStartPracticeMutation();
+    const restartPracticeMutation = useRestartPracticeMutation();
     const questionSets = questionSetsQuery.data ?? [];
     const errorMessage = questionSetsQuery.error instanceof Error ? questionSetsQuery.error.message : "";
 
@@ -47,6 +54,8 @@ export function QuizPage() {
 
     const activeSetPosition = activeSetIndex >= 0 ? activeSetIndex + 1 : 0;
     const hasCarouselNavigation = questionSets.length > 1;
+    const existingPractice = existingPracticeQuery.data;
+    const practiceLoading = startPracticeMutation.isPending || restartPracticeMutation.isPending;
 
     const carouselCards = useMemo(() => {
         if (!questionSets.length || activeSetIndex < 0) return [];
@@ -100,6 +109,24 @@ export function QuizPage() {
             setTransitioningDirection(0);
             animationTimerRef.current = null;
         }, QUIZ_CAROUSEL_ANIMATION_MS);
+    };
+
+    const handleStartPractice = async () => {
+        if (!activeSet) return;
+        const input = {
+            qaSetId: activeSet.id,
+            mode: practiceMode,
+            feedbackMode,
+        };
+        const detail = existingPractice
+            ? await restartPracticeMutation.mutateAsync(input)
+            : await startPracticeMutation.mutateAsync(input);
+        navigate(`/practice/${detail.session.id}`);
+    };
+
+    const handleContinuePractice = () => {
+        if (!existingPractice) return;
+        navigate(`/practice/${existingPractice.id}`);
     };
 
     const getCardMotion = (offset: number) => {
@@ -329,15 +356,17 @@ export function QuizPage() {
                                             variant="ghost"
                                             className="btn--quiz-action"
                                             type="button"
-                                            onClick={() => showUnimplemented("开始练习功能正在接入后端链路。")}
+                                            disabled={!activeSet || practiceLoading}
+                                            onClick={handleStartPractice}
                                         >
-                                            开始练习
+                                            {existingPractice ? "重新开始" : practiceLoading ? "创建中" : "开始练习"}
                                         </BaseButton>
                                         <BaseButton
                                             variant="ghost"
                                             className="btn--quiz-action"
                                             type="button"
-                                            onClick={() => showUnimplemented("继续测试功能正在接入后端链路。")}
+                                            disabled={!existingPractice || practiceLoading}
+                                            onClick={handleContinuePractice}
                                         >
                                             继续测试
                                         </BaseButton>

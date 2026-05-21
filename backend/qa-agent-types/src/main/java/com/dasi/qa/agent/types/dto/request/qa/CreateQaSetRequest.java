@@ -17,11 +17,13 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateQaSetRequest {
 
+    @Builder.Default
     private String title = "未命名问答集";
 
     @NotBlank(message = "用户提示词不能为空")
     private String userPrompt;
 
+    @Builder.Default
     private String jobDescription = "";
 
     @NotEmpty(message = "请至少选择一份资料")

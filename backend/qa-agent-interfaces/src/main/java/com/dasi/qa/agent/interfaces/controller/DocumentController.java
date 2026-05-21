@@ -2,13 +2,9 @@ package com.dasi.qa.agent.interfaces.controller;
 
 import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.document.service.crud.IDocumentCrudService;
-import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
-import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
-import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
-import com.dasi.qa.agent.types.dto.response.document.SearchResult;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.result.Result;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,19 +20,13 @@ import static com.dasi.qa.agent.types.constant.StringConstant.INDEX_JOB_ID_PREFI
 public class DocumentController {
 
     private final IDocumentCrudService documentService;
-    private final IRagSearchService searchService;
-    private final IContextUtil contextUtil;
     private final IMqUtil mqUtil;
     private final String indexingTopic;
 
     public DocumentController(IDocumentCrudService documentService,
-                              IRagSearchService searchService,
-                              IContextUtil contextUtil,
                               IMqUtil mqUtil,
                               @Value("${qa-agent.kafka.topic-document-index}") String indexingTopic) {
         this.documentService = documentService;
-        this.searchService = searchService;
-        this.contextUtil = contextUtil;
         this.mqUtil = mqUtil;
         this.indexingTopic = indexingTopic;
     }
@@ -78,13 +68,5 @@ public class DocumentController {
     @PostMapping("/chunk/query")
     public Result<List<DocumentChunkResponse>> chunkBatchQuery(@RequestBody List<String> chunkIds) {
         return Result.success(documentService.batchQueryDocumentChunk(chunkIds));
-    }
-
-    // ======================== V2 RAG endpoints ========================
-
-    @PostMapping("/source/search")
-    public Result<List<SearchResult>> sourceDocumentSearch(@RequestBody RagSearchRequest request) {
-        request.setUserId(contextUtil.getUserId());
-        return Result.success(searchService.execute(request));
     }
 }

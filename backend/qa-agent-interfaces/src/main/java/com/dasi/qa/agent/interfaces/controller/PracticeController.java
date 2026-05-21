@@ -1,15 +1,11 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.dasi.qa.agent.domain.agent.service.assess.IAssessAgent;
-import com.dasi.qa.agent.domain.agent.service.feedback.IFeedbackAgent;
 import com.dasi.qa.agent.domain.practice.service.crud.IPracticeCrudService;
-import com.dasi.qa.agent.types.dto.request.practice.AssessRequest;
-import com.dasi.qa.agent.types.dto.request.practice.FeedbackRequest;
-import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
-import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
-import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
-import com.dasi.qa.agent.types.dto.response.practice.FeedbackResponse;
-import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
+import com.dasi.qa.agent.domain.practice.service.flow.IPracticeFlowService;
+import com.dasi.qa.agent.types.dto.request.practice.*;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeItemResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeStateResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeDetailResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
@@ -22,74 +18,70 @@ import java.util.List;
 public class PracticeController {
 
     private final IPracticeCrudService practiceService;
-    private final IFeedbackAgent feedbackAgent;
-    private final IAssessAgent assessAgent;
+    private final IPracticeFlowService practiceFlowService;
 
-    public PracticeController(IPracticeCrudService practiceService, IFeedbackAgent feedbackAgent, IAssessAgent assessAgent) {
+    public PracticeController(IPracticeCrudService practiceService, IPracticeFlowService practiceFlowService) {
         this.practiceService = practiceService;
-        this.feedbackAgent = feedbackAgent;
-        this.assessAgent = assessAgent;
-    }
-
-    @GetMapping("/session/detail")
-    public Result<PracticeSessionResponse> practiceSessionDetail(@RequestParam("id") String id) {
-        return Result.success(practiceService.detailPracticeSession(id));
+        this.practiceFlowService = practiceFlowService;
     }
 
     @PostMapping("/session/query")
-    public Result<List<PracticeSessionResponse>> practiceSessionQuery(@RequestBody PracticeSessionRequest request) {
-        return Result.success(practiceService.queryPracticeSession(request));
+    public Result<List<PracticeSessionResponse>> query(@RequestBody PracticeQueryRequest request) {
+        return Result.success(practiceService.query(request));
     }
 
-    @PostMapping("/session/create")
-    public Result<PracticeSessionResponse> practiceSessionCreate(@RequestBody PracticeSessionRequest request) {
-        return Result.success(practiceService.createPracticeSession(request));
+    // 新建练习
+    @PostMapping("/session/init")
+    public Result<PracticeDetailResponse> init(@RequestBody @Valid PracticeInitRequest request) {
+        return Result.success(practiceFlowService.init(request));
     }
 
-    @PostMapping("/session/assess")
-    public Result<AssessResponse> practiceSessionAssess(@RequestBody @Valid AssessRequest request) {
-        return Result.success(assessAgent.execute(request));
+    // 重新开始练习
+    @PostMapping("/session/restart")
+    public Result<PracticeDetailResponse> restart(@RequestBody @Valid PracticeRestartRequest request) {
+        return Result.success(practiceFlowService.restart(request));
     }
 
-    @PostMapping("/session/update")
-    public Result<PracticeSessionResponse> practiceSessionUpdate(@RequestBody PracticeSessionRequest request) {
-        return Result.success(practiceService.updatePracticeSession(request));
+    // 抛弃练习
+    @PostMapping("/session/abandon")
+    public Result<PracticeDetailResponse> abandon(@RequestBody @Valid PracticeAbandonRequest request) {
+        return Result.success(practiceFlowService.abandon(request));
     }
 
-    @PostMapping("/session/delete")
-    public Result<Void> practiceSessionDelete(@RequestBody PracticeSessionRequest request) {
-        practiceService.deletePracticeSession(request.getId());
-        return Result.success();
+    // 判断是否还有未完成的练习
+    @GetMapping("/session/exist")
+    public Result<PracticeStateResponse> exist(@RequestParam("qaSetId") String qaSetId) {
+        return Result.success(practiceFlowService.exist(qaSetId));
     }
 
-    @GetMapping("/session-item/detail")
-    public Result<PracticeSessionItemResponse> practiceSessionItemDetail(@RequestParam("id") String id) {
-        return Result.success(practiceService.detailPracticeSessionItem(id));
+    // 获取练习信息
+    @GetMapping("/session/detail")
+    public Result<PracticeDetailResponse> detail(@RequestParam("sessionId") String sessionId) {
+        return Result.success(practiceFlowService.detail(sessionId));
     }
 
-    @PostMapping("/session-item/query")
-    public Result<List<PracticeSessionItemResponse>> practiceSessionItemQuery(@RequestBody PracticeSessionItemRequest request) {
-        return Result.success(practiceService.queryPracticeSessionItem(request));
+    // 提交该轮练习
+    @PostMapping("/session/submit")
+    public Result<PracticeDetailResponse> submit(@RequestBody @Valid PracticeSubmitRequest request) {
+        return Result.success(practiceFlowService.submit(request));
     }
 
-    @PostMapping("/session-item/create")
-    public Result<PracticeSessionItemResponse> practiceSessionItemCreate(@RequestBody PracticeSessionItemRequest request) {
-        return Result.success(practiceService.createPracticeSessionItem(request));
+    // 保存单题记录
+    @PostMapping("/item/save")
+    public Result<PracticeItemResponse> save(@RequestBody @Valid ItemSaveRequest request) {
+        return Result.success(practiceFlowService.save(request));
     }
 
-    @PostMapping("/session-item/update")
-    public Result<PracticeSessionItemResponse> practiceSessionItemUpdate(@RequestBody PracticeSessionItemRequest request) {
-        return Result.success(practiceService.updatePracticeSessionItem(request));
+    // 单题不会
+    @PostMapping("/item/unknown")
+    public Result<PracticeItemResponse> unknown(@RequestBody @Valid ItemSaveRequest request) {
+        return Result.success(practiceFlowService.unknown(request));
     }
 
-    @PostMapping("/session-item/delete")
-    public Result<Void> practiceSessionItemDelete(@RequestBody PracticeSessionItemRequest request) {
-        practiceService.deletePracticeSessionItem(request.getId());
-        return Result.success();
+    // 单题回答
+    @PostMapping("/item/answer")
+    public Result<PracticeItemResponse> answer(@RequestBody @Valid ItemSubmitRequest request) {
+        return Result.success(practiceFlowService.answer(request));
     }
 
-    @PostMapping("/session-item/feedback")
-    public Result<FeedbackResponse> practiceSessionItemFeedback(@RequestBody @Valid FeedbackRequest request) {
-        return Result.success(feedbackAgent.execute(request));
-    }
 }

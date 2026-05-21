@@ -219,6 +219,112 @@ export type PracticeSession = {
     updatedAt?: string;
 };
 
+export type PracticeMode = "SEQUENTIAL" | "RANDOM" | string;
+
+export type PracticeFeedbackMode = "ITEM_BY_ITEM" | "AFTER_ALL" | string;
+
+export type PracticeSessionStatus = "IN_PROGRESS" | "FINISHED" | "ABANDONED" | string;
+
+export type PracticeItemStatus = "UNANSWERED" | "DRAFT" | "UNKNOWN" | "SUBMITTED" | string;
+
+export type JudgeDetail = {
+    missingPoints?: string[];
+    wrongPoints?: string[];
+    improvementAdvice?: string;
+    betterAnswer?: string;
+};
+
+export type HintDetail = {
+    memoryTip?: string;
+    encouragement?: string;
+};
+
+export type AssessPoint = {
+    title?: string;
+    analysis?: string;
+    moduleTag?: string;
+};
+
+export type AssessDetail = {
+    overallComment?: string;
+    reviewGuidance?: string;
+    strengths?: AssessPoint[];
+    weaknesses?: AssessPoint[];
+    reviewSuggestions?: string[];
+};
+
+export type PracticeFlowSession = {
+    id: string;
+    qaSetId: string;
+    qaSetTitle: string;
+    mode: PracticeMode;
+    feedbackMode: PracticeFeedbackMode;
+    status: PracticeSessionStatus;
+    selectedModule: string;
+    currentIndex: number;
+    totalQuestions: number;
+    answeredCount: number;
+    score: number | null;
+    accuracy: number | null;
+    correctCount: number;
+    deficientCount: number;
+    wrongCount: number;
+    unknownCount: number;
+    summary: string;
+    assessDetail?: AssessDetail | null;
+    startedAt: string;
+    lastActiveAt: string;
+    finishedAt: string;
+};
+
+export type PracticeFlowItem = {
+    sessionItemId: string;
+    qaItemId: string;
+    sortOrder: number;
+    question: string;
+    knowledgeNote: string;
+    standardAnswer: string;
+    moduleTag: string;
+    difficulty: string;
+    keywords: string;
+    sourceChunkIdsJson: string;
+    userAnswer: string;
+    status: PracticeItemStatus;
+    unknown: boolean;
+    result: string;
+    score: number | null;
+    feedbackSummary: string;
+    judgeDetail?: JudgeDetail | null;
+    hintDetail?: HintDetail | null;
+    answeredAt: string;
+    submittedAt: string;
+};
+
+export type PracticeSessionDetail = {
+    session: PracticeFlowSession;
+    items: PracticeFlowItem[];
+};
+
+export type StartPracticeInput = {
+    qaSetId: string;
+    mode: PracticeMode;
+    feedbackMode: PracticeFeedbackMode;
+    selectedModule?: string;
+};
+
+export type SaveAnswerInput = {
+    sessionId: string;
+    sessionItemId: string;
+    userAnswer?: string;
+    currentIndex: number;
+};
+
+export type SubmitItemInput = SaveAnswerInput;
+
+export type SubmitSessionInput = {
+    sessionId: string;
+};
+
 export type PracticeSessionItem = {
     id: string;
     sessionId: string;

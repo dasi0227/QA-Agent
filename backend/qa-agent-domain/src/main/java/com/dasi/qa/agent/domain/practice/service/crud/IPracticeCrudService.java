@@ -1,31 +1,11 @@
 package com.dasi.qa.agent.domain.practice.service.crud;
 
-import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
-import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
-import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
+import com.dasi.qa.agent.types.dto.request.practice.PracticeQueryRequest;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 
 import java.util.List;
 
 public interface IPracticeCrudService {
 
-    PracticeSessionResponse detailPracticeSession(String id);
-
-    List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request);
-
-    PracticeSessionResponse createPracticeSession(PracticeSessionRequest request);
-
-    PracticeSessionResponse updatePracticeSession(PracticeSessionRequest request);
-
-    void deletePracticeSession(String id);
-
-    PracticeSessionItemResponse detailPracticeSessionItem(String id);
-
-    List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request);
-
-    PracticeSessionItemResponse createPracticeSessionItem(PracticeSessionItemRequest request);
-
-    PracticeSessionItemResponse updatePracticeSessionItem(PracticeSessionItemRequest request);
-
-    void deletePracticeSessionItem(String id);
+    List<PracticeSessionResponse> query(PracticeQueryRequest request);
 }

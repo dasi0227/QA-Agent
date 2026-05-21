@@ -28,7 +28,7 @@ public class EmailUtil implements IEmailUtil {
 
     private String loadTemplate() {
         try {
-            ClassPathResource resource = new ClassPathResource("templates/verify-code-email.html");
+            ClassPathResource resource = new ClassPathResource("template/verify-code-email.html");
             return resource.getContentAsString(StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error("【邮件】验证码模板加载失败", e);

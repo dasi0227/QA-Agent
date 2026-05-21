@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 public class FeedbackSaveCommand {
 
     private String userAnswer;
+    private Boolean unknown;
     private FeedbackResult result;
     private Integer score;
     private String feedbackSummary;

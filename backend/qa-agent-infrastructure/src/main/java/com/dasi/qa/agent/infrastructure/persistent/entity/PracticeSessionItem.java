@@ -27,6 +27,10 @@ public class PracticeSessionItem {
     private Integer sortOrder;
     
     private String userAnswer;
+
+    private String status;
+
+    private Boolean unknown;
     
     private String result;
     
@@ -39,6 +43,22 @@ public class PracticeSessionItem {
     private String feedbackHintDetail;
     
     private LocalDateTime answeredAt;
+
+    private LocalDateTime submittedAt;
+
+    private String questionSnapshot;
+
+    private String standardAnswerSnapshot;
+
+    private String knowledgeNoteSnapshot;
+
+    private String keywordsSnapshot;
+
+    private String moduleTagSnapshot;
+
+    private String difficultySnapshot;
+
+    private String sourceChunkIdsSnapshotJson;
     
     private LocalDateTime createdAt;
     

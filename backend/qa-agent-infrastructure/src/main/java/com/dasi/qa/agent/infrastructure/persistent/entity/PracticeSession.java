@@ -34,6 +34,12 @@ public class PracticeSession {
     private Integer totalQuestions;
     
     private Integer answeredCount;
+
+    private Integer currentIndex;
+
+    private LocalDateTime lastActiveAt;
+
+    private Integer durationSeconds;
     
     private Integer score;
     

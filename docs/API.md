@@ -99,40 +99,13 @@
 | `createdAt` | 创建时间 |
 | `updatedAt` | 最后修改时间 |
 
-### 4.2 RAG 搜索接口
-
-| 方法 | 路径 | 鉴权 | 请求 |
-| --- | --- | --- | --- |
-| POST | `/document/source/search` | 是 | `queryText`, `filterDocumentIds?` |
-
-请求示例：
-
-```json
-{
-  "queryText": "Redis 跳表 数据结构 应用场景",
-  "filterDocumentIds": ["doc-1", "doc-2"]
-}
-```
-
-响应元素 `SearchResult`：
-
-| 字段 | 说明 |
-| --- | --- |
-| `chunkId` | 切片 ID |
-| `documentId` | 资料 ID |
-| `titlePath` | 标题路径，如 `Redis > 数据结构 > 跳表` |
-| `content` | 切片正文 |
-| `summary` | 切片摘要 |
-| `moduleTags` | 从标题路径提取的模块标签 |
-| `score` | DashScope rerank 分数；仅前 20 个候选会被写入 |
-| `vectorScore` | 语义检索得分 |
-| `keywordScore` | 关键词检索得分 |
-
-### 4.3 切片查询接口
+### 4.2 切片查询接口
 
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
 | POST | `/document/chunk/query` | 是 | `["chunk-id-1", "chunk-id-2", ...]` |
+
+说明：RAG 搜索能力不再作为公开 HTTP 接口暴露，内部由生成链路按需调用。
 
 请求示例：
 
@@ -269,88 +242,61 @@
 
 ## 6. Practice
 
-### 6.1 练习会话接口
+### 6.1 领域化刷题流程接口
+
+刷题页只使用领域化练习接口，不直接拼 CRUD。
 
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
-| GET | `/practice/session/detail?id=...` | 是 | `id` |
-| POST | `/practice/session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?`, `startedAt?`, `finishedAt?` |
-| POST | `/practice/session/create` | 是 | 同上 |
-| POST | `/practice/session/update` | 是 | 同上，`id` 必填 |
-| POST | `/practice/session/delete` | 是 | `id` |
-| POST | `/practice/session/assess` | 是 | `sessionId` |
+| POST | `/practice/session/init` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?` |
+| GET | `/practice/session/exist?qaSetId=...` | 是 | `qaSetId` |
+| GET | `/practice/session/detail?sessionId=...` | 是 | `sessionId` |
+| POST | `/practice/item/save` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
+| POST | `/practice/item/unknown` | 是 | 同 `/practice/item/save` |
+| POST | `/practice/item/answer` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
+| POST | `/practice/session/submit` | 是 | `sessionId` |
+| POST | `/practice/session/restart` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?`, `sessionId?` |
+| POST | `/practice/session/abandon` | 是 | `sessionId` |
 
-说明：
-
-1. `/practice/session/assess` 是同步接口，不走 SSE。
-2. 只有在当前 session 所有题目都有 `answeredAt`、`result`、`score` 时，AssessAgent 才允许执行；否则返回 `40906 PRACTICE_SESSION_NOT_COMPLETED`。
-
-### 6.2 练习题接口
-
-| 方法 | 路径 | 鉴权 | 请求 |
-| --- | --- | --- | --- |
-| GET | `/practice/session-item/detail?id=...` | 是 | `id` |
-| POST | `/practice/session-item/query` | 是 | `id?`, `sessionId?`, `qaItemId?`, `sortOrder?`, `userAnswer?`, `result?`, `score?`, `feedbackSummary?`, `answeredAt?` |
-| POST | `/practice/session-item/create` | 是 | 同上 |
-| POST | `/practice/session-item/update` | 是 | 同上，`id` 必填 |
-| POST | `/practice/session-item/delete` | 是 | `id` |
-| POST | `/practice/session-item/feedback` | 是 | `sessionItemId`, `userAnswer?`, `unknown?` |
-
-### 6.3 `/practice/session-item/feedback`
-
-请求示例：
-
-```json
-{
-  "sessionItemId": "session-item-id",
-  "userAnswer": "RDB 是快照，AOF 是命令日志",
-  "unknown": false
-}
-```
-
-响应 `FeedbackResponse`：
+响应 `PracticeSessionDetailResponse`：
 
 | 字段 | 说明 |
 | --- | --- |
-| `sessionItemId` | 当前练习题 ID |
+| `session` | 会话摘要，包含题集、模式、状态、当前题号、统计和整轮评估 |
+| `items` | 本轮题目与作答记录，按 `sortOrder` 排序 |
+
+响应 `PracticeFlowItemResponse` 关键字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `sessionItemId` | 本轮单题 ID |
 | `qaItemId` | 原题 ID |
-| `result` | `PERFECT` / `CORRECT` / `DEFICIENT` / `WRONG` / `UNKNOWN` |
+| `question` / `standardAnswer` / `knowledgeNote` | 题目快照优先，快照为空时回退题库 |
+| `userAnswer` | 用户草稿或提交答案 |
+| `status` | `UNANSWERED` / `DRAFT` / `UNKNOWN` / `SUBMITTED` |
+| `unknown` | 是否标记不会 |
+| `result` | 提交后判题结果，提交前为空 |
 | `score` | 单题分数 |
-| `feedbackSummary` | 单句摘要 |
-| `judgeDetail` | 结构化判题详情，未知分支为 `null` |
-| `hintDetail` | 结构化提示详情，判题分支为 `null` |
-| `sourceChunks` | 引用到的资料切片 |
-| `answeredAt` | 本次写入时间 |
+| `feedbackSummary` / `judgeDetail` / `hintDetail` | 结构化单题反馈 |
 
 说明：
 
-1. `unknown = true` 或 `userAnswer` 为空白时，后端统一走 Hint 分支。
-2. 不会分支会固定写入：`result = UNKNOWN`、`score = 0`、`feedbackSummary = "这题已标记为不会。"`。
+1. `/practice/item/save` 只保存草稿，不触发 Agent。
+2. 逐题反馈模式下 `/practice/item/answer` 调用 FeedbackAgent，并由 `FeedbackSaver` 写入 `practice_session_item`。
+3. `/practice/session/submit` 调用 AssessAgent，并由 `AssessSaver` 写入 `practice_session`、将 session 标记为 `FINISHED`。
+4. `/practice/session/restart` 会把同题集未完成会话标记为 `ABANDONED` 后创建新会话。
+5. 进度恢复以服务端 `detail` 为准，前端 localStorage 只保存最近 session 快照。
 
-### 6.4 `/practice/session/assess`
+### 6.2 练习会话查询接口
 
-请求示例：
+| 方法 | 路径 | 鉴权 | 请求 |
+| --- | --- | --- | --- |
+| POST | `/practice/session/query` | 是 | `id?`, `qaSetId?`, `mode?`, `feedbackMode?`, `status?`, `selectedModule?`, `totalQuestions?`, `answeredCount?`, `score?`, `accuracy?`, `summary?`, `startedAt?`, `finishedAt?` |
 
-```json
-{
-  "sessionId": "practice-session-id"
-}
-```
+说明：练习会话的创建、提交、放弃和重开统一走 `/practice/session/*`，不再暴露旧的 session 写入型 CRUD 接口。
 
-响应 `AssessResponse`：
+### 6.3 练习题接口说明
 
-| 字段 | 说明 |
-| --- | --- |
-| `sessionId` | 练习会话 ID |
-| `qaSetId` | 题集 ID |
-| `score` | 全部单题平均分，四舍五入为整数 |
-| `accuracy` | `(PERFECT + CORRECT + DEFICIENT) / totalQuestions * 100`，保留两位小数 |
-| `correctCount` | `PERFECT + CORRECT` 数量 |
-| `deficientCount` | `DEFICIENT` 数量 |
-| `wrongCount` | `WRONG` 数量 |
-| `unknownCount` | `UNKNOWN` 数量 |
-| `summary` | 等同于 `assessDetail.overallComment` |
-| `assessDetail` | `overallComment`、`reviewGuidance`、`strengths[]`、`weaknesses[]` |
-| `finishedAt` | 首次完成时间；重复评估不刷新 |
+练习题明细不再暴露独立 session-item 查询接口。刷题页统一通过 `GET /practice/session/detail?sessionId=...` 获取 session、题目快照、作答状态、反馈和结果。
 
-说明：`memory_clue_json` 只落库，不返回给前端。
+练习题的草稿保存、不会标记和单题提交统一走 `/practice/item/*`。

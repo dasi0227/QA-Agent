@@ -48,11 +48,11 @@ V2 RAG 的职责很明确：把用户上传的 Markdown 资料切成可检索切
 2. 删除 PostgreSQL `chunk_search`
 3. 保留 `source_document.deleted = true` 的业务语义
 
-### 2.3 搜索接口
+### 2.3 搜索能力
 
-- `POST /document/source/search`
+RAG 搜索能力不再作为公开 HTTP 接口暴露，当前由生成链路内部调用。
 
-请求：
+内部请求模型：
 
 ```json
 {
@@ -61,7 +61,7 @@ V2 RAG 的职责很明确：把用户上传的 Markdown 资料切成可检索切
 }
 ```
 
-当前公开过滤条件只有：
+当前内部过滤条件只有：
 
 1. `queryText`
 2. `filterDocumentIds`

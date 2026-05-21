@@ -420,12 +420,15 @@ public class AgentRepository implements IAgentRepository {
         practiceSessionItemMapper.update(null,
                 new LambdaUpdateWrapper<PracticeSessionItem>()
                         .set(PracticeSessionItem::getUserAnswer, command.getUserAnswer())
+                        .set(PracticeSessionItem::getStatus, "SUBMITTED")
+                        .set(PracticeSessionItem::getUnknown, Boolean.TRUE.equals(command.getUnknown()))
                         .set(PracticeSessionItem::getResult, command.getResult().name())
                         .set(PracticeSessionItem::getScore, command.getScore())
                         .set(PracticeSessionItem::getFeedbackSummary, command.getFeedbackSummary())
                         .set(PracticeSessionItem::getFeedbackJudgeDetail, command.getJudgeDetail() != null ? JSON.toJSONString(command.getJudgeDetail()) : null)
                         .set(PracticeSessionItem::getFeedbackHintDetail, command.getHintDetail() != null ? JSON.toJSONString(command.getHintDetail()) : null)
                         .set(PracticeSessionItem::getAnsweredAt, now)
+                        .set(PracticeSessionItem::getSubmittedAt, now)
                         .set(PracticeSessionItem::getUpdatedAt, now)
                         .eq(PracticeSessionItem::getId, sessionItemId));
         if (sessionItem.getAnsweredAt() == null) {

@@ -10,16 +10,23 @@ import type {
     DocumentRecord,
     LoginInput,
     Profile,
+    PracticeFlowItem,
+    PracticeFlowSession,
+    PracticeSessionDetail,
     QuestionItem,
     QuestionItemDraft,
     QuestionSet,
     RegisterInput,
+    SaveAnswerInput,
     SendVerifyCodeInput,
+    StartPracticeInput,
     UpdateQuestionItemInput,
     UpdateQuestionSetInput,
     UpdateDocumentInput,
     CreateQuestionSetInput,
     SseEvent,
+    SubmitItemInput,
+    SubmitSessionInput,
     TaskListItem,
     TaskMessage,
     TaskStatus,
@@ -90,6 +97,8 @@ export const apiKeys = {
     taskStatus: (taskId: string) => ["task-status", taskId] as const,
     taskMessages: (taskId: string) => ["task-messages", taskId] as const,
     taskList: ["task-list"] as const,
+    existingPractice: (qaSetId: string) => ["practice", "session", "exist", qaSetId] as const,
+    practiceDetail: (sessionId: string) => ["practice", "session", "detail", sessionId] as const,
 } as const;
 
 type QueryControlOptions = {
@@ -228,6 +237,121 @@ export function normalizeQuestionItem(raw: unknown): QuestionItem {
         sourceReliable: toBooleanValue(pick(raw, "sourceReliable", "source_reliable"), true),
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
         sortOrder: toNumberValue(pick(raw, "sortOrder", "sort_order")),
+    };
+}
+
+function normalizeList(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value.map((item) => toStringValue(item)).filter(Boolean);
+}
+
+function normalizeJudgeDetail(raw: unknown) {
+    if (!isObject(raw)) {
+        return null;
+    }
+    return {
+        missingPoints: normalizeList(pick(raw, "missingPoints", "missing_points")),
+        wrongPoints: normalizeList(pick(raw, "wrongPoints", "wrong_points")),
+        improvementAdvice: toStringValue(pick(raw, "improvementAdvice", "improvement_advice")),
+        betterAnswer: toStringValue(pick(raw, "betterAnswer", "better_answer")),
+    };
+}
+
+function normalizeHintDetail(raw: unknown) {
+    if (!isObject(raw)) {
+        return null;
+    }
+    return {
+        memoryTip: toStringValue(pick(raw, "memoryTip", "memory_tip")),
+        encouragement: toStringValue(pick(raw, "encouragement")),
+    };
+}
+
+function normalizeAssessPoint(raw: unknown) {
+    if (!isObject(raw)) {
+        return {};
+    }
+    return {
+        title: toStringValue(pick(raw, "title")),
+        analysis: toStringValue(pick(raw, "analysis", "detail")),
+        moduleTag: toStringValue(pick(raw, "moduleTag", "module_tag")),
+    };
+}
+
+function normalizeAssessDetail(raw: unknown) {
+    if (!isObject(raw)) {
+        return null;
+    }
+    const strengths = pick(raw, "strengths");
+    const weaknesses = pick(raw, "weaknesses", "weak_points", "weakPoints");
+    const reviewGuidance = toStringValue(pick(raw, "reviewGuidance", "review_guidance"));
+    return {
+        overallComment: toStringValue(pick(raw, "overallComment", "overall_comment")),
+        reviewGuidance,
+        strengths: Array.isArray(strengths) ? strengths.map(normalizeAssessPoint) : [],
+        weaknesses: Array.isArray(weaknesses) ? weaknesses.map(normalizeAssessPoint) : [],
+        reviewSuggestions: normalizeList(pick(raw, "reviewSuggestions", "review_suggestions")).concat(reviewGuidance ? [reviewGuidance] : []),
+    };
+}
+
+export function normalizePracticeFlowSession(raw: unknown): PracticeFlowSession {
+    return {
+        id: toStringValue(pick(raw, "id")),
+        qaSetId: toStringValue(pick(raw, "qaSetId", "qa_set_id")),
+        qaSetTitle: toStringValue(pick(raw, "qaSetTitle", "qa_set_title")),
+        mode: toStringValue(pick(raw, "mode"), "SEQUENTIAL"),
+        feedbackMode: toStringValue(pick(raw, "feedbackMode", "feedback_mode"), "ITEM_BY_ITEM"),
+        status: toStringValue(pick(raw, "status"), "IN_PROGRESS"),
+        selectedModule: toStringValue(pick(raw, "selectedModule", "selected_module")),
+        currentIndex: toNumberValue(pick(raw, "currentIndex", "current_index")),
+        totalQuestions: toNumberValue(pick(raw, "totalQuestions", "total_questions")),
+        answeredCount: toNumberValue(pick(raw, "answeredCount", "answered_count")),
+        score: pick(raw, "score") == null ? null : toNumberValue(pick(raw, "score")),
+        accuracy: pick(raw, "accuracy") == null ? null : toNumberValue(pick(raw, "accuracy")),
+        correctCount: toNumberValue(pick(raw, "correctCount", "correct_count")),
+        deficientCount: toNumberValue(pick(raw, "deficientCount", "deficient_count")),
+        wrongCount: toNumberValue(pick(raw, "wrongCount", "wrong_count")),
+        unknownCount: toNumberValue(pick(raw, "unknownCount", "unknown_count")),
+        summary: toStringValue(pick(raw, "summary")),
+        assessDetail: normalizeAssessDetail(pick(raw, "assessDetail", "assess_detail")),
+        startedAt: toStringValue(pick(raw, "startedAt", "started_at")),
+        lastActiveAt: toStringValue(pick(raw, "lastActiveAt", "last_active_at")),
+        finishedAt: toStringValue(pick(raw, "finishedAt", "finished_at")),
+    };
+}
+
+export function normalizePracticeFlowItem(raw: unknown): PracticeFlowItem {
+    return {
+        sessionItemId: toStringValue(pick(raw, "sessionItemId", "session_item_id")),
+        qaItemId: toStringValue(pick(raw, "qaItemId", "qa_item_id")),
+        sortOrder: toNumberValue(pick(raw, "sortOrder", "sort_order")),
+        question: toStringValue(pick(raw, "question")),
+        knowledgeNote: toStringValue(pick(raw, "knowledgeNote", "knowledge_note")),
+        standardAnswer: toStringValue(pick(raw, "standardAnswer", "standard_answer")),
+        moduleTag: toStringValue(pick(raw, "moduleTag", "module_tag")),
+        difficulty: toStringValue(pick(raw, "difficulty")),
+        keywords: toStringValue(pick(raw, "keywords")),
+        sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
+        userAnswer: toStringValue(pick(raw, "userAnswer", "user_answer")),
+        status: toStringValue(pick(raw, "status"), "UNANSWERED"),
+        unknown: toBooleanValue(pick(raw, "unknown")),
+        result: toStringValue(pick(raw, "result")),
+        score: pick(raw, "score") == null ? null : toNumberValue(pick(raw, "score")),
+        feedbackSummary: toStringValue(pick(raw, "feedbackSummary", "feedback_summary")),
+        judgeDetail: normalizeJudgeDetail(pick(raw, "judgeDetail", "judge_detail")),
+        hintDetail: normalizeHintDetail(pick(raw, "hintDetail", "hint_detail")),
+        answeredAt: toStringValue(pick(raw, "answeredAt", "answered_at")),
+        submittedAt: toStringValue(pick(raw, "submittedAt", "submitted_at")),
+    };
+}
+
+export function normalizePracticeSessionDetail(raw: unknown): PracticeSessionDetail {
+    const items = pick(raw, "items");
+    return {
+        session: normalizePracticeFlowSession(pick(raw, "session")),
+        items: Array.isArray(items) ? items.map(normalizePracticeFlowItem) : [],
     };
 }
 
@@ -588,6 +712,127 @@ export function useDeleteQuestionItemMutation() {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(variables.questionItemId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useExistingPracticeSessionQuery(qaSetId?: string, options: QueryControlOptions = {}) {
+    return useQuery({
+        queryKey: apiKeys.existingPractice(qaSetId ?? ""),
+        enabled: Boolean(qaSetId) && (options.enabled ?? true),
+        queryFn: async () => {
+            const raw = await apiRequest<unknown | null>("/practice/session/exist", {
+                query: { qaSetId: qaSetId ?? "" },
+            });
+            return raw ? normalizePracticeFlowSession(raw) : null;
+        },
+    });
+}
+
+export function usePracticeDetailQuery(sessionId?: string, options: QueryControlOptions = {}) {
+    return useQuery({
+        queryKey: apiKeys.practiceDetail(sessionId ?? ""),
+        enabled: Boolean(sessionId) && (options.enabled ?? true),
+        queryFn: async () => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/detail", {
+            query: { sessionId: sessionId ?? "" },
+        })),
+    });
+}
+
+export function useStartPracticeMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: StartPracticeInput) => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/init", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (detail) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.existingPractice(detail.session.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(detail.session.id) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useSavePracticeAnswerMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: SaveAnswerInput) => normalizePracticeFlowItem(await apiRequest<unknown>("/practice/item/save", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (_item, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(variables.sessionId) });
+        },
+    });
+}
+
+export function useMarkPracticeUnknownMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: SaveAnswerInput) => normalizePracticeFlowItem(await apiRequest<unknown>("/practice/item/unknown", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (_item, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(variables.sessionId) });
+        },
+    });
+}
+
+export function useSubmitPracticeItemMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: SubmitItemInput) => normalizePracticeFlowItem(await apiRequest<unknown>("/practice/item/answer", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (_item, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(variables.sessionId) });
+        },
+    });
+}
+
+export function useSubmitPracticeSessionMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: SubmitSessionInput) => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/submit", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (detail, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(variables.sessionId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.existingPractice(detail.session.qaSetId) });
+        },
+    });
+}
+
+export function useRestartPracticeMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: StartPracticeInput & { sessionId?: string }) => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/restart", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (detail) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.existingPractice(detail.session.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(detail.session.id) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useAbandonPracticeMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: SubmitSessionInput) => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/abandon", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (detail, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(variables.sessionId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.existingPractice(detail.session.qaSetId) });
         },
     });
 }

@@ -28,7 +28,7 @@ FeedbackAgent 负责同步返回单题反馈。输入是一道练习题和用户
 
 ## 2. 对外接口
 
-接口：`POST /practice/session-item/feedback`
+旧 Feedback 直连接口已删除。当前对外入口是 `POST /practice/item/answer`，由 Practice Flow 编排调用 `FeedbackAgent` 并保存单题反馈。
 
 请求：
 

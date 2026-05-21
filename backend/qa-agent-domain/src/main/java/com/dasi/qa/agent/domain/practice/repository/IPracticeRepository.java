@@ -1,31 +1,39 @@
 package com.dasi.qa.agent.domain.practice.repository;
 
-import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionItemRequest;
-import com.dasi.qa.agent.types.dto.request.practice.PracticeSessionRequest;
-import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionItemResponse;
+import com.dasi.qa.agent.domain.practice.model.vo.PracticeStateVO;
+import com.dasi.qa.agent.types.dto.request.practice.ItemSaveRequest;
+import com.dasi.qa.agent.types.dto.request.practice.PracticeInitRequest;
+import com.dasi.qa.agent.types.dto.request.practice.PracticeQueryRequest;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeItemResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeStateResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeDetailResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 
 import java.util.List;
 
 public interface IPracticeRepository {
 
-    PracticeSessionResponse detailPracticeSession(String id, String userId);
+    PracticeDetailResponse initPractice(PracticeInitRequest request, String sessionId, List<String> sessionItemIds, String userId);
 
-    List<PracticeSessionResponse> queryPracticeSession(PracticeSessionRequest request, String userId);
+    int countPracticeItems(PracticeInitRequest request, String userId);
 
-    PracticeSessionResponse createPracticeSession(PracticeSessionRequest request, String userId);
+    PracticeStateResponse existPractice(String qaSetId, String userId);
 
-    PracticeSessionResponse updatePracticeSession(PracticeSessionRequest request, String userId);
+    PracticeDetailResponse detailPractice(String sessionId, String userId);
 
-    void deletePracticeSession(String id, String userId);
+    PracticeStateVO getPracticeState(String sessionId, String userId);
 
-    PracticeSessionItemResponse detailPracticeSessionItem(String id, String userId);
+    PracticeItemResponse savePracticeAnswer(ItemSaveRequest request, String userId);
 
-    List<PracticeSessionItemResponse> queryPracticeSessionItem(PracticeSessionItemRequest request, String userId);
+    PracticeItemResponse markUnknownOnly(ItemSaveRequest request, String userId);
 
-    PracticeSessionItemResponse createPracticeSessionItem(PracticeSessionItemRequest request, String userId);
+    PracticeItemResponse refreshPracticeItemProgress(String sessionId, String sessionItemId, Integer currentIndex, String userId);
 
-    PracticeSessionItemResponse updatePracticeSessionItem(PracticeSessionItemRequest request, String userId);
+    void abandonActivePractice(String qaSetId, String userId);
 
-    void deletePracticeSessionItem(String id, String userId);
+    PracticeDetailResponse abandonPractice(String sessionId, String userId);
+
+    boolean isPracticeSessionReadyForAssess(String sessionId, String userId);
+
+    List<PracticeSessionResponse> queryPracticeSession(PracticeQueryRequest request, String userId);
 }

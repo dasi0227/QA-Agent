@@ -29,7 +29,7 @@ AssessAgent 负责一轮练习完成后的同步整轮评估。它基于已经�
 
 ## 2. 对外接口
 
-接口：`POST /practice/session/assess`
+旧 Assess 直连接口已删除。当前对外入口是 `POST /practice/session/submit`，由 Practice Flow 编排调用 `AssessAgent` 并保存整轮评估。
 
 请求：
 

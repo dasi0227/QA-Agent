@@ -71,6 +71,7 @@ public class FeedbackSaver {
         HintResult result = (HintResult) scope.readState(FeedbackPhase.HINT.getScopeKey());
         return FeedbackSaveCommand.builder()
                 .userAnswer("")
+                .unknown(true)
                 .result(FeedbackResult.UNKNOWN)
                 .score(0)
                 .feedbackSummary(UNKNOWN_SUMMARY)
@@ -85,6 +86,7 @@ public class FeedbackSaver {
         JudgeResult result = (JudgeResult) scope.readState(FeedbackPhase.JUDGE.getScopeKey());
         return FeedbackSaveCommand.builder()
                 .userAnswer(userAnswer)
+                .unknown(false)
                 .result(FeedbackResult.valueOf(result.getResult()))
                 .score(result.getScore())
                 .feedbackSummary(result.getFeedbackSummary())

@@ -42,7 +42,7 @@
 
 ## 2. PostgreSQL 表清单
 
-13. `chunk_search`
+1. `chunk_search`
 
 ## 3. 逐表说明
 
@@ -238,6 +238,9 @@
 | `selected_module` | `VARCHAR(120)` | 按模块练习时的模块名 |
 | `total_questions` | `INT` | 本轮题数 |
 | `answered_count` | `INT` | 已回答题数 |
+| `current_index` | `INT` | 最近停留题号，用于恢复进度 |
+| `last_active_at` | `DATETIME` | 最近练习活跃时间 |
+| `duration_seconds` | `INT` | 累计用时秒数 |
 | `score` | `INT` | 整轮平均分 |
 | `accuracy` | `DECIMAL(10,2)` | 整轮达标率 |
 | `correct_count` | `INT` | `PERFECT + CORRECT` 数量 |
@@ -259,16 +262,27 @@
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `id` | `CHAR(36)` | 主键 |
+| `user_id` | `CHAR(36)` | 用户隔离字段 |
 | `session_id` | `CHAR(36)` | 所属练习会话 |
 | `qa_item_id` | `CHAR(36)` | 对应题目 |
 | `sort_order` | `INT` | 本轮顺序 |
 | `user_answer` | `LONGTEXT` | 用户回答 |
-| `result` | `VARCHAR(32)` | `PERFECT` / `CORRECT` / `DEFICIENT` / `WRONG` / `UNKNOWN` |
+| `status` | `VARCHAR(32)` | `UNANSWERED` / `DRAFT` / `UNKNOWN` / `SUBMITTED` |
+| `unknown` | `TINYINT(1)` | 是否标记不会 |
+| `result` | `VARCHAR(32)` | 可空，`PERFECT` / `CORRECT` / `DEFICIENT` / `WRONG` / `UNKNOWN` |
 | `score` | `INT` | 单题分数 |
 | `feedback_summary` | `LONGTEXT` | 单句反馈摘要 |
 | `feedback_judge_detail` | `TEXT` | `JudgeDetail` JSON |
 | `feedback_hint_detail` | `TEXT` | `HintDetail` JSON |
 | `answered_at` | `DATETIME` | 最近反馈写入时间 |
+| `submitted_at` | `DATETIME` | 本题提交时间 |
+| `question_snapshot` | `LONGTEXT` | 作答时题干快照 |
+| `standard_answer_snapshot` | `LONGTEXT` | 作答时标准答案快照 |
+| `knowledge_note_snapshot` | `LONGTEXT` | 作答时知识笔记快照 |
+| `keywords_snapshot` | `LONGTEXT` | 作答时关键词快照 |
+| `module_tag_snapshot` | `VARCHAR(120)` | 作答时模块标签快照 |
+| `difficulty_snapshot` | `VARCHAR(32)` | 作答时难度快照 |
+| `source_chunk_ids_snapshot_json` | `JSON` | 作答时来源切片快照 |
 | `created_at` | `DATETIME` | 创建时间 |
 | `updated_at` | `DATETIME` | 更新时间 |
 

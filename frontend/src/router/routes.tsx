@@ -14,7 +14,7 @@ const QASetPage = lazy(() => import("@/pages/QASetPage").then((module) => ({ def
 const QuestionPage = lazy(() => import("@/pages/QuestionPage").then((module) => ({ default: module.QuestionPage })));
 const DocumentPage = lazy(() => import("@/pages/DocumentPage").then((module) => ({ default: module.DocumentPage })));
 const CreatePage = lazy(() => import("@/pages/CreatePage").then((module) => ({ default: module.CreatePage })));
-const QAPage = lazy(() => import("@/pages/QAPage").then((module) => ({ default: module.QAPage })));
+const PracticePage = lazy(() => import("@/pages/PracticePage").then((module) => ({ default: module.PracticePage })));
 const ResultPage = lazy(() => import("@/pages/ResultPage").then((module) => ({ default: module.ResultPage })));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
 
@@ -51,13 +51,19 @@ export const router = createBrowserRouter([
           { path: "/repository/qa-set/:id", element: withRouteLoading(<QASetPage />) },
           { path: "/repository/question", element: withRouteLoading(<QuestionPage />) },
           { path: "/repository/document", element: withRouteLoading(<DocumentPage />) },
-          { path: "/practice/:sessionId", element: withRouteLoading(<QAPage />) },
-          { path: "/result/:sessionId", element: withRouteLoading(<ResultPage />) },
           { path: "/qa", element: <Navigate to="/quiz" replace /> },
-          { path: "/result", element: <Navigate to="/quiz" replace /> },
         ],
       },
       { path: "*", element: withRouteLoading(<NotFoundPage />) },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      { path: "/practice/:sessionId", element: withRouteLoading(<PracticePage />) },
+      { path: "/practice/:sessionId/result", element: withRouteLoading(<ResultPage />) },
+      { path: "/result/:sessionId", element: withRouteLoading(<ResultPage />) },
+      { path: "/result", element: <Navigate to="/quiz" replace /> },
     ],
   },
 ]);

@@ -1,6 +1,6 @@
-package com.dasi.qa.agent.types.dto.response.practice;
+package com.dasi.qa.agent.types.dto.request.practice;
 
-import com.dasi.qa.agent.types.dto.response.BaseResponse;
+import com.dasi.qa.agent.types.dto.request.BaseRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class PracticeSessionResponse extends BaseResponse {
+public class PracticeQueryRequest extends BaseRequest {
 
     private String qaSetId;
     private String mode;
@@ -24,17 +24,9 @@ public class PracticeSessionResponse extends BaseResponse {
     private String selectedModule;
     private Integer totalQuestions;
     private Integer answeredCount;
-    private Integer currentIndex;
-    private LocalDateTime lastActiveAt;
-    private Integer durationSeconds;
     private Integer score;
     private BigDecimal accuracy;
-    private Integer correctCount;
-    private Integer deficientCount;
-    private Integer wrongCount;
-    private Integer unknownCount;
     private String summary;
-    private AssessDetail assessDetail;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
 }
