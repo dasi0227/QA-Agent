@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactElement } from "react";
 import { Navigate, createBrowserRouter } from "react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { FlowShell } from "@/components/layout/FlowShell";
 import { RequireAuth } from "@/components/layout/RequireAuth";
 import { RouteLoadingCard } from "@/components/layout/RouteLoadingCard";
 
@@ -60,10 +61,15 @@ export const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
-      { path: "/practice/:sessionId", element: withRouteLoading(<PracticePage />) },
-      { path: "/practice/:sessionId/result", element: withRouteLoading(<ResultPage />) },
-      { path: "/result/:sessionId", element: withRouteLoading(<ResultPage />) },
-      { path: "/result", element: <Navigate to="/quiz" replace /> },
+      {
+        element: <FlowShell />,
+        children: [
+          { path: "/practice/:sessionId", element: withRouteLoading(<PracticePage />) },
+          { path: "/practice/:sessionId/result", element: withRouteLoading(<ResultPage />) },
+          { path: "/result/:sessionId", element: withRouteLoading(<ResultPage />) },
+          { path: "/result", element: <Navigate to="/quiz" replace /> },
+        ],
+      },
     ],
   },
 ]);

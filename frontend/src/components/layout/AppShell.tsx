@@ -3,14 +3,14 @@ import { Topbar } from "./Topbar";
 import { SiteFooter } from "./SiteFooter";
 
 export function AppShell() {
-  return (
-    <div className="app-shell">
-      <div className="page-shell">
-        <div className="app-shell__content">
-          <Topbar />
-          <Outlet />
-        </div>
-        <SiteFooter />
+    return (
+        <div className="app-shell">
+            <div className="page-shell">
+                <Topbar />
+                <div className="app-shell__content">
+                    <Outlet />
+                </div>
+                <SiteFooter />
       </div>
     </div>
   );

@@ -531,7 +531,7 @@ public class GenerateAgent implements IGenerateAgent {
     private List<DraftResult> doValidateLoop(String taskId, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateLoopContext loopContext) {
         List<DraftResult> passItems = new ArrayList<>();
         AtomicReference<List<DraftResult>> evaluateItems = new AtomicReference<>(loopContext.getBatch());
-        AtomicReference<List<AmendResult>> amendItems = new AtomicReference<>(List.of());
+        AtomicReference<List<AmendContext.AmendItem>> amendItems = new AtomicReference<>(List.of());
         AtomicBoolean flag = new AtomicBoolean(false);
 
         UntypedAgent validateAgent = AgenticServices.loopBuilder()
@@ -552,17 +552,17 @@ public class GenerateAgent implements IGenerateAgent {
                                             .build()
                             );
 
-                            List<AmendResult> amends = new ArrayList<>();
+                            List<AmendContext.AmendItem> amends = new ArrayList<>();
                             for (int i = 0; i < Math.min(evaluateItems.get().size(), evaluates.size()); i++) {
                                 if (VerdictType.PASS.name().equals(evaluates.get(i).getVerdict())) {
                                     passItems.add(evaluateItems.get().get(i));
                                 } else {
-                                    AmendResult amendResult = AmendResult.builder()
+                                    AmendContext.AmendItem amendItem = AmendContext.AmendItem.builder()
                                             .draftResult(evaluateItems.get().get(i))
                                             .reason(evaluates.get(i).getReason())
                                             .suggestion(evaluates.get(i).getSuggestion())
                                             .build();
-                                    amends.add(amendResult);
+                                    amends.add(amendItem);
                                 }
                             }
 
@@ -732,9 +732,9 @@ public class GenerateAgent implements IGenerateAgent {
         return drafts;
     }
 
-    private List<DraftResult> fallbackAmend(List<AmendResult> items) {
+    private List<DraftResult> fallbackAmend(List<AmendContext.AmendItem> items) {
         List<DraftResult> results = new ArrayList<>();
-        for (AmendResult item : items) {
+        for (AmendContext.AmendItem item : items) {
             DraftResult amended = item.getDraftResult();
             results.add(amended);
         }
