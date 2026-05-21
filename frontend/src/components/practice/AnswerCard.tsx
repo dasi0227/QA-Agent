@@ -1,12 +1,10 @@
-import { LogOut, PanelRightClose, PanelRightOpen, SendHorizontal } from "lucide-react";
+import { LogOut, SendHorizontal } from "lucide-react";
 import type { PracticeFeedbackMode, PracticeFlowItem } from "@/lib/api/types";
 
 type AnswerCardProps = {
     items: PracticeFlowItem[];
     currentIndex: number;
     feedbackMode: PracticeFeedbackMode;
-    collapsed: boolean;
-    onToggle: () => void;
     onJump: (index: number) => void;
     onSubmitSession: () => void;
     onAbandon: () => void;
@@ -37,23 +35,11 @@ export function AnswerCard({
     items,
     currentIndex,
     feedbackMode,
-    collapsed,
-    onToggle,
     onJump,
     onSubmitSession,
     onAbandon,
     submitting,
 }: AnswerCardProps) {
-    if (collapsed) {
-        return (
-            <aside className="answer-card answer-card--collapsed">
-                <button type="button" className="answer-card__toggle" onClick={onToggle} aria-label="展开答题卡">
-                    <PanelRightOpen size={18} />
-                </button>
-            </aside>
-        );
-    }
-
     return (
         <aside className="answer-card">
             <div className="answer-card__head">
@@ -61,9 +47,6 @@ export function AnswerCard({
                     <span>答题卡</span>
                     <strong>{currentIndex + 1} / {items.length}</strong>
                 </div>
-                <button type="button" className="answer-card__toggle" onClick={onToggle} aria-label="折叠答题卡">
-                    <PanelRightClose size={18} />
-                </button>
             </div>
 
             <div className="answer-card__legend">

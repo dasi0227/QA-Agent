@@ -1,3 +1,3 @@
 export function SiteFooter() {
-    return <footer className="page-footer-note">Proudly Made By Dasi, All Rights Reserved.</footer>;
+    return <footer className="site-footer">Proudly Made By Dasi. All Rights Reserved.</footer>;
 }

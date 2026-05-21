@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
-import { Topbar } from "./Topbar";
 import { SiteFooter } from "./SiteFooter";
+import { Topbar } from "./Topbar";
 
 export function AppShell() {
     return (
@@ -11,7 +11,7 @@ export function AppShell() {
                     <Outlet />
                 </div>
                 <SiteFooter />
-      </div>
-    </div>
-  );
+            </div>
+        </div>
+    );
 }

@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { AnswerCard } from "@/components/practice/AnswerCard";
 import { PracticeLayout } from "@/components/practice/PracticeLayout";
 import { QuestionWorkspace } from "@/components/practice/QuestionWorkspace";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import {
     useAbandonPracticeMutation,
     useMarkPracticeUnknownMutation,
@@ -46,7 +47,6 @@ export function PracticePage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answer, setAnswer] = useState("");
     const [saveStatus, setSaveStatus] = useState("自动保存");
-    const [cardCollapsed, setCardCollapsed] = useState(false);
     const [abandonOpen, setAbandonOpen] = useState(false);
     const [elapsed, setElapsed] = useState("00:00");
     const saveTimerRef = useRef<number | null>(null);
@@ -217,8 +217,6 @@ export function PracticePage() {
             items={items}
             currentIndex={currentIndex}
             feedbackMode={session?.feedbackMode ?? "ITEM_BY_ITEM"}
-            collapsed={cardCollapsed}
-            onToggle={() => setCardCollapsed((value) => !value)}
             onJump={jumpTo}
             onSubmitSession={handleSubmitSession}
             onAbandon={() => setAbandonOpen(true)}
@@ -227,15 +225,23 @@ export function PracticePage() {
     );
 
     if (detailQuery.isLoading) {
-        return <div className="practice-shell practice-shell--center">正在恢复练习进度...</div>;
+        return (
+            <div className="practice-shell">
+                <div className="practice-shell__center">正在恢复练习进度...</div>
+                <SiteFooter />
+            </div>
+        );
     }
 
     if (detailQuery.isError || !detail || !currentItem) {
         return (
-            <div className="practice-shell practice-shell--center">
-                <strong>练习加载失败</strong>
-                <BaseButton variant="primary" onClick={() => detailQuery.refetch()}>重试</BaseButton>
-                <BaseButton variant="link" onClick={() => navigate("/quiz")}>返回测试页</BaseButton>
+            <div className="practice-shell">
+                <div className="practice-shell__center">
+                    <strong>练习加载失败</strong>
+                    <BaseButton variant="primary" onClick={() => detailQuery.refetch()}>重试</BaseButton>
+                    <BaseButton variant="link" onClick={() => navigate("/quiz")}>返回测试页</BaseButton>
+                </div>
+                <SiteFooter />
             </div>
         );
     }
@@ -246,7 +252,6 @@ export function PracticePage() {
                 topStatus={topStatus}
                 workspace={questionWorkspace}
                 answerCard={answerCard}
-                answerCardCollapsed={cardCollapsed}
             />
             <ConfirmDialog
                 open={abandonOpen}

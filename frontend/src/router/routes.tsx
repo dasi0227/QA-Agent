@@ -61,10 +61,10 @@ export const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
+      { path: "/practice/:sessionId", element: withRouteLoading(<PracticePage />) },
       {
         element: <FlowShell />,
         children: [
-          { path: "/practice/:sessionId", element: withRouteLoading(<PracticePage />) },
           { path: "/practice/:sessionId/result", element: withRouteLoading(<ResultPage />) },
           { path: "/result/:sessionId", element: withRouteLoading(<ResultPage />) },
           { path: "/result", element: <Navigate to="/quiz" replace /> },
