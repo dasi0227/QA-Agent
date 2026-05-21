@@ -1,4 +1,4 @@
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { LogOut, PanelRightClose, PanelRightOpen, SendHorizontal } from "lucide-react";
 import type { PracticeFeedbackMode, PracticeFlowItem } from "@/lib/api/types";
 
 type AnswerCardProps = {
@@ -9,6 +9,7 @@ type AnswerCardProps = {
     onToggle: () => void;
     onJump: (index: number) => void;
     onSubmitSession: () => void;
+    onAbandon: () => void;
     submitting?: boolean;
 };
 
@@ -40,6 +41,7 @@ export function AnswerCard({
     onToggle,
     onJump,
     onSubmitSession,
+    onAbandon,
     submitting,
 }: AnswerCardProps) {
     if (collapsed) {
@@ -48,8 +50,6 @@ export function AnswerCard({
                 <button type="button" className="answer-card__toggle" onClick={onToggle} aria-label="展开答题卡">
                     <PanelRightOpen size={18} />
                 </button>
-                <strong>{currentIndex + 1}</strong>
-                <span>/ {items.length}</span>
             </aside>
         );
     }
@@ -86,9 +86,16 @@ export function AnswerCard({
                 ))}
             </div>
 
-            <button type="button" className="answer-card__submit" onClick={onSubmitSession} disabled={submitting}>
-                {submitting ? "提交中" : "提交整轮"}
-            </button>
+            <div className="answer-card__footer-actions">
+                <button type="button" className="answer-card__submit" onClick={onSubmitSession} disabled={submitting}>
+                    <SendHorizontal size={16} />
+                    <span>{submitting ? "判题中" : "提交整轮"}</span>
+                </button>
+                <button type="button" className="answer-card__abandon" onClick={onAbandon}>
+                    <LogOut size={15} />
+                    <span>放弃该轮</span>
+                </button>
+            </div>
         </aside>
     );
 }

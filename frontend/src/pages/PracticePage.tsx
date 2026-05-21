@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Clock, LogOut, Save } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Clock, CornerUpLeft, Save } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
+import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { AnswerCard } from "@/components/practice/AnswerCard";
 import { PracticeLayout } from "@/components/practice/PracticeLayout";
 import { QuestionWorkspace } from "@/components/practice/QuestionWorkspace";
@@ -44,8 +45,9 @@ export function PracticePage() {
     const abandonMutation = useAbandonPracticeMutation();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answer, setAnswer] = useState("");
-    const [saveStatus, setSaveStatus] = useState("已同步");
+    const [saveStatus, setSaveStatus] = useState("自动保存");
     const [cardCollapsed, setCardCollapsed] = useState(false);
+    const [abandonOpen, setAbandonOpen] = useState(false);
     const [elapsed, setElapsed] = useState("00:00");
     const saveTimerRef = useRef<number | null>(null);
 
@@ -89,16 +91,16 @@ export function PracticePage() {
         if (saveTimerRef.current) {
             window.clearTimeout(saveTimerRef.current);
         }
-        saveTimerRef.current = window.setTimeout(() => {
-            saveMutation.mutate({
-                sessionId,
-                sessionItemId: currentItem.sessionItemId,
-                userAnswer: answer,
-                currentIndex,
-            }, {
-                onSuccess: () => setSaveStatus("已保存"),
-                onError: () => setSaveStatus("保存失败"),
-            });
+            saveTimerRef.current = window.setTimeout(() => {
+                saveMutation.mutate({
+                    sessionId,
+                    sessionItemId: currentItem.sessionItemId,
+                    userAnswer: answer,
+                    currentIndex,
+                }, {
+                    onSuccess: () => setSaveStatus("已保存"),
+                    onError: () => setSaveStatus("保存失败"),
+                });
         }, 700);
         return () => {
             if (saveTimerRef.current) {
@@ -139,7 +141,7 @@ export function PracticePage() {
             userAnswer: answer,
             currentIndex,
         });
-        setSaveStatus("已提交");
+        setSaveStatus("判题中");
     };
 
     const handleUnknown = async () => {
@@ -173,29 +175,56 @@ export function PracticePage() {
     };
 
     const handleAbandon = async () => {
-        if (!window.confirm("确认放弃本轮练习吗？已保存的历史不会删除。")) return;
         await abandonMutation.mutateAsync({ sessionId });
         navigate("/quiz");
     };
 
-    const topStatus = useMemo(() => (
+    const topStatus = (
         <>
-            <BaseButton variant="link" leadingIcon={<ArrowLeft size={16} />} onClick={handleExit}>
-                退出并保存
-            </BaseButton>
+            <div className="practice-top-status__left">
+                <BaseButton variant="ghost" className="practice-top-status__exit" leadingIcon={<CornerUpLeft size={16} />} onClick={handleExit}>
+                    退出
+                </BaseButton>
+            </div>
             <div className="practice-top-status__center">
                 <strong>{session?.qaSetTitle || "练习"}</strong>
-                <span>{session?.feedbackMode === "AFTER_ALL" ? "整轮反馈" : "逐题反馈"}</span>
             </div>
             <div className="practice-top-status__right">
                 <span><Save size={14} />{saveStatus}</span>
                 <span><Clock size={14} />{elapsed}</span>
-                <BaseButton variant="ghost" leadingIcon={<LogOut size={15} />} onClick={handleAbandon} disabled={readonly}>
-                    放弃
-                </BaseButton>
             </div>
         </>
-    ), [elapsed, readonly, saveStatus, session?.feedbackMode, session?.qaSetTitle]);
+    );
+
+    const questionWorkspace = (
+        <QuestionWorkspace
+            item={currentItem}
+            index={currentIndex}
+            total={items.length}
+            answer={answer}
+            submitting={submitItemMutation.isPending || markUnknownMutation.isPending}
+            readonly={readonly}
+            onAnswerChange={setAnswer}
+            onPrev={() => jumpTo(currentIndex - 1)}
+            onNext={() => jumpTo(currentIndex + 1)}
+            onUnknown={handleUnknown}
+            onSubmit={handleSubmitItem}
+        />
+    );
+
+    const answerCard = (
+        <AnswerCard
+            items={items}
+            currentIndex={currentIndex}
+            feedbackMode={session?.feedbackMode ?? "ITEM_BY_ITEM"}
+            collapsed={cardCollapsed}
+            onToggle={() => setCardCollapsed((value) => !value)}
+            onJump={jumpTo}
+            onSubmitSession={handleSubmitSession}
+            onAbandon={() => setAbandonOpen(true)}
+            submitting={submitSessionMutation.isPending}
+        />
+    );
 
     if (detailQuery.isLoading) {
         return <div className="practice-shell practice-shell--center">正在恢复练习进度...</div>;
@@ -212,36 +241,24 @@ export function PracticePage() {
     }
 
     return (
-        <PracticeLayout
-            topStatus={topStatus}
-            workspace={(
-                <QuestionWorkspace
-                    item={currentItem}
-                    index={currentIndex}
-                    total={items.length}
-                    answer={answer}
-                    saveStatus={saveStatus}
-                    submitting={submitItemMutation.isPending || markUnknownMutation.isPending}
-                    readonly={readonly}
-                    onAnswerChange={setAnswer}
-                    onPrev={() => jumpTo(currentIndex - 1)}
-                    onNext={() => jumpTo(currentIndex + 1)}
-                    onUnknown={handleUnknown}
-                    onSubmit={handleSubmitItem}
-                />
-            )}
-            answerCard={(
-                <AnswerCard
-                    items={items}
-                    currentIndex={currentIndex}
-                    feedbackMode={session?.feedbackMode ?? "ITEM_BY_ITEM"}
-                    collapsed={cardCollapsed}
-                    onToggle={() => setCardCollapsed((value) => !value)}
-                    onJump={jumpTo}
-                    onSubmitSession={handleSubmitSession}
-                    submitting={submitSessionMutation.isPending}
-                />
-            )}
-        />
+        <>
+            <PracticeLayout
+                topStatus={topStatus}
+                workspace={questionWorkspace}
+                answerCard={answerCard}
+                answerCardCollapsed={cardCollapsed}
+            />
+            <ConfirmDialog
+                open={abandonOpen}
+                title="放弃本轮练习"
+                message="放弃后当前练习会结束，已保存的内容会保留。"
+                confirmLabel={abandonMutation.isPending ? "处理中" : "放弃"}
+                cancelLabel="继续练习"
+                variant="danger"
+                loading={abandonMutation.isPending}
+                onConfirm={handleAbandon}
+                onCancel={() => setAbandonOpen(false)}
+            />
+        </>
     );
 }

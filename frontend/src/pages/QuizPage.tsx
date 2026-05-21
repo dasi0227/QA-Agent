@@ -237,10 +237,15 @@ export function QuizPage() {
                                     {carouselCards.map(({ item, offset }) => {
                                         const isActiveCard = offset === 0;
                                         const motion = getCardMotion(offset);
+                                        const isDuplicateExitingCard = Boolean(
+                                            enteringCard
+                                            && item.id === enteringCard.item.id
+                                            && offset === -transitioningDirection,
+                                        );
 
                                         return (
                                             <button
-                                                key={item.id}
+                                                key={isDuplicateExitingCard ? `exiting-${item.id}-${activeSetIndex}-${transitioningDirection}` : item.id}
                                                 type="button"
                                                 className={
                                                     isActiveCard

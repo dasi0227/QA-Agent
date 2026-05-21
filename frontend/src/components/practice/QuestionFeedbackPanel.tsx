@@ -1,5 +1,3 @@
-import { ChevronDown } from "lucide-react";
-import { useState } from "react";
 import type { PracticeFlowItem } from "@/lib/api/types";
 
 type QuestionFeedbackPanelProps = {
@@ -7,7 +5,6 @@ type QuestionFeedbackPanelProps = {
 };
 
 export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
-    const [answerOpen, setAnswerOpen] = useState(false);
     const hasFeedback = item.status === "SUBMITTED" || Boolean(item.result);
 
     if (!hasFeedback) {
@@ -16,17 +13,25 @@ export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
 
     const missingPoints = item.judgeDetail?.missingPoints ?? [];
     const wrongPoints = item.judgeDetail?.wrongPoints ?? [];
+    const referenceAnswer = item.judgeDetail?.betterAnswer || item.standardAnswer;
 
     return (
         <section className="practice-feedback">
             <div className="practice-feedback__head">
-                <span className={`practice-result practice-result--${(item.result || "unknown").toLowerCase()}`}>
-                    {item.result || "UNKNOWN"}
-                </span>
-                <strong>{item.score == null ? "未评分" : `${item.score} 分`}</strong>
+                <div className="practice-feedback__head-left">
+                    <span className={`practice-result practice-result--${(item.result || "unknown").toLowerCase()}`}>
+                        {item.result || "UNKNOWN"}
+                    </span>
+                    <strong>{`${item.score ?? 0} / 100 分`}</strong>
+                </div>
             </div>
 
-            {item.feedbackSummary ? <p>{item.feedbackSummary}</p> : null}
+            {referenceAnswer ? (
+                <article className="practice-feedback__answer">
+                    <span>参考答案</span>
+                    <p>{referenceAnswer}</p>
+                </article>
+            ) : null}
 
             {item.hintDetail ? (
                 <div className="practice-feedback__grid">
@@ -69,19 +74,6 @@ export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
                             <p>{item.judgeDetail.improvementAdvice}</p>
                         </article>
                     ) : null}
-                </div>
-            ) : null}
-
-            {item.judgeDetail?.betterAnswer || item.standardAnswer ? (
-                <button className="practice-feedback__answer-toggle" type="button" onClick={() => setAnswerOpen((value) => !value)}>
-                    <span>{answerOpen ? "收起参考回答" : "查看参考回答"}</span>
-                    <ChevronDown size={16} className={answerOpen ? "practice-feedback__answer-icon practice-feedback__answer-icon--open" : "practice-feedback__answer-icon"} />
-                </button>
-            ) : null}
-
-            {answerOpen ? (
-                <div className="practice-feedback__answer">
-                    {item.judgeDetail?.betterAnswer || item.standardAnswer}
                 </div>
             ) : null}
         </section>
