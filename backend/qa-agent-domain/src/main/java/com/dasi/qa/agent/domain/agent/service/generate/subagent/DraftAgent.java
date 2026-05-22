@@ -34,7 +34,7 @@ public interface DraftAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "DRAFTER", description = "根据检索证据起草结构化问答题目")
+    @Agent
     String draft(@V("taskId") String taskId,
                  @V("module") String module,
                  @V("keyConcepts") String keyConcepts,

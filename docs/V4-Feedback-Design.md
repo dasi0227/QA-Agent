@@ -111,7 +111,6 @@ FeedbackAgent.execute()
 | `question` | 题目 |
 | `standardAnswer` | 标准答案 |
 | `knowledgeNote` | 复习笔记 |
-| `keywords` | 回答本题时应尽量覆盖的关键短语 |
 | `sourceReliable` | 资料对当前题目是否可靠 |
 | `answerStyle` | 用户答案风格 |
 | `feedbackStyle` | 用户反馈风格 |
@@ -148,11 +147,10 @@ SubAgent：`HintAgent`
 1. `question`
 2. `standardAnswer`
 3. `knowledgeNote`
-4. `keywords`
-5. `sourceReliable`
-6. `answerStyle`
-7. `feedbackStyle`
-8. `retryHint`
+4. `sourceReliable`
+5. `answerStyle`
+6. `feedbackStyle`
+7. `retryHint`
 
 输出模型：
 
@@ -180,12 +178,11 @@ SubAgent：`JudgeAgent`
 1. `question`
 2. `standardAnswer`
 3. `knowledgeNote`
-4. `keywords`
-5. `sourceReliable`
-6. `userAnswer`
-7. `answerStyle`
-8. `feedbackStyle`
-9. `retryHint`
+4. `sourceReliable`
+5. `userAnswer`
+6. `answerStyle`
+7. `feedbackStyle`
+8. `retryHint`
 
 输出模型 `JudgeResult`：
 

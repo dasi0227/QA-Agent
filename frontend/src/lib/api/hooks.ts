@@ -5,6 +5,7 @@ import type { ErrorHandlingMeta } from "@/lib/error/types";
 import type {
     AuthSession,
     AuthUser,
+    CreateSmartQuestionItemInput,
     DeleteQuestionItemInput,
     DocumentChunkRecord,
     DocumentRecord,
@@ -234,8 +235,10 @@ export function normalizeQuestionItem(raw: unknown): QuestionItem {
         moduleTag: toStringValue(pick(raw, "moduleTag", "module_tag")),
         difficulty: toStringValue(pick(raw, "difficulty")),
         keywords: toStringValue(pick(raw, "keywords")),
+        hint: toStringValue(pick(raw, "hint")),
         sourceReliable: toBooleanValue(pick(raw, "sourceReliable", "source_reliable"), true),
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
+        completeStatus: toStringValue(pick(raw, "completeStatus", "complete_status"), "SOLVED"),
         sortOrder: toNumberValue(pick(raw, "sortOrder", "sort_order")),
     };
 }
@@ -333,6 +336,7 @@ export function normalizePracticeFlowItem(raw: unknown): PracticeFlowItem {
         moduleTag: toStringValue(pick(raw, "moduleTag", "module_tag")),
         difficulty: toStringValue(pick(raw, "difficulty")),
         keywords: toStringValue(pick(raw, "keywords")),
+        hint: toStringValue(pick(raw, "hint")),
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
         userAnswer: toStringValue(pick(raw, "userAnswer", "user_answer")),
         status: toStringValue(pick(raw, "status"), "UNANSWERED"),
@@ -417,6 +421,7 @@ function toQuestionItemPayload(input: QuestionItemDraft & { qaSetId?: string; qu
         moduleTag: input.moduleTag,
         difficulty: input.difficulty,
         keywords: parseDelimitedValues(input.keywords).join(","),
+        hint: input.hint,
         sourceReliable: input.sourceReliable,
         sourceChunkIdsJson: input.sourceChunkIdsJson,
     };
@@ -693,6 +698,36 @@ export function useUpdateQuestionItemMutation() {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(variables.questionItemId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useCreateSmartQuestionItemMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: CreateSmartQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/create-smart", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (result, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(result.id) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useRetryCompleteQuestionItemMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (questionItemId: string) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/complete-retry", {
+            method: "POST",
+            body: { id: questionItemId },
+        })),
+        onSuccess: async (result) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(result.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(result.id) });
         },
     });
 }

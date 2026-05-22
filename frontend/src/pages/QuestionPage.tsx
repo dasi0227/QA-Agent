@@ -6,14 +6,15 @@ import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea } from "@/components/base/field";
 import {
     parseDelimitedValues,
+    useCreateSmartQuestionItemMutation,
     useDocumentChunksQuery,
     useQuestionItemQuery,
     useQuestionSetItemsQuery,
+    useRetryCompleteQuestionItemMutation,
     useUpdateQuestionItemMutation,
 } from "@/lib/api/hooks";
 import type { QuestionItem, QuestionItemDraft } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
-import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const MODULE_OPTIONS = [
     "JavaSE", "OOP", "JVM", "IO", "JUC", "JCF", "MCP", "SKILL", "AGENT", "Harness",
@@ -30,6 +31,7 @@ const emptyItemDraft: QuestionItemDraft = {
     moduleTag: "",
     difficulty: "MEDIUM",
     keywords: "",
+    hint: "",
     sourceReliable: true,
     sourceChunkIdsJson: "",
 };
@@ -42,6 +44,7 @@ function toQuestionItemDraft(item: QuestionItem): QuestionItemDraft {
         moduleTag: item.moduleTag,
         difficulty: item.difficulty || "MEDIUM",
         keywords: item.keywords || "",
+        hint: item.hint || "",
         sourceReliable: item.sourceReliable,
         sourceChunkIdsJson: item.sourceChunkIdsJson || "",
     };
@@ -55,7 +58,8 @@ export function QuestionPage() {
 
     const selectedSetItemsQuery = useQuestionSetItemsQuery(qaSetId);
     const updateQuestionItemMutation = useUpdateQuestionItemMutation();
-    const { showUnimplemented } = useGlobalErrorDialog();
+    const createSmartQuestionItemMutation = useCreateSmartQuestionItemMutation();
+    const retryCompleteQuestionItemMutation = useRetryCompleteQuestionItemMutation();
 
     const itemList = selectedSetItemsQuery.data ?? [];
     const fallbackItemId = itemList[0]?.id ?? "";
@@ -67,6 +71,8 @@ export function QuestionPage() {
 
     const [itemDraft, setItemDraft] = useState<QuestionItemDraft>(emptyItemDraft);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [smartQuestionDraft, setSmartQuestionDraft] = useState("");
     const [selectedModuleDraft, setSelectedModuleDraft] = useState<string[]>([]);
     const [selectedKeywordsDraft, setSelectedKeywordsDraft] = useState<string[]>([]);
     const [keywordInput, setKeywordInput] = useState("");
@@ -117,6 +123,16 @@ export function QuestionPage() {
         }
     }, [activeItem, activeItemId]);
 
+    useEffect(() => {
+        if (activeItem?.completeStatus !== "PROCESSING") {
+            return;
+        }
+        const timer = window.setInterval(() => {
+            activeItemQuery.refetch();
+        }, 2000);
+        return () => window.clearInterval(timer);
+    }, [activeItem?.completeStatus, activeItemQuery]);
+
     const handleSelectItem = (itemId: string) => {
         navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${itemId}`, { replace: true });
     };
@@ -135,6 +151,27 @@ export function QuestionPage() {
         setKeywordInput("");
         setEditDialogOpen(false);
         setItemDraft(activeItem ? toQuestionItemDraft(activeItem) : emptyItemDraft);
+    };
+
+    const closeCreateDialog = () => {
+        if (createSmartQuestionItemMutation.isPending) return;
+        setSmartQuestionDraft("");
+        setCreateDialogOpen(false);
+    };
+
+    const createSmartItem = async () => {
+        const question = smartQuestionDraft.trim();
+        if (!question) return;
+        const item = await createSmartQuestionItemMutation.mutateAsync({ qaSetId, question });
+        setSmartQuestionDraft("");
+        setCreateDialogOpen(false);
+        navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${item.id}`, { replace: true });
+    };
+
+    const retryCompleteItem = async () => {
+        if (!activeItemId) return;
+        await retryCompleteQuestionItemMutation.mutateAsync(activeItemId);
+        activeItemQuery.refetch();
     };
 
     const addKeyword = () => {
@@ -181,7 +218,7 @@ export function QuestionPage() {
                                 <button
                                     type="button"
                                     className="sidebar__upload-btn"
-                                    onClick={() => showUnimplemented("手动新增题目功能尚未开放。")}
+                                    onClick={() => setCreateDialogOpen(true)}
                                 >
                                     新增题目
                                 </button>
@@ -242,6 +279,22 @@ export function QuestionPage() {
                                             <div className="question-detail-header-row">
                                                 <div className="question-detail-header-copy">
                                                     <h1 className="hero-title question-detail-title">{activeItem.question}</h1>
+                                                    {activeItem.completeStatus === "PROCESSING" ? (
+                                                        <p className="question-detail-status">智能补全中，完成后会自动刷新当前题目。</p>
+                                                    ) : null}
+                                                    {activeItem.completeStatus === "UNSOLVED" ? (
+                                                        <div className="question-detail-status question-detail-status--warning">
+                                                            <span>智能补全未完成，可以重试或手动编辑。</span>
+                                                            <BaseButton
+                                                                variant="soft"
+                                                                type="button"
+                                                                disabled={retryCompleteQuestionItemMutation.isPending}
+                                                                onClick={retryCompleteItem}
+                                                            >
+                                                                {retryCompleteQuestionItemMutation.isPending ? "重试中" : "重新智能补全"}
+                                                            </BaseButton>
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                         </div>
@@ -263,6 +316,17 @@ export function QuestionPage() {
                                                 <p>{activeItem.knowledgeNote || "暂无知识点"}</p>
                                             </div>
                                         </section>
+
+                                        {activeItem.hint ? (
+                                            <section className="question-detail-section">
+                                                <div className="question-detail-section__header">
+                                                    <h2>答前提示</h2>
+                                                </div>
+                                                <div className="question-detail-section__body">
+                                                    <p>{activeItem.hint}</p>
+                                                </div>
+                                            </section>
+                                        ) : null}
 
                                         <section className="question-detail-section">
                                             <div className="question-detail-section__header">
@@ -375,7 +439,7 @@ export function QuestionPage() {
                                 {!showMainLoading && !showMainError && !activeItemId && !itemList.length ? (
                                     <div className="status-card">
                                         <strong>当前题集暂无题目</strong>
-                                        <div className="qa-text">后端暂未开放手动新增题目接口，题目主要由问答集生成任务自动创建。</div>
+                                        <div className="qa-text">可以从左侧新增题目，系统会在后台补全标准回答和知识点。</div>
                                     </div>
                                 ) : null}
                             </div>
@@ -383,6 +447,47 @@ export function QuestionPage() {
                     </GlassCard>
                 </div>
             </div>
+
+            {createDialogOpen ? (
+                <div className="doc-select-dialog" role="presentation" onClick={closeCreateDialog}>
+                    <div className="question-create-dialog" role="dialog" aria-modal="true" aria-label="新增题目" onClick={(event) => event.stopPropagation()}>
+                        <div className="doc-select-dialog__header">
+                            <h3 className="doc-select-dialog__title">新增题目</h3>
+                            <button type="button" className="doc-select-dialog__close" onClick={closeCreateDialog}>
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="question-edit-dialog__body">
+                            <Field label="问题">
+                                <TextArea
+                                    className="question-edit-dialog__textarea question-create-dialog__textarea"
+                                    value={smartQuestionDraft}
+                                    onChange={(event) => setSmartQuestionDraft(event.target.value)}
+                                    rows={5}
+                                    placeholder="输入一个技术面试问题"
+                                />
+                            </Field>
+                        </div>
+
+                        <div className="modal-card__footer">
+                            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                <BaseButton
+                                    variant="primary"
+                                    type="button"
+                                    disabled={createSmartQuestionItemMutation.isPending || !smartQuestionDraft.trim()}
+                                    onClick={createSmartItem}
+                                >
+                                    {createSmartQuestionItemMutation.isPending ? "创建中" : "创建并智能补全"}
+                                </BaseButton>
+                                <BaseButton variant="ghost" type="button" onClick={closeCreateDialog}>
+                                    取消
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
 
             {editDialogOpen ? (
                 <div className="doc-select-dialog" role="presentation" onClick={closeEditDialog}>

@@ -15,7 +15,6 @@ public interface JudgeAgent {
             题目：{{question}}
             标准答案：{{standardAnswer}}
             复习笔记：{{knowledgeNote}}
-            答题要点：{{keywords}}
             资料可靠性：{{sourceReliable}}
             用户回答：{{userAnswer}}
             答案风格：{{answerStyle}}
@@ -30,11 +29,10 @@ public interface JudgeAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "JUDGE", description = "对用户单题作答进行判定并生成反馈")
+    @Agent
     String judge(@V("question") String question,
                  @V("standardAnswer") String standardAnswer,
                  @V("knowledgeNote") String knowledgeNote,
-                 @V("keywords") String keywords,
                  @V("sourceReliable") Boolean sourceReliable,
                  @V("userAnswer") String userAnswer,
                  @V("answerStyle") String answerStyle,

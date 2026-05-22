@@ -1,7 +1,12 @@
 package com.dasi.qa.agent.domain.agent.repository;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.GeneratedQaSetSaveResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
+import com.dasi.qa.agent.domain.agent.service.assist.model.context.AssistContext;
+import com.dasi.qa.agent.domain.agent.service.assist.model.result.AssistResult;
+import com.dasi.qa.agent.domain.agent.service.complete.model.context.CompleteContext;
+import com.dasi.qa.agent.domain.agent.service.complete.model.result.CompleteResult;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
@@ -56,7 +61,7 @@ public interface IAgentRepository {
 
     String getDocumentsSummary(List<String> documentIds, String userId);
 
-    String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request, PlanResult planResult, List<DraftResult> draftResults);
+    GeneratedQaSetSaveResult saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request, PlanResult planResult, List<DraftResult> draftResults);
 
     PracticeVO getPracticeVO(String sessionItemId, String userId);
 
@@ -65,5 +70,15 @@ public interface IAgentRepository {
     SessionContext getAssessContext(String sessionId, String userId);
 
     AssessResponse saveAssessResult(String sessionId, String userId, AssessSaveCommand command);
+
+    AssistContext getAssistContext(String qaItemId, String userId);
+
+    void saveAssistResult(String qaItemId, String userId, AssistResult result);
+
+    CompleteContext getCompleteContext(String qaItemId, String userId);
+
+    void saveCompleteResult(String qaItemId, String userId, CompleteResult result);
+
+    void markQaItemCompleteFailed(String qaItemId, String userId);
 
 }

@@ -26,7 +26,7 @@ public interface AdviseAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "ADVISE", description = "生成整轮整体点评和复习指导")
+    @Agent
     String advise(@V("qaSetTitle") String qaSetTitle,
                   @V("stats") String stats,
                   @V("diagnosis") String diagnosis,

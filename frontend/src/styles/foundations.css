@@ -1,0 +1,72 @@
+/* Foundations: design tokens, reset, and base elements. */
+
+:root {
+  --bg-pill: rgba(255, 255, 255, 0.72);
+  --bg-glass: rgba(255, 255, 255, 0.56);
+  --bg-card: rgba(255, 255, 255, 0.6);
+  --ink: #171614;
+  --ink-soft: #5f5a52;
+  --ink-faint: #887f72;
+  --line: rgba(23, 22, 20, 0.08);
+  --line-strong: rgba(23, 22, 20, 0.13);
+  --pill-dark: #151515;
+  --pill-text: #f2eee6;
+  --btn-secondary-bg: rgba(244, 235, 223, 0.96);
+  --btn-secondary-bg-hover: rgba(239, 228, 213, 0.98);
+  --btn-secondary-border: rgba(183, 133, 74, 0.16);
+  --btn-secondary-ink: #9b7341;
+  --btn-secondary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 14px rgba(168, 116, 56, 0.05);
+  --shadow: 0 28px 90px rgba(77, 63, 40, 0.08);
+  --shadow-soft: 0 16px 42px rgba(77, 63, 40, 0.05);
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-sans: Inter, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+
+body,
+
+#root {
+  min-height: 100%;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  background:
+    radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0) 28%),
+    radial-gradient(circle at 84% 6%, rgba(232, 224, 211, 0.92) 0%, rgba(232, 224, 211, 0) 24%),
+    linear-gradient(180deg, #faf6ef 0%, #eee7da 100%);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+
+input,
+
+textarea,
+
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  background: none;
+}
+
+::selection {
+  background: rgba(23, 22, 20, 0.08);
+}

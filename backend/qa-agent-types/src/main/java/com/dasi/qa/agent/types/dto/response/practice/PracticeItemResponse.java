@@ -23,6 +23,7 @@ public class PracticeItemResponse {
     private String moduleTag;
     private String difficulty;
     private String keywords;
+    private String hint;
     private String sourceChunkIdsJson;
     private String userAnswer;
     private String status;

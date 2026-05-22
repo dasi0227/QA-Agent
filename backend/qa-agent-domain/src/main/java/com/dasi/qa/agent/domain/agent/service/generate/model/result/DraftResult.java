@@ -29,9 +29,6 @@ public class DraftResult {
     @Description("题目难度，必须是 EASY / MEDIUM / HARD 之一")
     private String difficulty;
 
-    @Description("回答本题时应尽量覆盖的关键短语，逗号分隔，最多 6 个")
-    private String keywords;
-
     @Description("用户资料对当前题目是否可靠；仅在资料明显错误或明显冲突时为 false")
     private Boolean sourceReliable;
 

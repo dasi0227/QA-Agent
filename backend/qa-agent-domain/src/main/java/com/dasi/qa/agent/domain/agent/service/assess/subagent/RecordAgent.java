@@ -26,7 +26,7 @@ public interface RecordAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "RECORD", description = "提炼供 V6 Memory 使用的内部记忆线索")
+    @Agent
     String record(@V("qaSetTitle") String qaSetTitle,
                   @V("stats") String stats,
                   @V("items") String items,

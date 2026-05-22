@@ -113,8 +113,10 @@ export type QuestionItem = {
     moduleTag: string;
     difficulty: string;
     keywords: string;
+    hint: string;
     sourceReliable: boolean;
     sourceChunkIdsJson: string;
+    completeStatus: "PROCESSING" | "SOLVED" | "UNSOLVED" | string;
     sortOrder: number;
 };
 
@@ -125,6 +127,7 @@ export type QuestionItemDraft = {
     moduleTag: string;
     difficulty: string;
     keywords: string;
+    hint: string;
     sourceReliable: boolean;
     sourceChunkIdsJson: string;
 };
@@ -139,6 +142,11 @@ export type UpdateQuestionSetInput = {
 export type UpdateQuestionItemInput = QuestionItemDraft & {
     qaSetId: string;
     questionItemId: string;
+};
+
+export type CreateSmartQuestionItemInput = {
+    qaSetId: string;
+    question: string;
 };
 
 export type DeleteQuestionItemInput = {
@@ -287,6 +295,7 @@ export type PracticeFlowItem = {
     moduleTag: string;
     difficulty: string;
     keywords: string;
+    hint: string;
     sourceChunkIdsJson: string;
     userAnswer: string;
     status: PracticeItemStatus;

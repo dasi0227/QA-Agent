@@ -15,7 +15,6 @@ public interface HintAgent {
             题目：{{question}}
             标准答案：{{standardAnswer}}
             复习笔记：{{knowledgeNote}}
-            答题要点：{{keywords}}
             资料可靠性：{{sourceReliable}}
             答案风格：{{answerStyle}}
             反馈风格：{{feedbackStyle}}
@@ -29,11 +28,10 @@ public interface HintAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "HINT", description = "为不会作答的用户提供记忆技巧和情绪支持")
+    @Agent
     String hint(@V("question") String question,
                 @V("standardAnswer") String standardAnswer,
                 @V("knowledgeNote") String knowledgeNote,
-                @V("keywords") String keywords,
                 @V("sourceReliable") Boolean sourceReliable,
                 @V("answerStyle") String answerStyle,
                 @V("feedbackStyle") String feedbackStyle,

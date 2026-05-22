@@ -10,6 +10,8 @@ import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -53,8 +55,11 @@ public class IndexService implements IIndexService {
     }
 
     @Override
-    public void index(String documentId) {
-        String userId = documentRepository.getDocumentUserId(documentId);
+    public void index(String documentId, String userId) {
+        String ownerId = documentRepository.getDocumentUserId(documentId);
+        if (!userId.equals(ownerId)) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
 
         SourceDocumentRequest query = new SourceDocumentRequest();
         query.setId(documentId);

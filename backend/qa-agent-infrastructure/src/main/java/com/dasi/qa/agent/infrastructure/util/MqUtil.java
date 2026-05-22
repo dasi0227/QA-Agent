@@ -1,12 +1,15 @@
 package com.dasi.qa.agent.infrastructure.util;
 
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.infrastructure.persistent.entity.MessageJob;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.MessageJobMapper;
+import com.dasi.qa.agent.types.constant.StringConstant;
 import com.dasi.qa.agent.types.enumeration.JobStatus;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,28 +23,47 @@ public class MqUtil implements IMqUtil {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final MessageJobMapper messageJobMapper;
     private final IIdUtil idUtil;
+    private final String indexTopic;
+    private final String assistTopic;
 
     public MqUtil(KafkaTemplate<String, String> kafkaTemplate,
                   MessageJobMapper messageJobMapper,
-                  IIdUtil idUtil) {
+                  IIdUtil idUtil,
+                  @Value("${qa-agent.kafka.topic-document-index}") String indexTopic,
+                  @Value("${qa-agent.kafka.topic-qa-item-assist}") String assistTopic) {
         this.kafkaTemplate = kafkaTemplate;
         this.messageJobMapper = messageJobMapper;
         this.idUtil = idUtil;
+        this.indexTopic = indexTopic;
+        this.assistTopic = assistTopic;
+    }
+
+
+    @Override
+    public void sendIndexMessage(String id, Object content) {
+        send(indexTopic, StringConstant.INDEX_JOB_ID_PREFIX + id, JSON.toJSONString(content));
+    }
+
+    @Override
+    public void sendAssistMessage(String id, Object content) {
+        send(assistTopic, StringConstant.ASSIST_JOB_ID_PREFIX + id, JSON.toJSONString(content));
     }
 
     @Override
     public void send(String topic, String jobId, String content) {
-        // check existing job
         MessageJob existing = findExistingJob(jobId);
+
+        // 重发
         if (existing != null) {
-            // retry: update existing
             existing.setJobRetry(existing.getJobRetry() + 1);
             existing.setJobStatus(JobStatus.UNSOLVED.name());
+            existing.setErrorMessage(null);
             existing.setMessageLatestSentAt(LocalDateTime.now());
             existing.setUpdatedAt(LocalDateTime.now());
             messageJobMapper.updateById(existing);
-        } else {
-            // first send: insert
+        }
+        // 第一次发
+        else {
             MessageJob job = MessageJob.builder()
                     .id(idUtil.nextId())
                     .jobId(jobId)
@@ -66,6 +88,7 @@ public class MqUtil implements IMqUtil {
         MessageJob existing = findExistingJob(jobId);
         if (existing != null) {
             existing.setJobStatus(JobStatus.SUCCESS.name());
+            existing.setErrorMessage(null);
             existing.setUpdatedAt(LocalDateTime.now());
             messageJobMapper.updateById(existing);
             log.info("【消息队列生产者】任务标记成功: jobId={}", jobId);
@@ -80,6 +103,18 @@ public class MqUtil implements IMqUtil {
             existing.setUpdatedAt(LocalDateTime.now());
             messageJobMapper.updateById(existing);
             log.info("【消息队列生产者】任务标记失败: jobId={}", jobId);
+        }
+    }
+
+    @Override
+    public void recordError(String jobId, String errorMessage) {
+        MessageJob existing = findExistingJob(jobId);
+        if (existing != null) {
+            existing.setJobStatus(JobStatus.UNSOLVED.name());
+            existing.setErrorMessage(errorMessage);
+            existing.setUpdatedAt(LocalDateTime.now());
+            messageJobMapper.updateById(existing);
+            log.info("【消息队列生产者】任务记录错误: jobId={}", jobId);
         }
     }
 

@@ -21,7 +21,9 @@ public class QaItemResponse extends BaseResponse {
     private String moduleTag;
     private String difficulty;
     private String keywords;
+    private String hint;
     private Boolean sourceReliable;
     private String sourceChunkIdsJson;
+    private String completeStatus;
     private Integer sortOrder;
 }

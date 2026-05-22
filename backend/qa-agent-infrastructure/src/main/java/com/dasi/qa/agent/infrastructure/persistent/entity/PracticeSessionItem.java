@@ -54,6 +54,8 @@ public class PracticeSessionItem {
 
     private String keywordsSnapshot;
 
+    private String hintSnapshot;
+
     private String moduleTagSnapshot;
 
     private String difficultySnapshot;

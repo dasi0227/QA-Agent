@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.qa.repository;
 
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 
@@ -23,7 +24,11 @@ public interface IQaRepository {
 
     QaItemResponse createQaItem(QaItemRequest request, String userId);
 
+    QaItemResponse createQaItem(String id, CreateQaItemRequest request, String userId);
+
     QaItemResponse updateQaItem(QaItemRequest request, String userId);
+
+    QaItemResponse markQaItemCompleteProcessing(String id, String userId);
 
     void deleteQaItem(String id, String userId);
 }

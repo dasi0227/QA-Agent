@@ -25,7 +25,7 @@ public interface DiagnoseAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "DIAGNOSE", description = "识别整轮练习的优势和薄弱点")
+    @Agent
     String diagnose(@V("qaSetTitle") String qaSetTitle,
                     @V("stats") String stats,
                     @V("items") String items,

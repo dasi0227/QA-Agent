@@ -36,7 +36,7 @@ public interface SummarizeAgent {
             4. 尽量体现模块名称和标签分布。
             5. 如果通过率严重偏低（<30%），需提及此异常。
             """)
-    @Agent(name = "SUMMARIZER", description = "根据生成结果和统计信息生成最终完成说明")
+    @Agent
     String summarize(@V("taskId") String taskId,
                      @V("userPrompt") String userPrompt,
                      @V("jobDescription") String jobDescription,

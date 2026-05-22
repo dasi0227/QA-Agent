@@ -26,7 +26,7 @@ public interface DecideAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "DECIDE", description = "判断生成请求是否可以进入问答集生成 DAG")
+    @Agent
     DecideResult decide(@V("taskId") String taskId,
                         @V("userPrompt") String userPrompt,
                         @V("retryHint") String retryHint);

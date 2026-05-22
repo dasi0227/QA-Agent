@@ -32,7 +32,7 @@ public interface PlanAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "PLANNER", description = "分析资料目录结构并规划问答集模块")
+    @Agent
     PlanResult plan(@V("taskId") String taskId,
                     @V("documents") String documents,
                     @V("userProfile") String userProfile,

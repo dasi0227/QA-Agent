@@ -199,14 +199,14 @@ SubAgent：`DraftAgent`
 | `knowledgeNote` | 复习笔记 |
 | `tag` | 题目标签，允许 1~2 个逗号分隔 |
 | `difficulty` | `EASY` / `MEDIUM` / `HARD` |
-| `keywords` | 回答时应尽量覆盖的关键短语，逗号分隔 |
 | `sourceReliable` | 资料对当前题目是否可靠 |
 | `sourceChunkIds` | 来源切片 ID 列表 |
 
 注意：
 
 1. 当前没有旧版文档里的“冲突提示”和 `evidence` 字段。
-2. `qa_item.keywords` 与 `qa_item.source_reliable` 最终直接来自 `DraftResult`。
+2. `qa_item.keywords` 不再来自 `DraftResult`，由后置 `AssistAgent` 异步补全。
+3. `qa_item.source_reliable` 最终直接来自 `DraftResult`。
 
 ### 6.5 VALIDATE
 
@@ -257,6 +257,7 @@ SubAgent：`SummarizeAgent`
 2. 遍历 `DraftResult` 写入 `qa_item`
 3. 记录 `qa_set_document_ref`
 4. 对每份资料 `reference_count + 1`
+5. 保存完成后由 `GenerateSaver` 发送 `qa.item.assist` 消息补全 `keywords` 和 `hint`
 
 ## 8. SSE 与任务状态
 

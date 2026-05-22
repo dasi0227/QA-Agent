@@ -29,7 +29,7 @@ public interface AmendAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "AMENDER", description = "按审校意见最小修订问答题目")
+    @Agent
     String amend(@V("taskId") String taskId,
                  @V("amendItemsJson") String amendItemsJson,
                  @V("userPrompt") String userPrompt,

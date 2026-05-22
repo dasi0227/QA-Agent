@@ -1,0 +1,85 @@
+package com.dasi.qa.agent.domain.qa.service.item;
+
+import com.dasi.qa.agent.domain.agent.service.complete.ICompleteAgent;
+import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
+import com.dasi.qa.agent.domain.util.IContextUtil;
+import com.dasi.qa.agent.domain.util.IIdUtil;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
+import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+
+@Service
+@Slf4j
+public class QaItemService implements IQaItemService {
+
+    private final IQaRepository repository;
+    private final IContextUtil contextUtil;
+    private final IIdUtil idUtil;
+    private final ICompleteAgent completeAgent;
+    private final ThreadPoolTaskExecutor applicationTaskExecutor;
+
+    public QaItemService(IQaRepository repository,
+                         IContextUtil contextUtil,
+                         IIdUtil idUtil,
+                         ICompleteAgent completeAgent,
+                         @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
+        this.repository = repository;
+        this.contextUtil = contextUtil;
+        this.idUtil = idUtil;
+        this.completeAgent = completeAgent;
+        this.applicationTaskExecutor = applicationTaskExecutor;
+    }
+
+    @Override
+    public QaItemResponse detailQaItem(String id) {
+        return repository.detailQaItem(id, contextUtil.getUserId());
+    }
+
+    @Override
+    public List<QaItemResponse> queryQaItem(QaItemRequest request) {
+        return repository.queryQaItem(request, contextUtil.getUserId());
+    }
+
+    @Override
+    public QaItemResponse createQaItem(QaItemRequest request) {
+        if (!StringUtils.hasText(request.getId())) {
+            request.setId(idUtil.nextId());
+        }
+        return repository.createQaItem(request, contextUtil.getUserId());
+    }
+
+    @Override
+    public QaItemResponse updateQaItem(QaItemRequest request) {
+        return repository.updateQaItem(request, contextUtil.getUserId());
+    }
+
+    @Override
+    public void deleteQaItem(String id) {
+        repository.deleteQaItem(id, contextUtil.getUserId());
+    }
+
+    @Override
+    public QaItemResponse createQaItem(CreateQaItemRequest request) {
+        String userId = contextUtil.getUserId();
+        QaItemResponse response = repository.createQaItem(idUtil.nextId(), request, userId);
+        applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));
+        return response;
+    }
+
+    @Override
+    public QaItemResponse completeQaItem(QaItemCompleteRetryRequest request) {
+        String userId = contextUtil.getUserId();
+        QaItemResponse response = repository.markQaItemCompleteProcessing(request.getId(), userId);
+        applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));
+        return response;
+    }
+
+}

@@ -22,7 +22,7 @@ public interface AbortAgent {
 
             请直接输出最终失败说明文本。
             """)
-    @Agent(name = "ABORT", description = "根据判定原因生成终止问答集生成的失败说明")
+    @Agent
     String abort(@V("taskId") String taskId,
                  @V("userPrompt") String userPrompt,
                  @V("reason") String reason);

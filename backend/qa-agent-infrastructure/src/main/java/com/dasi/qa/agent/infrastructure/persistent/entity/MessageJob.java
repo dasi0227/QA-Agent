@@ -30,6 +30,8 @@ public class MessageJob {
 
     private String messageContent;
 
+    private String errorMessage;
+
     private LocalDateTime messageFirstSentAt;
 
     private LocalDateTime messageLatestSentAt;

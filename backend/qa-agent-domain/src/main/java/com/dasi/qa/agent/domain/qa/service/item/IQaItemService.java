@@ -1,21 +1,17 @@
-package com.dasi.qa.agent.domain.qa.service.crud;
+package com.dasi.qa.agent.domain.qa.service.item;
 
+import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
-import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
-import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 
 import java.util.List;
 
-public interface IQaCrudService {
+public interface IQaItemService {
 
-    QaSetResponse detailQaSet(String id);
+    QaItemResponse createQaItem(CreateQaItemRequest request);
 
-    List<QaSetResponse> queryQaSet(QaSetRequest request);
-
-    QaSetResponse updateQaSet(QaSetRequest request);
-
-    void deleteQaSet(String id);
+    QaItemResponse completeQaItem(QaItemCompleteRetryRequest request);
 
     QaItemResponse detailQaItem(String id);
 

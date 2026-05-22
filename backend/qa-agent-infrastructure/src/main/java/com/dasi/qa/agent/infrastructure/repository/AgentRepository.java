@@ -6,8 +6,14 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.dasi.qa.agent.domain.agent.service.assess.model.command.AssessSaveCommand;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItemDetail;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.SessionContext;
+import com.dasi.qa.agent.domain.agent.service.assist.model.context.AssistContext;
+import com.dasi.qa.agent.domain.agent.service.assist.model.result.AssistResult;
+import com.dasi.qa.agent.domain.agent.service.complete.model.context.CompleteContext;
+import com.dasi.qa.agent.domain.agent.service.complete.model.result.CompleteResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.DraftResult;
+import com.dasi.qa.agent.domain.agent.service.generate.model.result.GeneratedQaSetSaveResult;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult;
+import com.dasi.qa.agent.domain.qa.model.enumeration.CompleteStatus;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.command.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.model.vo.PracticeVO;
@@ -332,9 +338,10 @@ public class AgentRepository implements IAgentRepository {
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
     @CacheEvict(cacheNames = {RedisConstant.QA_SET_CACHE, RedisConstant.QA_ITEM_CACHE}, allEntries = true)
-    public String saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
-                                     PlanResult planResult, List<DraftResult> draftResults) {
+    public GeneratedQaSetSaveResult saveGeneratedQaSet(String taskId, String userId, CreateQaSetRequest request,
+                                                       PlanResult planResult, List<DraftResult> draftResults) {
         String qaSetId = idUtil.nextId();
+        List<String> qaItemIds = new ArrayList<>();
         QaSet qaSet = new QaSet();
         qaSet.setId(qaSetId);
         qaSet.setUserId(userId);
@@ -357,11 +364,14 @@ public class AgentRepository implements IAgentRepository {
             item.setAnswer(draftResult.getAnswer());
             item.setModuleTag(draftResult.getTag());
             item.setDifficulty(draftResult.getDifficulty());
-            item.setKeywords(draftResult.getKeywords());
+            item.setKeywords("");
+            item.setHint("");
             item.setSourceReliable(draftResult.getSourceReliable() == null ? Boolean.FALSE : draftResult.getSourceReliable());
             item.setSourceChunkIdsJson(JSON.toJSONString(draftResult.getSourceChunkIds() != null ? draftResult.getSourceChunkIds() : List.of()));
+            item.setCompleteStatus(CompleteStatus.SOLVED.name());
             item.setSortOrder(sortOrder++);
             qaItemMapper.insert(item);
+            qaItemIds.add(item.getId());
         }
 
         for (String documentId : request.getDocumentIds()) {
@@ -376,7 +386,7 @@ public class AgentRepository implements IAgentRepository {
                             .setSql("reference_count = reference_count + 1")
                             .eq(SourceDocument::getId, documentId));
         }
-        return qaSetId;
+        return new GeneratedQaSetSaveResult(qaSetId, qaItemIds);
     }
 
     @Override
@@ -399,7 +409,6 @@ public class AgentRepository implements IAgentRepository {
                 .question(qaItem.getQuestion())
                 .standardAnswer(qaItem.getAnswer())
                 .knowledgeNote(qaItem.getKnowledgeNote())
-                .keywords(qaItem.getKeywords())
                 .sourceReliable(Boolean.TRUE.equals(qaItem.getSourceReliable()))
                 .answerStyle(style == null ? "" : style.getAnswerStyle())
                 .feedbackStyle(style == null ? "" : style.getFeedbackStyle())
@@ -533,6 +542,95 @@ public class AgentRepository implements IAgentRepository {
                 .build();
     }
 
+    @Override
+    public AssistContext getAssistContext(String qaItemId, String userId) {
+        QaItem qaItem = requireQaItem(qaItemId, userId);
+        UserProfileStyleVO style = getUserProfileStyle(userId);
+        return AssistContext.builder()
+                .qaItemId(qaItem.getId())
+                .question(qaItem.getQuestion())
+                .standardAnswer(qaItem.getAnswer())
+                .knowledgeNote(qaItem.getKnowledgeNote())
+                .moduleTag(qaItem.getModuleTag())
+                .difficulty(qaItem.getDifficulty())
+                .sourceReliable(Boolean.TRUE.equals(qaItem.getSourceReliable()))
+                .answerStyle(style == null ? "" : style.getAnswerStyle())
+                .sourceChunks(feedbackSourceChunks(qaItem.getSourceChunkIdsJson(), userId))
+                .build();
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
+    public void saveAssistResult(String qaItemId, String userId, AssistResult result) {
+        requireQaItem(qaItemId, userId);
+        qaItemMapper.update(null,
+                new LambdaUpdateWrapper<QaItem>()
+                        .set(QaItem::getKeywords, result == null ? "" : result.getKeywords())
+                        .set(QaItem::getHint, result == null ? "" : result.getHint())
+                        .set(QaItem::getUpdatedAt, LocalDateTime.now())
+                        .eq(QaItem::getId, qaItemId)
+                        .eq(QaItem::getUserId, userId));
+    }
+
+    @Override
+    public CompleteContext getCompleteContext(String qaItemId, String userId) {
+        QaItem qaItem = requireQaItem(qaItemId, userId);
+        UserProfileInfoVO profile = getUserProfileInfo(userId);
+        UserProfileStyleVO style = getUserProfileStyle(userId);
+        return CompleteContext.builder()
+                .qaItemId(qaItem.getId())
+                .question(qaItem.getQuestion())
+                .documentIds(qaSetDocumentIds(qaItem.getQaSetId()))
+                .userProfile(profile)
+                .answerStyle(style == null ? "" : style.getAnswerStyle())
+                .build();
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
+    public void saveCompleteResult(String qaItemId, String userId, CompleteResult result) {
+        QaItem qaItem = requireQaItem(qaItemId, userId);
+        if (result == null) {
+            markQaItemCompleteFailed(qaItemId, userId);
+            return;
+        }
+        if (!StringUtils.hasText(qaItem.getAnswer())) {
+            qaItem.setAnswer(result.getAnswer());
+        }
+        if (!StringUtils.hasText(qaItem.getKnowledgeNote())) {
+            qaItem.setKnowledgeNote(result.getKnowledgeNote());
+        }
+        if (!StringUtils.hasText(qaItem.getModuleTag())) {
+            qaItem.setModuleTag(result.getModuleTag());
+        }
+        if (!StringUtils.hasText(qaItem.getDifficulty())) {
+            qaItem.setDifficulty(result.getDifficulty());
+        }
+        if (!StringUtils.hasText(qaItem.getSourceChunkIdsJson())) {
+            qaItem.setSourceChunkIdsJson(JSON.toJSONString(result.getSourceChunkIds() == null ? List.of() : result.getSourceChunkIds()));
+        }
+        if (CompleteStatus.PROCESSING.name().equals(qaItem.getCompleteStatus()) || qaItem.getSourceReliable() == null) {
+            qaItem.setSourceReliable(Boolean.TRUE.equals(result.getSourceReliable()));
+        }
+        qaItem.setCompleteStatus(CompleteStatus.SOLVED.name());
+        qaItem.setUpdatedAt(LocalDateTime.now());
+        qaItemMapper.updateById(qaItem);
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
+    public void markQaItemCompleteFailed(String qaItemId, String userId) {
+        qaItemMapper.update(null,
+                new LambdaUpdateWrapper<QaItem>()
+                        .set(QaItem::getCompleteStatus, CompleteStatus.UNSOLVED.name())
+                        .set(QaItem::getUpdatedAt, LocalDateTime.now())
+                        .eq(QaItem::getId, qaItemId)
+                        .eq(QaItem::getUserId, userId));
+    }
+
     private QaGenerationTask requireTask(String taskId) {
         QaGenerationTask entity = taskMapper.selectById(taskId);
         if (entity == null) {
@@ -561,6 +659,25 @@ public class AgentRepository implements IAgentRepository {
             throw new ApiException(ResultCode.NOT_FOUND);
         }
         return entity;
+    }
+
+    private QaItem requireQaItem(String qaItemId, String userId) {
+        QaItem entity = qaItemMapper.selectById(qaItemId);
+        if (entity == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        if (!userId.equals(entity.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        return entity;
+    }
+
+    private List<String> qaSetDocumentIds(String qaSetId) {
+        return qaSetDocumentRefMapper.selectList(new LambdaQueryWrapper<QaSetDocumentRef>()
+                        .eq(QaSetDocumentRef::getQaSetId, qaSetId))
+                .stream()
+                .map(QaSetDocumentRef::getDocumentId)
+                .toList();
     }
 
     private JudgeDetail judgeDetail(String feedbackJudgeDetail) {

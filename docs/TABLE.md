@@ -216,9 +216,11 @@
 | `answer` | `LONGTEXT` | 标准回答 |
 | `module_tag` | `VARCHAR(120)` | 模块标签 |
 | `difficulty` | `VARCHAR(32)` | `EASY` / `MEDIUM` / `HARD` |
-| `keywords` | `LONGTEXT` | 回答本题时应尽量覆盖的关键短语，逗号分隔 |
+| `keywords` | `LONGTEXT` | AssistAgent 异步补全的答题关键词，逗号分隔 |
+| `hint` | `LONGTEXT` | AssistAgent 异步补全的答前轻提示 |
 | `source_reliable` | `TINYINT(1)` | 资料对当前题目是否可靠，默认 `1` |
 | `source_chunk_ids_json` | `JSON` | 来源切片 ID 数组 |
+| `complete_status` | `VARCHAR(32)` | 手动题智能补全状态：`PROCESSING` / `SOLVED` / `UNSOLVED` |
 | `sort_order` | `INT` | 题目顺序 |
 | `created_at` | `DATETIME` | 创建时间 |
 | `updated_at` | `DATETIME` | 更新时间 |
@@ -280,6 +282,7 @@
 | `standard_answer_snapshot` | `LONGTEXT` | 作答时标准答案快照 |
 | `knowledge_note_snapshot` | `LONGTEXT` | 作答时知识笔记快照 |
 | `keywords_snapshot` | `LONGTEXT` | 作答时关键词快照 |
+| `hint_snapshot` | `LONGTEXT` | 作答时答前提示快照 |
 | `module_tag_snapshot` | `VARCHAR(120)` | 作答时模块标签快照 |
 | `difficulty_snapshot` | `VARCHAR(32)` | 作答时难度快照 |
 | `source_chunk_ids_snapshot_json` | `JSON` | 作答时来源切片快照 |
@@ -303,6 +306,7 @@
 | `job_retry` | `INT` | 已重试次数 |
 | `message_topic` | `VARCHAR(100)` | Kafka topic |
 | `message_content` | `TEXT` | 消息正文 |
+| `error_message` | `LONGTEXT` | 最近一次消费失败原因，仅后端排查使用 |
 | `message_first_sent_at` | `TIMESTAMP` | 首次发送时间 |
 | `message_latest_sent_at` | `TIMESTAMP` | 最近发送时间 |
 | `created_at` | `TIMESTAMP` | 创建时间 |

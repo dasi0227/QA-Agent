@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.service.generate.support;
+package com.dasi.qa.agent.domain.agent.service.shared;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult.PlanItem;
 import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
@@ -12,11 +12,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * RAG 证据检索器，按 PlanItem 的 focusTopics 逐主题搜索资料库，去重后返回证据列表。
- */
 @Component
 public class RagEvidenceProvider {
 
@@ -26,19 +25,30 @@ public class RagEvidenceProvider {
         this.searchService = searchService;
     }
 
-    public List<EvidenceItem> search(String userId, List<String> documentIds, PlanItem planItem) {
-        List<SearchResult> results = new ArrayList<>();
+    public List<EvidenceItem> searchByPlanItem(String userId, List<String> documentIds, PlanItem planItem) {
         String focusTopics = planItem.getFocusTopics();
         List<String> topics = !StringUtils.hasText(focusTopics)
                 ? List.of(planItem.getModule())
                 : List.of(focusTopics.split(","));
+        return search(userId, documentIds, topics);
+    }
+
+    public List<EvidenceItem> searchByQuestion(String userId, List<String> documentIds, String question) {
+        if (!StringUtils.hasText(question)) {
+            return List.of();
+        }
+        return search(userId, documentIds, List.of(question));
+    }
+
+    private List<EvidenceItem> search(String userId, List<String> documentIds, List<String> topics) {
+        List<SearchResult> results = new ArrayList<>();
         for (String topic : topics) {
-            topic = topic.trim();
-            if (topic.isEmpty()) {
+            String queryText = topic == null ? "" : topic.trim();
+            if (!StringUtils.hasText(queryText)) {
                 continue;
             }
             RagSearchRequest request = RagSearchRequest.builder()
-                    .queryText(topic)
+                    .queryText(queryText)
                     .userId(userId)
                     .filterDocumentIds(documentIds)
                     .build();
@@ -46,11 +56,11 @@ public class RagEvidenceProvider {
         }
         return results.stream()
                 .filter(result -> result.getChunkId() != null)
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         SearchResult::getChunkId,
                         result -> result,
                         (left, right) -> left,
-                        java.util.LinkedHashMap::new
+                        LinkedHashMap::new
                 ))
                 .values()
                 .stream()
@@ -68,12 +78,12 @@ public class RagEvidenceProvider {
         private String summary;
         private List<String> moduleTags;
 
-        static EvidenceItem from(SearchResult r) {
+        static EvidenceItem from(SearchResult result) {
             return EvidenceItem.builder()
-                    .chunkId(r.getChunkId())
-                    .content(r.getContent())
-                    .summary(r.getSummary())
-                    .moduleTags(r.getModuleTags())
+                    .chunkId(result.getChunkId())
+                    .content(result.getContent())
+                    .summary(result.getSummary())
+                    .moduleTags(result.getModuleTags())
                     .build();
         }
     }

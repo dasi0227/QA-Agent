@@ -36,6 +36,7 @@ export function QuestionWorkspace({
 }: QuestionWorkspaceProps) {
     const submitted = item.status === "SUBMITTED";
     const [keywordsOpen, setKeywordsOpen] = useState(false);
+    const [hintOpen, setHintOpen] = useState(false);
     const moduleLabel = useMemo(() => {
         const value = item.moduleTag?.trim();
         if (!value) return "";
@@ -46,7 +47,7 @@ export function QuestionWorkspace({
         <main className="question-workspace">
             <section className="question-workspace__question">
                 <h1>{item.question}</h1>
-                {(item.moduleTag || item.difficulty || item.keywords) ? (
+                {(item.moduleTag || item.difficulty || item.keywords || item.hint) ? (
                     <div className="question-workspace__meta">
                         {item.difficulty ? <Tag className={`question-workspace__difficulty-tag ${difficultyClass}`}>{item.difficulty}</Tag> : null}
                         {moduleLabel ? <Tag className="question-workspace__module-tag">{moduleLabel}</Tag> : null}
@@ -71,15 +72,17 @@ export function QuestionWorkspace({
                                 ) : null}
                             </div>
                         ) : null}
-                        <BaseButton
-                            variant="ghost"
-                            className="question-workspace__hint-button"
-                            leadingIcon={<Lightbulb size={16} />}
-                            disabled
-                            title="提示按钮预留中"
-                        >
-                            提示
-                        </BaseButton>
+                        {item.hint ? (
+                            <button
+                                type="button"
+                                className={`question-workspace__pre-hint${hintOpen ? " question-workspace__pre-hint--open" : ""}`}
+                                onClick={() => setHintOpen((value) => !value)}
+                                aria-expanded={hintOpen}
+                            >
+                                <Lightbulb size={16} />
+                                <span>{hintOpen ? item.hint : "提示"}</span>
+                            </button>
+                        ) : null}
                     </div>
                 ) : null}
             </section>

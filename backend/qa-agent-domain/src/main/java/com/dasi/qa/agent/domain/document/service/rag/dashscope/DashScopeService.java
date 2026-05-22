@@ -1,17 +1,13 @@
 package com.dasi.qa.agent.domain.document.service.rag.dashscope;
 
-import com.alibaba.dashscope.embeddings.TextEmbedding;
-import com.alibaba.dashscope.embeddings.TextEmbeddingOutput;
-import com.alibaba.dashscope.embeddings.TextEmbeddingParam;
-import com.alibaba.dashscope.embeddings.TextEmbeddingResult;
-import com.alibaba.dashscope.embeddings.TextEmbeddingResultItem;
+import com.alibaba.dashscope.embeddings.*;
 import com.alibaba.dashscope.rerank.TextReRank;
 import com.alibaba.dashscope.rerank.TextReRankOutput;
 import com.alibaba.dashscope.rerank.TextReRankParam;
 import com.alibaba.dashscope.rerank.TextReRankResult;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

@@ -72,6 +72,8 @@ qa-agent:
     kafka:
         topic-document-index: document.index
         topic-document-index-dlq: document.index.dlq
+        topic-qa-item-assist: qa.item.assist
+        topic-qa-item-assist-dlq: qa.item.assist.dlq
     xxl-job:
         admin-addresses: ${XXL_JOB_ADMIN_ADDRESSES:http://localhost:8088/xxl-job-admin}
         app-name: qa-agent
@@ -107,4 +109,3 @@ qa-agent:
             base-url: ${SUMMARIZER_LLM_BASE_URL}
             api-key: ${SUMMARIZER_LLM_API_KEY}
             model: ${SUMMARIZER_LLM_MODEL}
-

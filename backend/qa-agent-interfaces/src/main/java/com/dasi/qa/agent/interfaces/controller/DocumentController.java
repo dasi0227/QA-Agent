@@ -1,19 +1,16 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.document.service.crud.IDocumentCrudService;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.result.Result;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
-import static com.dasi.qa.agent.types.constant.StringConstant.INDEX_JOB_ID_PREFIX;
 
 @RestController
 @RequestMapping("/document")
@@ -21,14 +18,14 @@ public class DocumentController {
 
     private final IDocumentCrudService documentService;
     private final IMqUtil mqUtil;
-    private final String indexingTopic;
+    private final IContextUtil contextUtil;
 
     public DocumentController(IDocumentCrudService documentService,
                               IMqUtil mqUtil,
-                              @Value("${qa-agent.kafka.topic-document-index}") String indexingTopic) {
+                              IContextUtil contextUtil) {
         this.documentService = documentService;
         this.mqUtil = mqUtil;
-        this.indexingTopic = indexingTopic;
+        this.contextUtil = contextUtil;
     }
 
     // ======================== source-document CRUD ========================
@@ -46,9 +43,7 @@ public class DocumentController {
     @PostMapping("/source/upload")
     public Result<SourceDocumentResponse> sourceDocumentUpload(@RequestBody SourceDocumentRequest request) {
         SourceDocumentResponse response = documentService.createSourceDocument(request);
-        String jobId = INDEX_JOB_ID_PREFIX + response.getId();
-        String content = JSON.toJSONString(Map.of("documentId", response.getId()));
-        mqUtil.send(indexingTopic, jobId, content);
+        mqUtil.sendIndexMessage(response.getId(), Map.of("documentId", response.getId(), "userId", contextUtil.getUserId()));
         return Result.success(response);
     }
 

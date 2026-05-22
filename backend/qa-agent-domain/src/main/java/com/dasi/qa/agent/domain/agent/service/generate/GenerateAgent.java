@@ -14,7 +14,7 @@ import com.dasi.qa.agent.domain.agent.service.generate.subagent.*;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentFactory;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSaver;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
-import com.dasi.qa.agent.domain.agent.service.generate.support.RagEvidenceProvider;
+import com.dasi.qa.agent.domain.agent.service.shared.RagEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.generate.support.WebEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.shared.EventPublisher;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
@@ -351,7 +351,7 @@ public class GenerateAgent implements IGenerateAgent {
         Map<String, List<String>> chunkIdsMap = new LinkedHashMap<>();
         for (PlanResult.PlanItem planItem : planItems) {
             try {
-                List<RagEvidenceProvider.EvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().search(
+                List<RagEvidenceProvider.EvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().searchByPlanItem(
                         writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
                 String evidenceJson;
                 if (writeContext.getWebEvidenceProvider() != null) {
@@ -724,7 +724,6 @@ public class GenerateAgent implements IGenerateAgent {
                     .answer(evidence)
                     .tag(planItem.getModule())
                     .difficulty("MEDIUM")
-                    .keywords("核心概念,关键机制,适用场景")
                     .sourceReliable(Boolean.TRUE)
                     .sourceChunkIds(sourceChunkIds)
                     .build());

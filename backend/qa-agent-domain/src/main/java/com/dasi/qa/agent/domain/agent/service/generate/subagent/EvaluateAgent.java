@@ -28,7 +28,7 @@ public interface EvaluateAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent(name = "EVALUATOR", description = "审校题目事实准确性和证据边界")
+    @Agent
     String evaluate(@V("taskId") String taskId,
                     @V("draftItemsJson") String draftItemsJson,
                     @V("userPrompt") String userPrompt,
