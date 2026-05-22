@@ -32,7 +32,7 @@ public class MessageRetryJob {
                 mqUtil.send(job.getTopic(), job.getJobId(), job.getContent());
             } else {
                 String dlqTopic = job.getTopic() + ".dlq";
-                mqUtil.send(dlqTopic, job.getJobId() + "_dlq", job.getContent());
+                mqUtil.sendDeadLetter(dlqTopic, job.getContent());
                 mqUtil.markFail(job.getJobId());
             }
         }

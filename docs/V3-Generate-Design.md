@@ -199,14 +199,14 @@ SubAgent：`DraftAgent`
 | `knowledgeNote` | 复习笔记 |
 | `tag` | 题目标签，允许 1~2 个逗号分隔 |
 | `difficulty` | `EASY` / `MEDIUM` / `HARD` |
-| `sourceReliable` | 资料对当前题目是否可靠 |
+| `sourceReliable` | 资料证据是否足以支撑主要答案 |
 | `sourceChunkIds` | 来源切片 ID 列表 |
 
 注意：
 
 1. 当前没有旧版文档里的“冲突提示”和 `evidence` 字段。
 2. `qa_item.keywords` 不再来自 `DraftResult`，由后置 `AssistAgent` 异步补全。
-3. `qa_item.source_reliable` 最终直接来自 `DraftResult`。
+3. `qa_item.source_reliable` 最终直接来自 `DraftResult`，只有资料证据足以支撑主要答案时才为 `true`。
 
 ### 6.5 VALIDATE
 

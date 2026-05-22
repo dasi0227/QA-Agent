@@ -84,6 +84,12 @@ public class MqUtil implements IMqUtil {
     }
 
     @Override
+    public void sendDeadLetter(String topic, String content) {
+        kafkaTemplate.send(topic, content);
+        log.info("【消息队列生产者】死信消息发送: topic={}", topic);
+    }
+
+    @Override
     public void markSuccess(String jobId) {
         MessageJob existing = findExistingJob(jobId);
         if (existing != null) {

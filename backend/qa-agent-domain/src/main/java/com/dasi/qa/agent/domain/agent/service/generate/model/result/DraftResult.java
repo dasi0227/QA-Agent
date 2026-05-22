@@ -29,7 +29,7 @@ public class DraftResult {
     @Description("题目难度，必须是 EASY / MEDIUM / HARD 之一")
     private String difficulty;
 
-    @Description("用户资料对当前题目是否可靠；仅在资料明显错误或明显冲突时为 false")
+    @Description("资料证据是否足以支撑主要答案；无证据、证据弱或主要依赖通用知识时为 false")
     private Boolean sourceReliable;
 
     @Description("来源切片 ID 列表")

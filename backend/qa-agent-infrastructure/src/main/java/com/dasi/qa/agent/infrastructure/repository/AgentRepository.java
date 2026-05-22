@@ -608,8 +608,8 @@ public class AgentRepository implements IAgentRepository {
         if (!StringUtils.hasText(qaItem.getDifficulty())) {
             qaItem.setDifficulty(result.getDifficulty());
         }
-        if (!StringUtils.hasText(qaItem.getSourceChunkIdsJson())) {
-            qaItem.setSourceChunkIdsJson(JSON.toJSONString(result.getSourceChunkIds() == null ? List.of() : result.getSourceChunkIds()));
+        if (!hasSourceChunkIds(qaItem.getSourceChunkIdsJson()) && result.getSourceChunkIds() != null && !result.getSourceChunkIds().isEmpty()) {
+            qaItem.setSourceChunkIdsJson(JSON.toJSONString(result.getSourceChunkIds()));
         }
         if (CompleteStatus.PROCESSING.name().equals(qaItem.getCompleteStatus()) || qaItem.getSourceReliable() == null) {
             qaItem.setSourceReliable(Boolean.TRUE.equals(result.getSourceReliable()));
@@ -670,6 +670,18 @@ public class AgentRepository implements IAgentRepository {
             throw new ApiException(ResultCode.FORBIDDEN);
         }
         return entity;
+    }
+
+    private boolean hasSourceChunkIds(String sourceChunkIdsJson) {
+        if (!StringUtils.hasText(sourceChunkIdsJson)) {
+            return false;
+        }
+        try {
+            List<String> chunkIds = JSON.parseArray(sourceChunkIdsJson, String.class);
+            return chunkIds != null && !chunkIds.isEmpty();
+        } catch (Exception exception) {
+            return false;
+        }
     }
 
     private List<String> qaSetDocumentIds(String qaSetId) {

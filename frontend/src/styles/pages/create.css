@@ -1,5 +1,6 @@
 /* Create/generation pages and SSE timeline. */
 
+
 /* ── Create Page ── */
 
 .create-page {
@@ -8,6 +9,7 @@
   min-height: 0;
   flex: 1;
 }
+
 
 .create-page__main {
   flex: 1;
@@ -20,6 +22,7 @@
   padding: 24px 0;
 }
 
+
 .create-page__empty {
   font-size: 40px;
   color: var(--ink-faint);
@@ -29,6 +32,7 @@
   line-height: 1.7;
   margin: 0;
 }
+
 
 .create-page__add-doc-btn {
   display: inline-flex;
@@ -48,11 +52,13 @@
   transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
 }
 
+
 .create-page__add-doc-btn:hover {
   background: var(--btn-secondary-bg-hover);
   border-color: rgba(183, 133, 74, 0.24);
   transform: translateY(-1px);
 }
+
 
 .create-page__docs-grid {
   display: grid;
@@ -61,6 +67,7 @@
   width: 100%;
   max-width: 1000px;
 }
+
 
 .create-page__doc-card {
   display: flex;
@@ -73,6 +80,7 @@
   text-align: left;
   position: relative;
 }
+
 
 .create-page__doc-card-remove {
   position: absolute;
@@ -91,10 +99,12 @@
   transition: background 0.15s, color 0.15s;
 }
 
+
 .create-page__doc-card-remove:hover {
   background: rgba(0, 0, 0, 0.06);
   color: var(--ink);
 }
+
 
 .create-page__doc-card-name {
   font-weight: 600;
@@ -105,10 +115,12 @@
   white-space: nowrap;
 }
 
+
 .create-page__doc-card-meta {
   font-size: 12px;
   color: var(--ink-faint);
 }
+
 
 /* preview kept for reference */
 .create-page__preview-ref {
@@ -117,10 +129,12 @@
   color: var(--ink-faint);
 }
 
+
 .create-page__preview-ref summary {
   cursor: pointer;
   padding: 4px 0;
 }
+
 
 .create-page__preview-ref .timeline {
   display: grid;
@@ -132,10 +146,12 @@
   border: 1px solid var(--line);
 }
 
+
 .create-page__preview-ref .timeline__item {
   display: grid;
   gap: 4px;
 }
+
 
 .create-page__bottom {
   display: flex;
@@ -144,6 +160,7 @@
   padding: 8px 0 24px;
 }
 
+
 .create-page__input {
   min-height: 96px;
   max-height: 180px;
@@ -151,9 +168,11 @@
   overflow-y: auto;
 }
 
+
 .create-page__input-area {
   margin-bottom: 8px;
 }
+
 
 .create-page__actions {
   display: flex;
@@ -161,11 +180,13 @@
   justify-content: space-between;
 }
 
+
 .create-page__actions-left {
   display: flex;
   align-items: center;
   gap: 6px;
 }
+
 
 .create-page__action-btn {
   display: inline-flex;
@@ -182,19 +203,23 @@
   transition: background 180ms ease;
 }
 
+
 .create-page__action-btn:hover {
   background: rgba(142, 100, 45, 0.06);
 }
+
 
 .create-page__action-btn--icon {
   padding: 8px;
   color: var(--ink-soft);
 }
 
+
 .create-page__action-btn--icon:hover {
   color: var(--ink);
   background: rgba(23, 22, 20, 0.04);
 }
+
 
 .create-page__send-btn {
   width: 44px;
@@ -211,13 +236,16 @@
   flex-shrink: 0;
 }
 
+
 .create-page__send-btn:hover {
   opacity: 0.8;
 }
 
+
 .create-page__send-btn:active {
   opacity: 0.7;
 }
+
 
 /* ── SSE Timeline ── */
 
@@ -229,11 +257,13 @@
   gap: 0;
 }
 
+
 .sse-timeline__node {
   position: relative;
   padding-left: 30px;
   padding-bottom: 22px;
 }
+
 
 .sse-timeline__node::before {
   content: "";
@@ -247,6 +277,7 @@
   z-index: 1;
 }
 
+
 .sse-timeline__node::after {
   content: "";
   position: absolute;
@@ -257,9 +288,11 @@
   background: rgba(23, 22, 20, 0.12);
 }
 
+
 .sse-timeline__node:last-child::after {
   display: none;
 }
+
 
 .sse-timeline__phase-header {
   display: flex;
@@ -269,6 +302,7 @@
   margin-bottom: 6px;
 }
 
+
 .sse-timeline__phase-label {
   color: var(--ink);
   font-size: 15px;
@@ -277,12 +311,14 @@
   letter-spacing: -0.01em;
 }
 
+
 .sse-timeline__phase-tags {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 
 .sse-timeline__phase-tag {
   display: inline-flex;
@@ -297,6 +333,7 @@
   white-space: nowrap;
 }
 
+
 .sse-timeline__message {
   color: var(--ink-soft);
   font-size: 14px;
@@ -308,10 +345,12 @@
   gap: 6px;
 }
 
+
 .sse-timeline__message-text {
   flex: 1;
   min-width: 0;
 }
+
 
 .sse-timeline__spinner {
   display: inline-flex;
@@ -319,14 +358,23 @@
   flex-shrink: 0;
 }
 
+
 .sse-timeline__spinner-icon {
   animation: sse-spin 1.2s linear infinite;
   color: var(--ink-faint);
 }
 
+
+@keyframes sse-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+
 .sse-timeline__node--active .sse-timeline__phase-label {
   color: var(--ink);
 }
+
 
 .sse-timeline__divider {
   display: flex;
@@ -335,14 +383,15 @@
   padding: 0 0 6px;
 }
 
-.sse-timeline__divider::before,
 
+.sse-timeline__divider::before,
 .sse-timeline__divider::after {
   content: "";
   flex: 1;
   height: 1px;
   background: rgba(23, 22, 20, 0.1);
 }
+
 
 .sse-timeline__divider span {
   color: var(--ink-faint);
@@ -353,11 +402,13 @@
   white-space: nowrap;
 }
 
+
 .sse-timeline__completed-link {
   display: flex;
   justify-content: center;
   padding: 0 0 10px;
 }
+
 
 /* ── User Chat Bubble ── */
 
@@ -368,6 +419,7 @@
   max-width: 720px;
   margin: 0 auto;
 }
+
 
 .sse-user-bubble__content {
   max-width: 88%;
@@ -380,6 +432,7 @@
   font-family: var(--font-serif);
   word-break: break-word;
 }
+
 
 .sse-user-docs {
   display: flex;
@@ -395,15 +448,18 @@
   font-size: 11px;
 }
 
+
 .sse-user-docs__tag {
   display: inline;
   color: var(--ink-faint);
   white-space: nowrap;
 }
 
+
 .sse-user-docs__tag:not(:last-child)::after {
   content: "、";
 }
+
 
 /* ── Create Page Streaming Overrides ── */
 
@@ -418,9 +474,11 @@
   gap: 12px;
 }
 
+
 .create-page__stream-area::-webkit-scrollbar {
   display: none;
 }
+
 
 /* ── History Dialog ── */
 
@@ -440,10 +498,12 @@
   color: var(--ink);
 }
 
+
 .sse-history-item:hover {
   background: rgba(255, 255, 255, 0.7);
   border-color: var(--line-strong);
 }
+
 
 .sse-history-item__main {
   display: flex;
@@ -451,6 +511,7 @@
   justify-content: space-between;
   gap: 10px;
 }
+
 
 .sse-history-item__title {
   font-weight: 600;
@@ -460,6 +521,7 @@
   gap: 8px;
   min-width: 0;
 }
+
 
 .sse-history-item__badge {
   display: inline-flex;
@@ -474,12 +536,14 @@
   font-weight: 500;
 }
 
+
 .sse-history-item__id {
   color: var(--ink-faint);
   font-family: var(--font-sans);
   font-size: 11px;
   white-space: nowrap;
 }
+
 
 .sse-history-item__meta {
   display: flex;
@@ -489,6 +553,7 @@
   font-family: var(--font-sans);
   font-size: 11px;
 }
+
 
 .sse-history-item__status {
   color: var(--ink-soft);

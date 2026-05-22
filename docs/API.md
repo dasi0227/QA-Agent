@@ -236,15 +236,15 @@
 | GET | `/qa/item/detail?id=...` | 是 | `id` |
 | POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `keywords?`, `hint?`, `sourceReliable?`, `sourceChunkIdsJson?`, `completeStatus?`, `sortOrder?` |
 | POST | `/qa/item/update` | 是 | 同上，`id` 必填 |
-| POST | `/qa/item/create-smart` | 是 | `qaSetId`, `question` |
-| POST | `/qa/item/complete-retry` | 是 | `id` |
+| POST | `/qa/item/create` | 是 | `qaSetId`, `question` |
+| POST | `/qa/item/complete` | 是 | `id` |
 | POST | `/qa/item/delete` | 是 | `id` |
 
 说明：
 
-1. 当前 controller 没有开放普通 `/qa/item/create`；手动新增题目统一使用 `/qa/item/create-smart`。
-2. `/qa/item/create-smart` 会立即创建题目并返回 `completeStatus=PROCESSING`，后端用本地线程池异步执行 CompleteAgent 补全核心字段。
-3. `/qa/item/complete-retry` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent。
+1. 手动新增题目统一使用 `/qa/item/create`。
+2. `/qa/item/create` 会立即创建题目并返回 `completeStatus=PROCESSING`，后端用本地线程池异步执行 CompleteAgent 补全核心字段。
+3. `/qa/item/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent。
 4. `keywords` 和 `hint` 由 AssistAgent 异步补全；前端不查询 `message_job`。
 
 ## 6. Practice

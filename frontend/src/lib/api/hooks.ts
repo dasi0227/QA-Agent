@@ -705,7 +705,7 @@ export function useUpdateQuestionItemMutation() {
 export function useCreateSmartQuestionItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: CreateSmartQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/create-smart", {
+        mutationFn: async (input: CreateSmartQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/create", {
             method: "POST",
             body: input,
         })),
@@ -721,7 +721,7 @@ export function useCreateSmartQuestionItemMutation() {
 export function useRetryCompleteQuestionItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (questionItemId: string) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/complete-retry", {
+        mutationFn: async (questionItemId: string) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/complete", {
             method: "POST",
             body: { id: questionItemId },
         })),

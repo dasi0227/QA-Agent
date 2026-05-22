@@ -41,7 +41,7 @@
 保留既有字段：
 
 - `keywords`：由 `AssistAgent` 回填，不再由 `DraftAgent` 生成。
-- `source_reliable`：继续表达资料对题目是否可靠。
+- `source_reliable`：继续表达资料证据是否足以支撑主要答案。
 - `source_chunk_ids_json`：继续保存题目引用的资料切片。
 
 不新增：
@@ -223,7 +223,7 @@ Consumer 失败：
 
 - 调用 `mqUtil.recordError(jobId, errorMessage)`。
 - 保持 `message_job.job_status=UNSOLVED`。
-- 由 `MessageRetryJob` 重发，超过最大次数后进入 `FAIL + DLQ`。
+- 由 `MessageRetryJob` 重发，超过最大次数后进入 `FAIL + DLQ`，DLQ 消息不再写入普通 `message_job` 重试队列。
 
 ## 7. CompleteAgent
 
@@ -386,13 +386,13 @@ void recordError(String jobId, String errorMessage);
 
 - 继续扫描 `UNSOLVED`；
 - 未超过上限重发；
-- 超过上限再 `markFail + DLQ`。
+- 超过上限发送 DLQ 并 `markFail` 原 job；DLQ 消息不写入普通 `message_job` 重试队列。
 
 ## 10. HTTP 接口
 
 新增：
 
-### 10.1 `POST /qa/item/create-smart`
+### 10.1 `POST /qa/item/create`
 
 用途：手动新增题目，只填问题，立即创建题目并后台执行 CompleteAgent。
 
@@ -415,7 +415,7 @@ void recordError(String jobId, String errorMessage);
 4. 用 `applicationTaskExecutor` 异步执行 `CompleteAgent`。
 5. 立即返回新题。
 
-### 10.2 `POST /qa/item/complete-retry`
+### 10.2 `POST /qa/item/complete`
 
 用途：重新触发 CompleteAgent。
 
@@ -477,7 +477,7 @@ void recordError(String jobId, String errorMessage);
 5. 改 MQ：`message_job.error_message`、`IMqUtil.recordError(...)`、Consumer 失败语义。
 6. 新增 `AssistAgent` 和 `AssistConsumer`。
 7. 新增 `CompleteAgent` 和本地线程池触发 service。
-8. 新增 `/qa/item/create-smart` 和 `/qa/item/complete-retry`。
+8. 新增 `/qa/item/create` 和 `/qa/item/complete`。
 9. 前端接入新增题弹窗、详情轮询、状态展示。
 10. 更新 `docs/API.md`、`docs/TABLE.md`、`docs/V3-Generate-Design.md`。
 

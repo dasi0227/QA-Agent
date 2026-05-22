@@ -4,6 +4,8 @@ public interface IMqUtil {
 
     void send(String topic, String jobId, String content);
 
+    void sendDeadLetter(String topic, String content);
+
     void markSuccess(String jobId);
 
     void markFail(String jobId);

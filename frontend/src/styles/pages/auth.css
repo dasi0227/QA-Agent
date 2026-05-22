@@ -1,5 +1,7 @@
 /* Auth pages: login, register, verification states. */
 
+
+.app-shell__content,
 .auth-shell__content {
   display: flex;
   flex-direction: column;
@@ -8,17 +10,22 @@
   min-height: 0;
 }
 
+
+.app-shell__content,
 .auth-shell__content {
   overflow: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
+
+.app-shell__content::-webkit-scrollbar,
 .auth-shell__content::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
 }
+
 
 .auth-shell__inner {
   display: flex;
@@ -26,6 +33,7 @@
   gap: 12px;
   min-height: 0;
 }
+
 
 .auth-shell__content {
   display: flex;
@@ -37,10 +45,12 @@
   min-height: 0;
 }
 
+
 .auth-shell__eyebrow {
   width: min(680px, 100%);
   padding-left: 4px;
 }
+
 
 .auth-form {
   display: grid;
@@ -51,6 +61,7 @@
   border-radius: 48px;
 }
 
+
 .auth-form__title {
   margin: 0;
   font-size: 34px;
@@ -60,6 +71,7 @@
   text-align: left;
 }
 
+
 .auth-form__copy {
   margin: 0;
   color: var(--ink-soft);
@@ -68,10 +80,12 @@
   text-align: left;
 }
 
+
 .auth-form__grid {
   display: grid;
   gap: 14px;
 }
+
 
 .auth-form__check {
   display: inline-flex;
@@ -86,6 +100,7 @@
   cursor: pointer;
 }
 
+
 .auth-form__check input {
   flex: none;
   width: 16px;
@@ -93,6 +108,7 @@
   margin: 0;
   accent-color: var(--pill-dark);
 }
+
 
 .auth-form__footer {
   display: flex;
@@ -102,6 +118,7 @@
   margin-top: 4px;
 }
 
+
 .auth-banner {
   display: flex;
   align-items: center;
@@ -110,11 +127,13 @@
   padding: 0 4px;
 }
 
+
 .auth-banner__icon {
   flex: none;
   width: 60px;
   height: 60px;
 }
+
 
 .auth-banner__text {
   font-family: var(--font-sans);
@@ -124,11 +143,13 @@
   color: var(--ink);
 }
 
+
 .verify-code-group {
   display: flex;
   justify-content: center;
   gap: 12px;
 }
+
 
 .verify-code-input {
   width: 52px;
@@ -146,10 +167,12 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+
 .verify-code-input:focus {
   border-color: var(--btn-secondary-ink);
   box-shadow: 0 0 0 3px rgba(155, 115, 65, 0.12);
 }
+
 
 .verify-back-btn {
   display: inline-flex;
@@ -166,10 +189,12 @@
   margin-bottom: 16px;
 }
 
+
 .verify-back-btn:hover {
   background: rgba(255, 255, 255, 0.8);
   color: var(--ink);
 }
+
 
 .verify-card__subtitle {
   margin-top: 12px;

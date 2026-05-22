@@ -93,33 +93,51 @@ public class QaRepository implements IQaRepository {
     @Override
     @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
     public QaSetResponse updateQaSet(QaSetRequest request, String userId) {
-        return update(qaSetMapper, QaSet.class, QaSetResponse.class, request, userId);
+        requireQaSet(request.getId(), userId);
+        QaSet entity = toEntity(request, QaSet.class);
+        entity.setUserId(userId);
+        entity.setUpdatedAt(LocalDateTime.now());
+        qaSetMapper.update(entity, new LambdaUpdateWrapper<QaSet>()
+                .eq(QaSet::getId, request.getId())
+                .eq(QaSet::getUserId, userId));
+        return detailQaSet(request.getId(), userId);
     }
 
     @Override
     @CacheEvict(cacheNames = {RedisConstant.QA_SET_CACHE, RedisConstant.QA_ITEM_CACHE}, allEntries = true)
     public void deleteQaSet(String id, String userId) {
+        requireQaSet(id, userId);
         List<PracticeSession> sessions = practiceSessionMapper.selectList(
-            new LambdaQueryWrapper<PracticeSession>().eq(PracticeSession::getQaSetId, id));
+            new LambdaQueryWrapper<PracticeSession>()
+                    .eq(PracticeSession::getQaSetId, id)
+                    .eq(PracticeSession::getUserId, userId));
         for (PracticeSession session : sessions) {
             practiceSessionItemMapper.delete(
-                new LambdaQueryWrapper<PracticeSessionItem>().eq(PracticeSessionItem::getSessionId, session.getId()));
+                new LambdaQueryWrapper<PracticeSessionItem>()
+                        .eq(PracticeSessionItem::getSessionId, session.getId())
+                        .eq(PracticeSessionItem::getUserId, userId));
         }
         practiceSessionMapper.delete(
-            new LambdaQueryWrapper<PracticeSession>().eq(PracticeSession::getQaSetId, id));
+            new LambdaQueryWrapper<PracticeSession>()
+                    .eq(PracticeSession::getQaSetId, id)
+                    .eq(PracticeSession::getUserId, userId));
         qaItemMapper.delete(
-            new LambdaQueryWrapper<QaItem>().eq(QaItem::getQaSetId, id));
+            new LambdaQueryWrapper<QaItem>()
+                    .eq(QaItem::getQaSetId, id)
+                    .eq(QaItem::getUserId, userId));
         List<QaSetDocumentRef> refs = qaSetDocumentRefMapper.selectList(
             new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, id));
         for (QaSetDocumentRef ref : refs) {
             sourceDocumentMapper.update(null,
                     new LambdaUpdateWrapper<SourceDocument>()
-                            .setSql("reference_count = reference_count - 1")
+                            .setSql("reference_count = CASE WHEN reference_count > 0 THEN reference_count - 1 ELSE 0 END")
                             .eq(SourceDocument::getId, ref.getDocumentId()));
         }
         qaSetDocumentRefMapper.delete(
             new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, id));
-        qaSetMapper.deleteById(id);
+        qaSetMapper.delete(new LambdaQueryWrapper<QaSet>()
+                .eq(QaSet::getId, id)
+                .eq(QaSet::getUserId, userId));
     }
 
     @Override
@@ -190,7 +208,15 @@ public class QaRepository implements IQaRepository {
     @Override
     @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
     public QaItemResponse updateQaItem(QaItemRequest request, String userId) {
-        return update(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
+        QaItem existing = requireQaItem(request.getId(), userId);
+        QaItem entity = toEntity(request, QaItem.class);
+        entity.setUserId(userId);
+        entity.setQaSetId(existing.getQaSetId());
+        entity.setUpdatedAt(LocalDateTime.now());
+        qaItemMapper.update(entity, new LambdaUpdateWrapper<QaItem>()
+                .eq(QaItem::getId, request.getId())
+                .eq(QaItem::getUserId, userId));
+        return detailQaItem(request.getId(), userId);
     }
 
     @Override
@@ -214,9 +240,40 @@ public class QaRepository implements IQaRepository {
     }
 
     @Override
-    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
+    @CacheEvict(cacheNames = {RedisConstant.QA_ITEM_CACHE, RedisConstant.QA_SET_CACHE}, allEntries = true)
     public void deleteQaItem(String id, String userId) {
-        qaItemMapper.deleteById(id);
+        QaItem item = requireQaItem(id, userId);
+        qaItemMapper.delete(new LambdaQueryWrapper<QaItem>()
+                .eq(QaItem::getId, id)
+                .eq(QaItem::getUserId, userId));
+        qaSetMapper.update(null,
+                new LambdaUpdateWrapper<QaSet>()
+                        .setSql("question_count = CASE WHEN question_count > 0 THEN question_count - 1 ELSE 0 END")
+                        .set(QaSet::getUpdatedAt, LocalDateTime.now())
+                        .eq(QaSet::getId, item.getQaSetId())
+                        .eq(QaSet::getUserId, userId));
+    }
+
+    private QaSet requireQaSet(String id, String userId) {
+        QaSet entity = qaSetMapper.selectById(id);
+        if (entity == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        if (!userId.equals(entity.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        return entity;
+    }
+
+    private QaItem requireQaItem(String id, String userId) {
+        QaItem entity = qaItemMapper.selectById(id);
+        if (entity == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        if (!userId.equals(entity.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        return entity;
     }
 
     private <E, R extends BaseResponse> R detail(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, String id, String userId) {

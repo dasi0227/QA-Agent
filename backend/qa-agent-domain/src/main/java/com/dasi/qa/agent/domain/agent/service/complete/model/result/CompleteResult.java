@@ -26,7 +26,7 @@ public class CompleteResult {
     @Description("题目难度，必须是 EASY / MEDIUM / HARD 之一")
     private String difficulty;
 
-    @Description("资料证据对当前题目是否可靠")
+    @Description("资料证据是否足以支撑主要答案")
     private Boolean sourceReliable;
 
     @Description("来源切片 ID 列表")

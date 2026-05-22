@@ -1,5 +1,6 @@
 /* Responsive overrides. Keep imported last. */
 
+
 @media (max-width: 1180px) {
   .layout-two-col {
     grid-template-columns: 1fr;
@@ -47,6 +48,7 @@
     width: min(320px, 100%);
   }
 }
+
 
 @media (max-width: 920px) {
   .topbar {
@@ -210,6 +212,7 @@
   }
 }
 
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 20px 14px 28px;
@@ -277,6 +280,7 @@
     transform: none;
   }
 }
+
 
 @media (max-width: 920px) {
   .practice-top-status {

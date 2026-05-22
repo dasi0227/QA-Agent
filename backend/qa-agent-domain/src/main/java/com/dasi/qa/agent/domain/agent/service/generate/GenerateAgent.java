@@ -724,7 +724,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .answer(evidence)
                     .tag(planItem.getModule())
                     .difficulty("MEDIUM")
-                    .sourceReliable(Boolean.TRUE)
+                    .sourceReliable(StringUtils.hasText(evidence) && sourceChunkIds != null && !sourceChunkIds.isEmpty())
                     .sourceChunkIds(sourceChunkIds)
                     .build());
         }

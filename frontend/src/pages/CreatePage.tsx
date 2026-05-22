@@ -57,6 +57,14 @@ function formatTaskTime(createdAt?: string) {
     return createdAt.replace("T", " ").substring(0, 16);
 }
 
+function formatDocumentDisplayName(fileName: string) {
+    const normalized = fileName.trim();
+    if (!normalized) {
+        return "";
+    }
+    return normalized.replace(/\.md$/i, "");
+}
+
 type TimelineNode = {
     stage: string;
     events: SseEvent[];
@@ -664,8 +672,7 @@ function DocumentSelectDialog({
                                         {selected ? <CheckSmall /> : null}
                                     </span>
                                     <span className="doc-select-dialog__item-info">
-                                        <span className="doc-select-dialog__item-name">{doc.fileName}</span>
-                                        <span className="doc-select-dialog__item-meta">{doc.fileType || "未知类型"}</span>
+                                        <span className="doc-select-dialog__item-name">{formatDocumentDisplayName(doc.fileName)}</span>
                                     </span>
                                 </button>
                             );
