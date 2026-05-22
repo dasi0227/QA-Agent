@@ -3,6 +3,7 @@ package com.dasi.qa.agent.interfaces.handler;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.exception.AgentException;
 import com.dasi.qa.agent.types.exception.ApiException;
+import com.dasi.qa.agent.types.exception.ConvertException;
 import com.dasi.qa.agent.types.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleApiException(ApiException exception) {
         log.error("【全局异常】API调用错误: error={}", exception.getMessage(), exception);
+        return Result.fail(exception.getResultCode().getCode(), exception.getMessage());
+    }
+
+    @ExceptionHandler(ConvertException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleConvertException(ConvertException exception) {
+        log.error("【全局异常】文件转换错误: error={}", exception.getMessage(), exception);
         return Result.fail(exception.getResultCode().getCode(), exception.getMessage());
     }
 

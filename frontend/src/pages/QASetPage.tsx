@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { X } from "lucide-react";
+import { FileDown, FileUp, Sparkles, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
@@ -8,6 +8,8 @@ import { Field, TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
 import {
     useDeleteQuestionSetMutation,
+    useExportQuestionSetMutation,
+    useImportQuestionSetMutation,
     useQuestionSetItemsQuery,
     useQuestionSetQuery,
     useQuestionSetsQuery,
@@ -50,7 +52,11 @@ export function QASetPage() {
     const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
     const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [createSetDialogOpen, setCreateSetDialogOpen] = useState(false);
+    const [importError, setImportError] = useState("");
+    const [importSuccess, setImportSuccess] = useState("");
     const [selectedTagsDraft, setSelectedTagsDraft] = useState<string[]>([]);
+    const importFileInputRef = useRef<HTMLInputElement | null>(null);
 
     const questionSetsQuery = useQuestionSetsQuery();
 
@@ -59,6 +65,8 @@ export function QASetPage() {
     const selectedSetItemsQuery = useQuestionSetItemsQuery(selectedSetId);
     const deleteQuestionSetMutation = useDeleteQuestionSetMutation();
     const updateQuestionSetMutation = useUpdateQuestionSetMutation();
+    const importQuestionSetMutation = useImportQuestionSetMutation();
+    const exportQuestionSetMutation = useExportQuestionSetMutation();
 
     const hasQuestionSets = (questionSetsQuery.data?.length ?? 0) > 0;
     const setErrorMessage = questionSetsQuery.error instanceof Error ? questionSetsQuery.error.message : "";
@@ -115,6 +123,47 @@ export function QASetPage() {
         setEditDialogOpen(false);
     };
 
+    const closeCreateSetDialog = () => {
+        if (importQuestionSetMutation.isPending) return;
+        setCreateSetDialogOpen(false);
+        setImportError("");
+    };
+
+    const handleImportFile = async (file?: File) => {
+        if (!file) return;
+        setImportError("");
+        setImportSuccess("");
+        if (!file.name.toLowerCase().endsWith(".dasi")) {
+            setImportError("请选择 .dasi 问答集文件。");
+            return;
+        }
+        try {
+            const importedSet = await importQuestionSetMutation.mutateAsync({ file });
+            setCreateSetDialogOpen(false);
+            setImportSuccess(`导入成功，共 ${importedSet.questionCount} 道题`);
+            navigate(`/repository/qa-set/${importedSet.id}`, { replace: true });
+        } catch (error) {
+            setImportError(error instanceof Error ? error.message : "导入失败，请检查文件格式。");
+        } finally {
+            if (importFileInputRef.current) {
+                importFileInputRef.current.value = "";
+            }
+        }
+    };
+
+    const exportSelectedSet = async () => {
+        if (!selectedSetQuery.data) return;
+        const exportedFile = await exportQuestionSetMutation.mutateAsync(selectedSetQuery.data.id);
+        const url = window.URL.createObjectURL(exportedFile.blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = exportedFile.fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="page-frame">
             <div className="layout-two-col repository-layout">
@@ -126,33 +175,42 @@ export function QASetPage() {
                     </div>
                     <div className="tree">
                         <div className="sidebar__upload-area sidebar__action-area">
-                            <LinkButton to="/create" variant="soft" className="sidebar__upload-btn">
+                            <BaseButton
+                                variant="soft"
+                                type="button"
+                                className="sidebar__upload-btn"
+                                onClick={() => {
+                                    setImportError("");
+                                    setImportSuccess("");
+                                    setCreateSetDialogOpen(true);
+                                }}
+                            >
                                 新增题集
-                            </LinkButton>
+                            </BaseButton>
                         </div>
                         <div className="subtree tree">
                             {questionSetsQuery.isLoading ? (
-                                <div className="tree-item">加载中...</div>
+                                <div className="tree-qaSetEntry">加载中...</div>
                             ) : null}
                             {questionSetsQuery.isError ? (
-                                <div className="tree-item" style={{ color: "var(--ink)" }}>
+                                <div className="tree-qaSetEntry" style={{ color: "var(--ink)" }}>
                                     {setErrorMessage || "问答集加载失败"}
                                 </div>
                             ) : null}
-                            {questionSetsQuery.data?.map((item) => {
-                                const isActive = item.id === selectedSetId;
+                            {questionSetsQuery.data?.map((qaSetEntry) => {
+                                const isActive = qaSetEntry.id === selectedSetId;
                                 return (
                                     <Link
-                                        key={item.id}
-                                        to={`/repository/qa-set/${item.id}`}
-                                        className={cn("tree-item", "tree-item--entry", isActive && "tree-item--active")}
+                                        key={qaSetEntry.id}
+                                        to={`/repository/qa-set/${qaSetEntry.id}`}
+                                        className={cn("tree-qaSetEntry", "tree-qaSetEntry--entry", isActive && "tree-qaSetEntry--active")}
                                     >
-                                        <span className="tree-item__label">{item.title}</span>
+                                        <span className="tree-item__label">{qaSetEntry.title}</span>
                                     </Link>
                                 );
                             })}
                             {!questionSetsQuery.isLoading && !questionSetsQuery.isError && !hasQuestionSets ? (
-                                <div className="tree-item">暂无问答集</div>
+                                <div className="tree-qaSetEntry">暂无问答集</div>
                             ) : null}
                         </div>
                     </div>
@@ -256,7 +314,19 @@ export function QASetPage() {
                                     >
                                         {deleteQuestionSetMutation.isPending ? "删除中" : "删除问答集"}
                                     </BaseButton>
+                                    <BaseButton
+                                        variant="soft"
+                                        type="button"
+                                        leadingIcon={<FileDown size={15} />}
+                                        disabled={exportQuestionSetMutation.isPending}
+                                        onClick={exportSelectedSet}
+                                    >
+                                        {exportQuestionSetMutation.isPending ? "导出中" : "导出问答集"}
+                                    </BaseButton>
                                 </div>
+                                {importSuccess ? (
+                                    <div className="repository-inline-success">{importSuccess}</div>
+                                ) : null}
 
                                 <div className="repository-workspace">
                                     <section className="repository-items-panel">
@@ -278,19 +348,19 @@ export function QASetPage() {
                                         ) : null}
                                         {selectedSetItemsQuery.data?.length ? (
                                             <div className="repository-items-scroll">
-                                                <div className="repository-item-list">
-                                                    {selectedSetItemsQuery.data.map((item) => (
+                                                <div className="repository-qaSetEntry-list">
+                                                    {selectedSetItemsQuery.data.map((qaSetEntry) => (
                                                         <Link
-                                                            key={item.id}
-                                                            to={`/repository/question?qaSetId=${selectedSetQuery.data.id}&itemId=${item.id}`}
-                                                            className={cn("repository-item-card")}
+                                                            key={qaSetEntry.id}
+                                                            to={`/repository/question?qaSetId=${selectedSetQuery.data.id}&itemId=${qaSetEntry.id}`}
+                                                            className={cn("repository-qaSetEntry-card")}
                                                         >
-                                                            <strong>{item.question}</strong>
-                                                            <div className="repository-item-card__meta">
-                                                                <small>{item.difficulty || "未标注难度"}</small>
-                                                                {item.moduleTag?.trim() ? (
+                                                            <strong>{qaSetEntry.question}</strong>
+                                                            <div className="repository-qaSetEntry-card__meta">
+                                                                <small>{qaSetEntry.difficulty || "未标注难度"}</small>
+                                                                {qaSetEntry.moduleTag?.trim() ? (
                                                                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                                                                        {item.moduleTag.split(",").map((tag) => tag.trim()).filter(Boolean).map((tag) => (
+                                                                        {qaSetEntry.moduleTag.split(",").map((tag) => tag.trim()).filter(Boolean).map((tag) => (
                                                                             <Tag key={tag}>{tag}</Tag>
                                                                         ))}
                                                                     </div>
@@ -333,6 +403,58 @@ export function QASetPage() {
                 }}
                 onCancel={() => setDeleteSetDialogOpen(false)}
             />
+
+            {createSetDialogOpen ? (
+                <div className="doc-select-dialog" role="presentation" onClick={closeCreateSetDialog}>
+                    <div className="qa-set-create-dialog" role="dialog" aria-modal="true" aria-label="新增题集" onClick={(event) => event.stopPropagation()}>
+                        <div className="doc-select-dialog__header">
+                            <h3 className="doc-select-dialog__title">新增题集</h3>
+                            <button type="button" className="doc-select-dialog__close" onClick={closeCreateSetDialog}>
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="qa-set-create-dialog__body">
+                            <button
+                                type="button"
+                                className="qa-set-create-option"
+                                disabled={importQuestionSetMutation.isPending}
+                                onClick={() => importFileInputRef.current?.click()}
+                            >
+                                <span className="qa-set-create-option__icon"><FileUp size={20} /></span>
+                                <span className="qa-set-create-option__copy">
+                                    <strong>{importQuestionSetMutation.isPending ? "正在导入" : "从文件导入"}</strong>
+                                    <small>选择 .dasi 文件，恢复一份本地题集。</small>
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                className="qa-set-create-option qa-set-create-option--primary"
+                                onClick={() => navigate("/create")}
+                            >
+                                <span className="qa-set-create-option__icon"><Sparkles size={20} /></span>
+                                <span className="qa-set-create-option__copy">
+                                    <strong>利用资料创建</strong>
+                                    <small>选择资料，让系统生成新的问答集。</small>
+                                </span>
+                            </button>
+                        </div>
+
+                        <input
+                            ref={importFileInputRef}
+                            type="file"
+                            accept=".dasi"
+                            style={{ display: "none" }}
+                            onChange={(event) => handleImportFile(event.target.files?.[0])}
+                        />
+
+                        {importError ? (
+                            <div className="qa-set-create-dialog__error">{importError}</div>
+                        ) : null}
+                    </div>
+                </div>
+            ) : null}
 
             {editDialogOpen ? (
                 <div className="doc-select-dialog" role="presentation" onClick={closeEditDialog}>
@@ -377,13 +499,13 @@ export function QASetPage() {
                                 </div>
                                 <div className="tag-dialog__selected-list">
                                     {selectedTagsDraft.length ? selectedTagsDraft.map((tag) => (
-                                        <div key={tag} className="tag-dialog__selected-item">
+                                        <div key={tag} className="tag-dialog__selected-qaSetEntry">
                                             <span>{tag}</span>
                                             <button
                                                 type="button"
                                                 className="tag-dialog__selected-remove"
                                                 aria-label={`移除 ${tag}`}
-                                                onClick={() => setSelectedTagsDraft((current) => current.filter((item) => item !== tag))}
+                                                onClick={() => setSelectedTagsDraft((current) => current.filter((qaSetEntry) => qaSetEntry !== tag))}
                                             >
                                                 <X size={12} />
                                             </button>
@@ -397,7 +519,7 @@ export function QASetPage() {
                                         <button
                                             key={tag}
                                             type="button"
-                                            className="tag-dialog__pool-item"
+                                            className="tag-dialog__pool-qaSetEntry"
                                             onClick={() => setSelectedTagsDraft((current) => [...current, tag])}
                                         >
                                             {tag}

@@ -115,7 +115,7 @@ AssessAgent.execute()
 1. `practice_session`
 2. `qa_set`
 3. 当前 session 下全部 `practice_session_item`
-4. 每道 item 对应的 `qa_item`
+4. 每道 qaSetEntry 对应的 `qa_item`
 5. `feedback_judge_detail` 反序列化出的 `JudgeDetail`
 
 组装 `SessionContext`：

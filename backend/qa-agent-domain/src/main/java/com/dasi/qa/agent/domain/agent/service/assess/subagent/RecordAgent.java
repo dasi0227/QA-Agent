@@ -14,7 +14,7 @@ public interface RecordAgent {
     @UserMessage("""
             题集标题：{{qaSetTitle}}
             本轮统计：{{stats}}
-            单题作答摘要：{{items}}
+            单题作答摘要：{{qaSetEntries}}
 
             输出要求：
             1. 只输出一个合法 JSON 数组，以 [ 开头，以 ] 结尾。
@@ -29,6 +29,6 @@ public interface RecordAgent {
     @Agent
     String record(@V("qaSetTitle") String qaSetTitle,
                   @V("stats") String stats,
-                  @V("items") String items,
+                  @V("qaSetEntries") String items,
                   @V("retryHint") String retryHint);
 }

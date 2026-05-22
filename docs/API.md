@@ -136,6 +136,8 @@
 | POST | `/qa/set/query` | 是 | `id?`, `taskId?`, `title?`, `description?`, `moduleTagsJson?`, `questionCount?`, `practiceCount?`, `averageScore?`, `bestScore?`, `averageAccuracy?`, `bestAccuracy?`, `lastPracticedAt?` |
 | POST | `/qa/set/update` | 是 | 同上，`id` 必填 |
 | POST | `/qa/set/delete` | 是 | `id` |
+| GET | `/qa/set/export?id=...` | 是 | `id` |
+| POST | `/qa/set/import` | 是 | `file`，`multipart/form-data`，仅接受 `.dasi` |
 | POST | `/qa/set/create` | 是 | `title?`, `userPrompt`, `jobDescription?`, `documentIds`, `requestedQuestionCount` |
 | GET | `/qa/set/task-status?taskId=...` | 是 | `taskId` |
 | GET | `/qa/set/task-messages?taskId=...` | 是 | `taskId` |
@@ -146,7 +148,8 @@
 1. `/qa/set/create` 返回 `text/event-stream`，不包 `Result<T>`。
 2. `requestedQuestionCount` 当前限制为 `10 ~ 100`。
 3. 删除 `qa_set` 时会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
-4. 当前没有 `/qa/set/create/test` 调试接口。
+4. `/qa/set/export` 和 `/qa/set/import` 只处理题集资产，不导出练习历史、生成任务历史、资料引用和 RAG 切片 ID。
+5. 当前没有 `/qa/set/create/test` 调试接口。
 
 响应元素 `QaSetResponse`：
 
@@ -168,7 +171,46 @@
 | `createdAt` | 创建时间 |
 | `updatedAt` | 最后修改时间 |
 
-### 5.2 `/qa/set/create` SSE 事件
+### 5.2 `.dasi` 题集文件
+
+`.dasi` 文件是 UTF-8 JSON，第一版 schema 固定如下：
+
+```json
+{
+  "schemaVersion": 1,
+  "app": "QA_Agent",
+  "exportedAt": "2026-05-22 22:10:00",
+  "qaSet": {
+    "title": "SpringBoot 核心题集",
+    "description": "题集描述",
+    "moduleTags": ["SpringBoot"]
+  },
+  "items": [
+    {
+      "question": "问题",
+      "answer": "标准回答",
+      "knowledgeNote": "知识笔记",
+      "moduleTag": "SpringBoot",
+      "difficulty": "EASY",
+      "keywords": "关键词1,关键词2",
+      "hint": "答前提示",
+      "sourceReliable": true,
+      "sortOrder": 1
+    }
+  ]
+}
+```
+
+导入规则：
+
+1. 文件名必须以 `.dasi` 结尾。
+2. `app` 必须是 `QA_Agent`，`schemaVersion` 必须是 `1`。
+3. `qaSet.title` 必填，`items` 至少包含 1 道题。
+4. 每道题的 `question` 必填，`difficulty` 只能是 `EASY` / `MEDIUM` / `HARD` 或空。
+5. 导入后生成新的题集和题目 ID；练习统计归零；`completeStatus=SOLVED`；`sourceChunkIdsJson=[]`。
+6. 导入失败返回业务错误，不创建残缺题集。
+
+### 5.3 `/qa/set/create` SSE 事件
 
 事件结构：
 
@@ -204,7 +246,7 @@
 1. `publishEvent()` 主要写 `INIT` / `DECIDE` / `PLAN` / `VALIDATE` / `SUMMARIZE` / `COMPLETE` / `FAIL`。
 2. `publishProgress()` 也会写自由文本阶段，例如证据检索过程中的阶段消息。
 
-### 5.3 任务查询响应
+### 5.4 任务查询响应
 
 `/qa/set/task-status` 返回 `TaskStatusResponse`：
 
@@ -229,22 +271,22 @@
 `/qa/set/task-list` 返回最近任务列表，字段是 `taskId`、`title`、`status`、`stage`、`qaSetId`、`createdAt`。  
 `/qa/set/task-messages` 返回阶段消息列表，字段是 `id`、`taskId`、`stage`、`message`、`content`、`createdAt`。
 
-### 5.4 题目接口
+### 5.5 题目接口
 
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
-| GET | `/qa/item/detail?id=...` | 是 | `id` |
-| POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `keywords?`, `hint?`, `sourceReliable?`, `sourceChunkIdsJson?`, `completeStatus?`, `sortOrder?` |
-| POST | `/qa/item/update` | 是 | 同上，`id` 必填 |
-| POST | `/qa/item/create` | 是 | `qaSetId`, `question` |
-| POST | `/qa/item/complete` | 是 | `id` |
-| POST | `/qa/item/delete` | 是 | `id` |
+| GET | `/qa/qaSetEntry/detail?id=...` | 是 | `id` |
+| POST | `/qa/qaSetEntry/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `keywords?`, `hint?`, `sourceReliable?`, `sourceChunkIdsJson?`, `completeStatus?`, `sortOrder?` |
+| POST | `/qa/qaSetEntry/update` | 是 | 同上，`id` 必填 |
+| POST | `/qa/qaSetEntry/create` | 是 | `qaSetId`, `question` |
+| POST | `/qa/qaSetEntry/complete` | 是 | `id` |
+| POST | `/qa/qaSetEntry/delete` | 是 | `id` |
 
 说明：
 
-1. 手动新增题目统一使用 `/qa/item/create`。
-2. `/qa/item/create` 会立即创建题目并返回 `completeStatus=PROCESSING`，后端用本地线程池异步执行 CompleteAgent 补全核心字段。
-3. `/qa/item/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent。
+1. 手动新增题目统一使用 `/qa/qaSetEntry/create`。
+2. `/qa/qaSetEntry/create` 会立即创建题目并返回 `completeStatus=PROCESSING`，后端用本地线程池异步执行 CompleteAgent 补全核心字段。
+3. `/qa/qaSetEntry/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent。
 4. `keywords` 和 `hint` 由 AssistAgent 异步补全；前端不查询 `message_job`。
 
 ## 6. Practice
@@ -258,9 +300,9 @@
 | POST | `/practice/session/init` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?` |
 | GET | `/practice/session/exist?qaSetId=...` | 是 | `qaSetId` |
 | GET | `/practice/session/detail?sessionId=...` | 是 | `sessionId` |
-| POST | `/practice/item/save` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
-| POST | `/practice/item/unknown` | 是 | 同 `/practice/item/save` |
-| POST | `/practice/item/answer` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
+| POST | `/practice/qaSetEntry/save` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
+| POST | `/practice/qaSetEntry/unknown` | 是 | 同 `/practice/qaSetEntry/save` |
+| POST | `/practice/qaSetEntry/answer` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
 | POST | `/practice/session/submit` | 是 | `sessionId` |
 | POST | `/practice/session/restart` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?`, `sessionId?` |
 | POST | `/practice/session/abandon` | 是 | `sessionId` |
@@ -288,8 +330,8 @@
 
 说明：
 
-1. `/practice/item/save` 只保存草稿，不触发 Agent。
-2. 逐题反馈模式下 `/practice/item/answer` 调用 FeedbackAgent，并由 `FeedbackSaver` 写入 `practice_session_item`。
+1. `/practice/qaSetEntry/save` 只保存草稿，不触发 Agent。
+2. 逐题反馈模式下 `/practice/qaSetEntry/answer` 调用 FeedbackAgent，并由 `FeedbackSaver` 写入 `practice_session_item`。
 3. `/practice/session/submit` 调用 AssessAgent，并由 `AssessSaver` 写入 `practice_session`、将 session 标记为 `FINISHED`。
 4. `/practice/session/restart` 会把同题集未完成会话标记为 `ABANDONED` 后创建新会话。
 5. 进度恢复以服务端 `detail` 为准，前端 localStorage 只保存最近 session 快照。
@@ -304,6 +346,6 @@
 
 ### 6.3 练习题接口说明
 
-练习题明细不再暴露独立 session-item 查询接口。刷题页统一通过 `GET /practice/session/detail?sessionId=...` 获取 session、题目快照、作答状态、反馈和结果。
+练习题明细不再暴露独立 session-qaSetEntry 查询接口。刷题页统一通过 `GET /practice/session/detail?sessionId=...` 获取 session、题目快照、作答状态、反馈和结果。
 
-练习题的草稿保存、不会标记和单题提交统一走 `/practice/item/*`。
+练习题的草稿保存、不会标记和单题提交统一走 `/practice/qaSetEntry/*`。

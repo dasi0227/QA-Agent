@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { ArrowUp, History, Loader, Plus, Settings, X } from "lucide-react";
+import { ArrowUp, History, Loader, Paperclip, Plus, Settings, X } from "lucide-react";
 import { Link } from "react-router";
 import { TextArea } from "@/components/base/field";
 import {
@@ -167,7 +167,7 @@ export function CreatePage() {
 
     const uploadedDocuments = documentsQuery.data ?? [];
     const selectedDocuments = useMemo(
-        () => uploadedDocuments.filter((item) => selectedDocumentIds.includes(item.id)),
+        () => uploadedDocuments.filter((qaSetEntry) => selectedDocumentIds.includes(qaSetEntry.id)),
         [selectedDocumentIds, uploadedDocuments],
     );
 
@@ -206,7 +206,7 @@ export function CreatePage() {
     const handleDialogToggle = (id: string) => {
         setSelectedDocumentIds((current) => {
             if (current.includes(id)) {
-                return current.filter((item) => item !== id);
+                return current.filter((qaSetEntry) => qaSetEntry !== id);
             }
             return [...current, id];
         });
@@ -453,6 +453,15 @@ export function CreatePage() {
                                 <button
                                     type="button"
                                     className="create-page__action-btn create-page__action-btn--icon"
+                                    onClick={openDialog}
+                                    aria-label="添加资料"
+                                    title="添加资料"
+                                >
+                                    <Paperclip size={18} />
+                                </button>
+                                <button
+                                    type="button"
+                                    className="create-page__action-btn create-page__action-btn--icon"
                                     onClick={() => { setHistoryOpen(true); taskListQuery.refetch(); }}
                                 >
                                     <History size={18} />
@@ -538,7 +547,7 @@ function HistoryDialog({
                                 <button
                                     key={task.taskId}
                                     type="button"
-                                    className="sse-history-item"
+                                    className="sse-history-qaSetEntry"
                                     onClick={() => onSelect(task)}
                                 >
                                     <div className="sse-history-item__main">

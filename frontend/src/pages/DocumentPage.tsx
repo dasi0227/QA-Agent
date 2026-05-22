@@ -73,7 +73,7 @@ export function DocumentPage() {
             return;
         }
         const matchedRequestedDocument = requestedDocumentId
-            ? documentsQuery.data.find((item) => item.id === requestedDocumentId)
+            ? documentsQuery.data.find((qaSetEntry) => qaSetEntry.id === requestedDocumentId)
             : null;
         if (matchedRequestedDocument && activeDocumentId !== matchedRequestedDocument.id) {
             setActiveDocumentId(matchedRequestedDocument.id);
@@ -172,28 +172,28 @@ export function DocumentPage() {
                             </button>
                         </div>
                         <div className="subtree tree">
-                            {documentsQuery.isLoading ? <div className="tree-item">加载中...</div> : null}
+                            {documentsQuery.isLoading ? <div className="tree-qaSetEntry">加载中...</div> : null}
                             {documentsQuery.isError ? (
-                                <div className="tree-item" style={{ color: "var(--ink)" }}>
+                                <div className="tree-qaSetEntry" style={{ color: "var(--ink)" }}>
                                     {documentErrorMessage || "资料加载失败"}
                                 </div>
                             ) : null}
-                            {documentsQuery.data?.map((item) => {
-                                const isActive = item.id === activeDocumentIdValue;
-                                const displayFileName = splitDocumentFileName(item.fileName).baseName || item.fileName;
+                            {documentsQuery.data?.map((qaSetEntry) => {
+                                const isActive = qaSetEntry.id === activeDocumentIdValue;
+                                const displayFileName = splitDocumentFileName(qaSetEntry.fileName).baseName || qaSetEntry.fileName;
                                 return (
                                     <button
-                                        key={item.id}
-                                        className={cn("tree-item", "tree-item--entry", isActive && "tree-item--active")}
+                                        key={qaSetEntry.id}
+                                        className={cn("tree-qaSetEntry", "tree-qaSetEntry--entry", isActive && "tree-qaSetEntry--active")}
                                         type="button"
-                                        onClick={() => handleSelectDocument(item.id)}
+                                        onClick={() => handleSelectDocument(qaSetEntry.id)}
                                     >
                                         <span className="tree-item__label">{displayFileName}</span>
                                     </button>
                                 );
                             })}
                             {!documentsQuery.isLoading && !documentsQuery.isError && !hasDocuments ? (
-                                <div className="tree-item">暂无资料</div>
+                                <div className="tree-qaSetEntry">暂无资料</div>
                             ) : null}
                         </div>
                     </div>

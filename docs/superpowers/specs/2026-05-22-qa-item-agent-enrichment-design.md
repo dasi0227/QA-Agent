@@ -69,7 +69,7 @@
 `hint_snapshot` LONGTEXT NULL
 ```
 
-创建练习 session item 时写入题目当时的 `hint`。Practice detail 优先读取快照，避免题目后续 hint 变化影响历史练习复现。
+创建练习 session qaSetEntry 时写入题目当时的 `hint`。Practice detail 优先读取快照，避免题目后续 hint 变化影响历史练习复现。
 
 ### 3.3 `message_job`
 
@@ -100,7 +100,7 @@
 - `GenerateAgent.fallbackDraft(...)` 不再写 `keywords`。
 - `GenerateSaver` 不再从 `DraftResult` 读取 `keywords`。
 - `AgentRepository.saveGeneratedQaSet(...)` 插入 `qa_item` 时 `keywords` 为空，`complete_status=SOLVED`。
-- 每个 `qa_item` 落库后发送 `qa.item.assist` 消息。
+- 每个 `qa_item` 落库后发送 `qa.qaSetEntry.assist` 消息。
 
 ## 5. Feedback / Assess 链路调整
 
@@ -122,7 +122,7 @@ Assess 当前没有直接使用 `keywords`。实施时仍需用 `rg keywords bac
 调整后：
 
 - Feedback 以 `question + standardAnswer + knowledgeNote + sourceReliable + userAnswer` 为核心上下文。
-- Assess 继续基于 session、item、单题反馈和统计数据进行整轮评估。
+- Assess 继续基于 session、qaSetEntry、单题反馈和统计数据进行整轮评估。
 - `keywords` 只用于题目详情展示和后续可能的学习辅助功能。
 
 ## 6. AssistAgent
@@ -197,7 +197,7 @@ backend/qa-agent-domain/src/main/java/com/dasi/qa/agent/domain/agent/service/ass
 Kafka topic：
 
 ```text
-qa.item.assist
+qa.qaSetEntry.assist
 ```
 
 消息内容：
@@ -245,7 +245,7 @@ Consumer 失败：
 - `keywords`
 - `hint`
 
-Complete 成功后再发送 `qa.item.assist`。
+Complete 成功后再发送 `qa.qaSetEntry.assist`。
 
 ### 7.2 放置
 
@@ -392,7 +392,7 @@ void recordError(String jobId, String errorMessage);
 
 新增：
 
-### 10.1 `POST /qa/item/create`
+### 10.1 `POST /qa/qaSetEntry/create`
 
 用途：手动新增题目，只填问题，立即创建题目并后台执行 CompleteAgent。
 
@@ -415,7 +415,7 @@ void recordError(String jobId, String errorMessage);
 4. 用 `applicationTaskExecutor` 异步执行 `CompleteAgent`。
 5. 立即返回新题。
 
-### 10.2 `POST /qa/item/complete`
+### 10.2 `POST /qa/qaSetEntry/complete`
 
 用途：重新触发 CompleteAgent。
 
@@ -452,7 +452,7 @@ void recordError(String jobId, String errorMessage);
 2. 新题立即出现在题目列表；
 3. 自动选中新题；
 4. 详情区显示 `智能补全中`；
-5. 当前题详情短轮询 `/qa/item/detail?id=...`。
+5. 当前题详情短轮询 `/qa/qaSetEntry/detail?id=...`。
 
 轮询规则：
 
@@ -477,7 +477,7 @@ void recordError(String jobId, String errorMessage);
 5. 改 MQ：`message_job.error_message`、`IMqUtil.recordError(...)`、Consumer 失败语义。
 6. 新增 `AssistAgent` 和 `AssistConsumer`。
 7. 新增 `CompleteAgent` 和本地线程池触发 service。
-8. 新增 `/qa/item/create` 和 `/qa/item/complete`。
+8. 新增 `/qa/qaSetEntry/create` 和 `/qa/qaSetEntry/complete`。
 9. 前端接入新增题弹窗、详情轮询、状态展示。
 10. 更新 `docs/API.md`、`docs/TABLE.md`、`docs/V3-Generate-Design.md`。
 
@@ -493,7 +493,7 @@ void recordError(String jobId, String errorMessage);
 - Complete 成功只填空字段，并转为 `SOLVED`。
 - Complete 失败转为 `UNSOLVED`。
 - Assist 失败写 `message_job.error_message`，保持 `UNSOLVED` 等待重试。
-- Practice session item 写入 `hint_snapshot`。
+- Practice session qaSetEntry 写入 `hint_snapshot`。
 
 前端：
 

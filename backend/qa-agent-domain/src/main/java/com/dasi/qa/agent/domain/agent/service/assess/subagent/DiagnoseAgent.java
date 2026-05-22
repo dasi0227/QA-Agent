@@ -14,7 +14,7 @@ public interface DiagnoseAgent {
     @UserMessage("""
             题集标题：{{qaSetTitle}}
             本轮统计：{{stats}}
-            单题作答摘要：{{items}}
+            单题作答摘要：{{qaSetEntries}}
 
             输出要求：
             1. 只输出一个合法 JSON 对象，以 { 开头，以 } 结尾。
@@ -28,6 +28,6 @@ public interface DiagnoseAgent {
     @Agent
     String diagnose(@V("qaSetTitle") String qaSetTitle,
                     @V("stats") String stats,
-                    @V("items") String items,
+                    @V("qaSetEntries") String items,
                     @V("retryHint") String retryHint);
 }

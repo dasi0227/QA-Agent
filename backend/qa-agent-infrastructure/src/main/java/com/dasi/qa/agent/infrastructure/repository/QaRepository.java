@@ -4,12 +4,14 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.qa.model.enumeration.CompleteStatus;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
 import com.dasi.qa.agent.infrastructure.persistent.entity.*;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
@@ -17,6 +19,7 @@ import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
+import com.dasi.qa.agent.domain.qa.service.convert.QaSetExportFile;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,18 +48,21 @@ public class QaRepository implements IQaRepository {
     private final PracticeSessionItemMapper practiceSessionItemMapper;
     private final QaSetDocumentRefMapper qaSetDocumentRefMapper;
     private final SourceDocumentMapper sourceDocumentMapper;
+    private final IIdUtil idUtil;
 
     public QaRepository(QaSetMapper qaSetMapper, QaItemMapper qaItemMapper,
                         PracticeSessionMapper practiceSessionMapper,
                         PracticeSessionItemMapper practiceSessionItemMapper,
                         QaSetDocumentRefMapper qaSetDocumentRefMapper,
-                        SourceDocumentMapper sourceDocumentMapper) {
+                        SourceDocumentMapper sourceDocumentMapper,
+                        IIdUtil idUtil) {
         this.qaSetMapper = qaSetMapper;
         this.qaItemMapper = qaItemMapper;
         this.practiceSessionMapper = practiceSessionMapper;
         this.practiceSessionItemMapper = practiceSessionItemMapper;
         this.qaSetDocumentRefMapper = qaSetDocumentRefMapper;
         this.sourceDocumentMapper = sourceDocumentMapper;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -138,6 +145,67 @@ public class QaRepository implements IQaRepository {
         qaSetMapper.delete(new LambdaQueryWrapper<QaSet>()
                 .eq(QaSet::getId, id)
                 .eq(QaSet::getUserId, userId));
+    }
+
+    @Override
+    public List<QaItemResponse> queryQaItemsBySetId(String qaSetId, String userId) {
+        requireQaSet(qaSetId, userId);
+        return qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
+                        .eq(QaItem::getQaSetId, qaSetId)
+                        .eq(QaItem::getUserId, userId)
+                        .orderByAsc(QaItem::getSortOrder)
+                        .orderByAsc(QaItem::getCreatedAt))
+                .stream()
+                .map(item -> toResponse(item, QaItemResponse.class))
+                .toList();
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = {RedisConstant.QA_SET_CACHE, RedisConstant.QA_ITEM_CACHE}, allEntries = true)
+    public QaSetResponse importQaSet(QaSetExportFile portableFile, String userId) {
+        String qaSetId = idUtil.nextId();
+        LocalDateTime now = LocalDateTime.now();
+        QaSet qaSet = QaSet.builder()
+                .id(qaSetId)
+                .userId(userId)
+                .title(portableFile.getQaQaSetMetaInfo().getTitle().trim())
+                .description(portableFile.getQaQaSetMetaInfo().getDescription())
+                .moduleTagsJson(JSON.toJSONString(portableFile.getQaQaSetMetaInfo().getModuleTags() != null ? portableFile.getQaQaSetMetaInfo().getModuleTags() : List.of()))
+                .questionCount(portableFile.getQaSetEntries().size())
+                .practiceCount(0)
+                .averageScore(0)
+                .bestScore(0)
+                .averageAccuracy(BigDecimal.ZERO)
+                .bestAccuracy(BigDecimal.ZERO)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        qaSetMapper.insert(qaSet);
+
+        for (int i = 0; i < portableFile.getQaSetEntries().size(); i++) {
+            QaSetExportFile.QaSetEntry qaSetEntry = portableFile.getQaSetEntries().get(i);
+            QaItem qaItem = QaItem.builder()
+                    .id(idUtil.nextId())
+                    .userId(userId)
+                    .qaSetId(qaSetId)
+                    .question(qaSetEntry.getQuestion().trim())
+                    .knowledgeNote(qaSetEntry.getKnowledgeNote())
+                    .answer(qaSetEntry.getAnswer())
+                    .moduleTag(StringUtils.hasText(qaSetEntry.getModuleTag()) ? qaSetEntry.getModuleTag() : "")
+                    .difficulty(StringUtils.hasText(qaSetEntry.getDifficulty()) ? qaSetEntry.getDifficulty() : "")
+                    .keywords(qaSetEntry.getKeywords())
+                    .hint(qaSetEntry.getHint())
+                    .sourceReliable(qaSetEntry.getSourceReliable() != null ? qaSetEntry.getSourceReliable() : Boolean.FALSE)
+                    .sourceChunkIdsJson("[]")
+                    .completeStatus(CompleteStatus.SOLVED.name())
+                    .sortOrder(qaSetEntry.getSortOrder() != null ? qaSetEntry.getSortOrder() : i + 1)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+            qaItemMapper.insert(qaItem);
+        }
+        return detailQaSet(qaSetId, userId);
     }
 
     @Override

@@ -9,6 +9,8 @@ import type {
     DeleteQuestionItemInput,
     DocumentChunkRecord,
     DocumentRecord,
+    ExportQuestionSetFile,
+    ImportQuestionSetInput,
     LoginInput,
     Profile,
     PracticeFlowItem,
@@ -682,6 +684,66 @@ export function useUpdateQuestionSetMutation() {
         onSuccess: async (_result, variables) => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.questionSetId) });
+        },
+    });
+}
+
+function getFileNameFromDisposition(disposition: string | null, fallback: string) {
+    if (!disposition) {
+        return fallback;
+    }
+    const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (encodedMatch?.[1]) {
+        return decodeURIComponent(encodedMatch[1]);
+    }
+    const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+    return plainMatch?.[1] ? plainMatch[1] : fallback;
+}
+
+export function useImportQuestionSetMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: ImportQuestionSetInput) => {
+            const formData = new FormData();
+            formData.append("file", input.file);
+            return normalizeQuestionSet(await apiRequest<unknown>("/qa/set/import", {
+                method: "POST",
+                body: formData,
+            }));
+        },
+        onSuccess: async (result) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(result.id) });
+        },
+    });
+}
+
+export function useExportQuestionSetMutation() {
+    return useMutation({
+        mutationFn: async (questionSetId: string): Promise<ExportQuestionSetFile> => {
+            const token = getAccessToken();
+            const url = new URL(`${getApiBaseUrl()}/qa/set/export`);
+            url.searchParams.set("id", questionSetId);
+            const response = await fetch(url, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                let message = `请求失败（${response.status}）`;
+                try {
+                    const parsed = JSON.parse(text) as { msg?: string };
+                    message = parsed.msg || message;
+                } catch {
+                    if (text) {
+                        message = text;
+                    }
+                }
+                throw new ApiError(message, { status: response.status });
+            }
+            return {
+                fileName: getFileNameFromDisposition(response.headers.get("Content-Disposition"), "qa-set.dasi"),
+                blob: await response.blob(),
+            };
         },
     });
 }

@@ -20,7 +20,8 @@ public enum ResultCode {
     USERNAME_CONFLICT(40005, "用户名已被注册"),
     INTERNAL_ERROR(50000, "系统内部错误"),
     AGENT_ERROR(50001, "Agent 执行异常"),
-    DOCUMENT_REFERENCED(50002, "当前资料仍被问答集引用，无法删除");
+    DOCUMENT_REFERENCED(50002, "当前资料仍被问答集引用，无法删除"),
+    QA_SET_FILE_INVALID(50003, "问答集文件格式不正确");
 
     private final int code;
 

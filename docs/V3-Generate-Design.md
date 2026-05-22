@@ -257,7 +257,7 @@ SubAgent：`SummarizeAgent`
 2. 遍历 `DraftResult` 写入 `qa_item`
 3. 记录 `qa_set_document_ref`
 4. 对每份资料 `reference_count + 1`
-5. 保存完成后由 `GenerateSaver` 发送 `qa.item.assist` 消息补全 `keywords` 和 `hint`
+5. 保存完成后由 `GenerateSaver` 发送 `qa.qaSetEntry.assist` 消息补全 `keywords` 和 `hint`
 
 ## 8. SSE 与任务状态
 

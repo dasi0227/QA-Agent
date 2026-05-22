@@ -139,6 +139,15 @@ export type UpdateQuestionSetInput = {
     moduleTagsJson?: string;
 };
 
+export type ImportQuestionSetInput = {
+    file: File;
+};
+
+export type ExportQuestionSetFile = {
+    fileName: string;
+    blob: Blob;
+};
+
 export type UpdateQuestionItemInput = QuestionItemDraft & {
     qaSetId: string;
     questionItemId: string;

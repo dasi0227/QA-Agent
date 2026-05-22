@@ -225,6 +225,25 @@
 | `created_at` | `DATETIME` | 创建时间 |
 | `updated_at` | `DATETIME` | 更新时间 |
 
+### 3.9.1 `.dasi` 题集文件
+
+`.dasi` 是问答集资产交换格式，不对应新增数据库表。
+
+第一版 `.dasi` 文件内部是 UTF-8 JSON，只保存：
+
+- 题集标题、描述、模块标签；
+- 题目问题、标准回答、知识笔记、模块、难度、关键词、答前提示、资料可靠性和排序。
+
+导出时不写入：
+
+- `id`、`user_id`、`task_id`；
+- 练习统计字段；
+- `qa_set_document_ref`；
+- `source_chunk_ids_json`；
+- `practice_session` / `practice_session_item`。
+
+导入后会生成新的 `qa_set` 和 `qa_item` 数据，练习统计归零，题目 `complete_status` 固定为 `SOLVED`，`source_chunk_ids_json` 固定为 `[]`。
+
 ### 3.10 `practice_session`
 
 用途：一轮练习会话。

@@ -36,17 +36,17 @@ const emptyItemDraft: QuestionItemDraft = {
     sourceChunkIdsJson: "",
 };
 
-function toQuestionItemDraft(item: QuestionItem): QuestionItemDraft {
+function toQuestionItemDraft(qaSetEntry: QuestionItem): QuestionItemDraft {
     return {
-        question: item.question,
-        knowledgeNote: item.knowledgeNote,
-        answer: item.answer,
-        moduleTag: item.moduleTag,
-        difficulty: item.difficulty || "MEDIUM",
-        keywords: item.keywords || "",
-        hint: item.hint || "",
-        sourceReliable: item.sourceReliable,
-        sourceChunkIdsJson: item.sourceChunkIdsJson || "",
+        question: qaSetEntry.question,
+        knowledgeNote: qaSetEntry.knowledgeNote,
+        answer: qaSetEntry.answer,
+        moduleTag: qaSetEntry.moduleTag,
+        difficulty: qaSetEntry.difficulty || "MEDIUM",
+        keywords: qaSetEntry.keywords || "",
+        hint: qaSetEntry.hint || "",
+        sourceReliable: qaSetEntry.sourceReliable,
+        sourceChunkIdsJson: qaSetEntry.sourceChunkIdsJson || "",
     };
 }
 
@@ -63,7 +63,7 @@ export function QuestionPage() {
 
     const itemList = selectedSetItemsQuery.data ?? [];
     const fallbackItemId = itemList[0]?.id ?? "";
-    const hasValidItemId = itemList.some((item) => item.id === itemIdParam);
+    const hasValidItemId = itemList.some((qaSetEntry) => qaSetEntry.id === itemIdParam);
     const activeItemId = hasValidItemId ? itemIdParam : fallbackItemId;
 
     const activeItemQuery = useQuestionItemQuery(activeItemId);
@@ -162,10 +162,10 @@ export function QuestionPage() {
     const createSmartItem = async () => {
         const question = smartQuestionDraft.trim();
         if (!question) return;
-        const item = await createSmartQuestionItemMutation.mutateAsync({ qaSetId, question });
+        const qaSetEntry = await createSmartQuestionItemMutation.mutateAsync({ qaSetId, question });
         setSmartQuestionDraft("");
         setCreateDialogOpen(false);
-        navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${item.id}`, { replace: true });
+        navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${qaSetEntry.id}`, { replace: true });
     };
 
     const retryCompleteItem = async () => {
@@ -224,26 +224,26 @@ export function QuestionPage() {
                                 </button>
                             </div>
                             <div className="subtree tree">
-                                {selectedSetItemsQuery.isLoading ? <div className="tree-item">加载中...</div> : null}
+                                {selectedSetItemsQuery.isLoading ? <div className="tree-qaSetEntry">加载中...</div> : null}
                                 {selectedSetItemsQuery.isError ? (
-                                    <div className="tree-item" style={{ color: "var(--ink)" }}>
+                                    <div className="tree-qaSetEntry" style={{ color: "var(--ink)" }}>
                                         {selectedSetItemsQuery.error instanceof Error
                                             ? selectedSetItemsQuery.error.message
                                             : "题目列表加载失败"}
                                     </div>
                                 ) : null}
-                                {itemList.map((item) => (
+                                {itemList.map((qaSetEntry) => (
                                     <button
-                                        key={item.id}
+                                        key={qaSetEntry.id}
                                         type="button"
-                                        className={cn("tree-item", "tree-item--entry", item.id === activeItemId && "tree-item--active")}
-                                        onClick={() => handleSelectItem(item.id)}
+                                        className={cn("tree-qaSetEntry", "tree-qaSetEntry--entry", qaSetEntry.id === activeItemId && "tree-qaSetEntry--active")}
+                                        onClick={() => handleSelectItem(qaSetEntry.id)}
                                     >
-                                        <span className="tree-item__label">{item.question}</span>
+                                        <span className="tree-item__label">{qaSetEntry.question}</span>
                                     </button>
                                 ))}
                                 {!selectedSetItemsQuery.isLoading && !selectedSetItemsQuery.isError && !itemList.length ? (
-                                    <div className="tree-item">暂无题目</div>
+                                    <div className="tree-qaSetEntry">暂无题目</div>
                                 ) : null}
                             </div>
                         </div>
@@ -534,13 +534,13 @@ export function QuestionPage() {
                                 </div>
                                 <div className="tag-dialog__selected-list">
                                     {selectedModuleDraft.length ? selectedModuleDraft.map((moduleTag) => (
-                                        <div key={moduleTag} className="tag-dialog__selected-item">
+                                        <div key={moduleTag} className="tag-dialog__selected-qaSetEntry">
                                             <span>{moduleTag}</span>
                                             <button
                                                 type="button"
                                                 className="tag-dialog__selected-remove"
                                                 aria-label={`移除模块 ${moduleTag}`}
-                                                onClick={() => setSelectedModuleDraft((current) => current.filter((item) => item !== moduleTag))}
+                                                onClick={() => setSelectedModuleDraft((current) => current.filter((qaSetEntry) => qaSetEntry !== moduleTag))}
                                             >
                                                 <X size={10} />
                                             </button>
@@ -552,7 +552,7 @@ export function QuestionPage() {
                                         <button
                                             key={moduleTag}
                                             type="button"
-                                            className="tag-dialog__pool-item"
+                                            className="tag-dialog__pool-qaSetEntry"
                                             onClick={() => setSelectedModuleDraft((current) => [...current, moduleTag])}
                                         >
                                             {moduleTag}
@@ -579,13 +579,13 @@ export function QuestionPage() {
                                 </div>
                                 <div className="tag-dialog__selected-list">
                                     {selectedKeywordsDraft.length ? selectedKeywordsDraft.map((keyword) => (
-                                        <div key={keyword} className="tag-dialog__selected-item">
+                                        <div key={keyword} className="tag-dialog__selected-qaSetEntry">
                                             <span>{keyword}</span>
                                             <button
                                                 type="button"
                                                 className="tag-dialog__selected-remove"
                                                 aria-label={`移除关键字 ${keyword}`}
-                                                onClick={() => setSelectedKeywordsDraft((current) => current.filter((item) => item !== keyword))}
+                                                onClick={() => setSelectedKeywordsDraft((current) => current.filter((qaSetEntry) => qaSetEntry !== keyword))}
                                             >
                                                 <X size={10} />
                                             </button>

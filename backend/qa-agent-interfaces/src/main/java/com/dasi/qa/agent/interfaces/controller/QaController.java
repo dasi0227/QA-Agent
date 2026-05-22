@@ -10,16 +10,25 @@ import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaSetImportRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
 import com.dasi.qa.agent.types.dto.response.qa.*;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -67,6 +76,25 @@ public class QaController {
     public Result<Void> qaSetDelete(@RequestBody QaSetRequest request) {
         qaSetService.deleteQaSet(request.getId());
         return Result.success();
+    }
+
+    @GetMapping(value = "/set/export", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<ByteArrayResource> qaSetExport(@RequestParam("id") String id) {
+        QaSetExportResponse response = qaSetService.exportQaSet(id);
+        String encodedFileName = URLEncoder.encode(response.getFileName(), StandardCharsets.UTF_8).replace("+", "%20");
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+                .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION)
+                .body(new ByteArrayResource(response.getContent()));
+    }
+
+    @PostMapping(value = "/set/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<QaSetResponse> qaSetImport(@RequestParam("file") MultipartFile file) throws IOException {
+        return Result.success(qaSetService.importQaSet(QaSetImportRequest.builder()
+                .fileName(file.getOriginalFilename())
+                .content(file.getBytes())
+                .build()));
     }
 
     @PostMapping("/set/create")

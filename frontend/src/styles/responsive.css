@@ -210,6 +210,10 @@
   .question-detail-edit-grid {
     grid-template-columns: 1fr;
   }
+
+  .qa-set-create-dialog__body {
+    grid-template-columns: 1fr;
+  }
 }
 
 
