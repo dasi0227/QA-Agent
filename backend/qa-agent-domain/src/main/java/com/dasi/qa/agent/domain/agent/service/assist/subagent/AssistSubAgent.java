@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.domain.agent.service.assist.subagent;
 
-import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -23,7 +22,6 @@ public interface AssistSubAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent
     String assist(@V("question") String question,
                   @V("standardAnswer") String standardAnswer,
                   @V("knowledgeNote") String knowledgeNote,

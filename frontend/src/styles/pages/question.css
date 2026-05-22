@@ -507,7 +507,8 @@
 }
 
 
-.tag-dialog__selected-item {
+.tag-dialog__selected-item,
+.tag-dialog__selected-qaSetEntry {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -560,7 +561,8 @@
 }
 
 
-.tag-dialog__pool-item {
+.tag-dialog__pool-item,
+.tag-dialog__pool-qaSetEntry {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -577,7 +579,8 @@
 }
 
 
-.tag-dialog__pool-item:hover {
+.tag-dialog__pool-item:hover,
+.tag-dialog__pool-qaSetEntry:hover {
   background: rgba(255, 255, 255, 0.72);
   border-color: var(--line-strong);
   color: var(--ink);

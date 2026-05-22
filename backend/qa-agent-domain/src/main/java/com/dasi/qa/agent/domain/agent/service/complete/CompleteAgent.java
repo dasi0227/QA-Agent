@@ -10,7 +10,7 @@ import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
-import dev.langchain4j.agentic.AgenticServices;
+import dev.langchain4j.service.AiServices;
 import dev.langchain4j.model.chat.ChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -69,9 +69,7 @@ public class CompleteAgent implements ICompleteAgent {
         ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
 
         // 2. 构造填充智能体
-        CompleteSubAgent completeAgent = AgenticServices.agentBuilder(CompleteSubAgent.class)
-                .name("COMPLETE")
-                .description("把用户手动新增的问题补全为可练习题目")
+        CompleteSubAgent completeAgent = AiServices.builder(CompleteSubAgent.class)
                 .chatModel(userModel)
                 .build();
 

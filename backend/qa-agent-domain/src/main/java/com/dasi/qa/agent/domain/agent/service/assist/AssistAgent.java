@@ -8,7 +8,7 @@ import com.dasi.qa.agent.domain.agent.service.assist.subagent.AssistSubAgent;
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
-import dev.langchain4j.agentic.AgenticServices;
+import dev.langchain4j.service.AiServices;
 import dev.langchain4j.model.chat.ChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,9 +48,7 @@ public class AssistAgent implements IAssistAgent {
 
     private AssistResult doAssist(AssistContext context, String userId) {
         ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
-        AssistSubAgent assistAgent = AgenticServices.agentBuilder(AssistSubAgent.class)
-                .name("ASSIST")
-                .description("为已有题目补全关键词和答前提示")
+        AssistSubAgent assistAgent = AiServices.builder(AssistSubAgent.class)
                 .chatModel(userModel)
                 .build();
         String retryHint = "";

@@ -1,6 +1,5 @@
 package com.dasi.qa.agent.domain.agent.service.complete.subagent;
 
-import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -23,7 +22,6 @@ public interface CompleteSubAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    @Agent
     String complete(@V("question") String question,
                     @V("evidence") String evidence,
                     @V("userProfile") String userProfile,

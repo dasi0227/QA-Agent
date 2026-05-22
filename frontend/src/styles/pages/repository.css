@@ -91,6 +91,21 @@
 }
 
 
+.repository-header__actions > .btn:not(.btn--primary) {
+  background: var(--btn-secondary-bg);
+  border-color: var(--btn-secondary-border);
+  box-shadow: var(--btn-secondary-shadow);
+}
+
+
+.repository-header__actions > .btn:not(.btn--primary):hover:not(:disabled) {
+  background: var(--btn-secondary-bg);
+  border-color: rgba(183, 133, 74, 0.24);
+  color: #6d4b21;
+  box-shadow: 0 10px 18px rgba(168, 116, 56, 0.08);
+}
+
+
 .repository-tag-add {
   display: inline-flex;
   align-items: center;
@@ -609,13 +624,15 @@
 }
 
 
-.repository-item-list {
+.repository-item-list,
+.repository-qaSetEntry-list {
   display: grid;
   gap: 10px;
 }
 
 
-.repository-item-card {
+.repository-item-card,
+.repository-qaSetEntry-card {
   display: grid;
   gap: 6px;
   width: 100%;
@@ -628,19 +645,23 @@
 }
 
 
-.repository-item-card strong {
+.repository-item-card strong,
+.repository-qaSetEntry-card strong {
   font-size: 15px;
   line-height: 1.5;
 }
 
 
 .repository-item-card span,
-.repository-item-card small {
+.repository-item-card small,
+.repository-qaSetEntry-card span,
+.repository-qaSetEntry-card small {
   color: var(--ink-faint);
 }
 
 
-.repository-item-card__meta {
+.repository-item-card__meta,
+.repository-qaSetEntry-card__meta {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -648,13 +669,15 @@
 }
 
 
-.repository-item-card:hover {
+.repository-item-card:hover,
+.repository-qaSetEntry-card:hover {
   transform: translateY(-1px);
   border-color: var(--line-strong);
 }
 
 
-.repository-item-card--active {
+.repository-item-card--active,
+.repository-qaSetEntry-card--active {
   border-color: rgba(23, 22, 20, 0.22);
   box-shadow: var(--shadow-soft);
 }
@@ -728,7 +751,8 @@
 }
 
 
-.tree-item {
+.tree-item,
+.tree-qaSetEntry {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -742,24 +766,28 @@
 }
 
 
-.tree-item--entry {
+.tree-item--entry,
+.tree-qaSetEntry--entry {
   justify-content: flex-start;
   text-align: left;
   min-width: 0;
 }
 
 
-.tree-item--entry .tree-item__label {
+.tree-item--entry .tree-item__label,
+.tree-qaSetEntry--entry .tree-item__label {
   text-align: left;
 }
 
 
-.tree-item--entry .tree-item__meta {
+.tree-item--entry .tree-item__meta,
+.tree-qaSetEntry--entry .tree-item__meta {
   display: none;
 }
 
 
-.tree-item--active {
+.tree-item--active,
+.tree-qaSetEntry--active {
   background: rgba(23, 22, 20, 0.06);
   color: var(--ink);
 }

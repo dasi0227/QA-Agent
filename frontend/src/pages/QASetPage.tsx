@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { FileDown, FileUp, Sparkles, X } from "lucide-react";
+import { FileUp, Sparkles, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
@@ -292,7 +292,7 @@ export function QASetPage() {
                                     </section>
                                 </div>
 
-                                <div style={{ marginTop: 24, marginBottom: 28, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                <div className="repository-header__actions" style={{ marginTop: 24, marginBottom: 28 }}>
                                     <LinkButton to={`/quiz?questionSetId=${selectedSetQuery.data.id}`} variant="primary">
                                         开始练习
                                     </LinkButton>
@@ -307,7 +307,7 @@ export function QASetPage() {
                                         编辑信息
                                     </BaseButton>
                                     <BaseButton
-                                        variant="outline"
+                                        variant="soft"
                                         type="button"
                                         disabled={deleteQuestionSetMutation.isPending}
                                         onClick={() => setDeleteSetDialogOpen(true)}
@@ -317,7 +317,6 @@ export function QASetPage() {
                                     <BaseButton
                                         variant="soft"
                                         type="button"
-                                        leadingIcon={<FileDown size={15} />}
                                         disabled={exportQuestionSetMutation.isPending}
                                         onClick={exportSelectedSet}
                                     >
