@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class DocumentCrudCrudService implements IDocumentCrudService {
@@ -48,7 +49,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         if (!StringUtils.hasText(request.getId())) {
             request.setId(idUtil.nextId());
         }
-        if (!"MARKDOWN".equalsIgnoreCase(request.getFileType())) {
+        if (!isValidFileType(request.getFileType())) {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
         return repository.createSourceDocument(request, currentUserId());
@@ -98,7 +99,13 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         return repository.batchQueryDocumentChunk(chunkIds);
     }
 
+    private static final Set<String> VALID_FILE_TYPES = Set.of("MARKDOWN", "MD");
+
     private String currentUserId() {
         return contextUtil.getUserId();
+    }
+
+    private boolean isValidFileType(String fileType) {
+        return fileType != null && VALID_FILE_TYPES.contains(fileType.trim().toUpperCase());
     }
 }

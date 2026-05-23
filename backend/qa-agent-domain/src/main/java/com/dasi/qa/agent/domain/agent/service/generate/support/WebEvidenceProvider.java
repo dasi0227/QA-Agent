@@ -1,8 +1,8 @@
 package com.dasi.qa.agent.domain.agent.service.generate.support;
 
-import com.alibaba.fastjson2.JSON;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.InterviewInsights;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult.PlanItem;
+import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -23,10 +23,14 @@ public class WebEvidenceProvider {
 
     private final ChatModel webSearchModel;
     private final IPromptUtil promptUtil;
+    private final IJsonUtil jsonUtil;
 
-    public WebEvidenceProvider(@Qualifier("webSearchModel") ChatModel webSearchModel, IPromptUtil promptUtil) {
+    public WebEvidenceProvider(@Qualifier("webSearchModel") ChatModel webSearchModel,
+                               IPromptUtil promptUtil,
+                               IJsonUtil jsonUtil) {
         this.webSearchModel = webSearchModel;
         this.promptUtil = promptUtil;
+        this.jsonUtil = jsonUtil;
     }
 
     public List<InterviewInsights> search(String company, String role, PlanItem planItem) {
@@ -45,7 +49,7 @@ public class WebEvidenceProvider {
                     SystemMessage.from(promptUtil.loadWebSearchPrompt()),
                     UserMessage.from(query));
             try {
-                results.add(JSON.parseObject(response.aiMessage().text(), InterviewInsights.class));
+                results.add(jsonUtil.parseJsonObject(response.aiMessage().text(), InterviewInsights.class));
             } catch (Exception ignored) {
             }
         }
