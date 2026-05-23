@@ -185,7 +185,7 @@
 
 .result-distribution {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -209,6 +209,11 @@
 }
 
 
+.result-stat-tile--perfect::before {
+  background: #c8853b;
+}
+
+
 .result-stat-tile--correct::before {
   background: #4f8a67;
 }
@@ -219,13 +224,13 @@
 }
 
 
-.result-stat-tile--unknown::before {
-  background: rgba(47, 42, 36, 0.28);
+.result-stat-tile--wrong::before {
+  background: #b55a4c;
 }
 
 
-.result-stat-tile--wrong::before {
-  background: #b55a4c;
+.result-stat-tile--unknown::before {
+  background: #7b8ca8;
 }
 
 
@@ -477,13 +482,17 @@
 }
 
 
+.result-chip--perfect {
+  background: #c8853b;
+}
+
+
 .result-chip--correct {
   background: #4f8a67;
 }
 
 
-.result-chip--deficient,
-.result-chip--unknown {
+.result-chip--deficient {
   background: #d7b957;
   color: #292520;
 }
@@ -491,6 +500,11 @@
 
 .result-chip--wrong {
   background: #b55a4c;
+}
+
+
+.result-chip--unknown {
+  background: #7b8ca8;
 }
 
 

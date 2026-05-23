@@ -318,6 +318,7 @@ export function normalizePracticeFlowSession(raw: unknown): PracticeFlowSession 
         answeredCount: toNumberValue(pick(raw, "answeredCount", "answered_count")),
         score: pick(raw, "score") == null ? null : toNumberValue(pick(raw, "score")),
         accuracy: pick(raw, "accuracy") == null ? null : toNumberValue(pick(raw, "accuracy")),
+        perfectCount: toNumberValue(pick(raw, "perfectCount", "perfect_count")),
         correctCount: toNumberValue(pick(raw, "correctCount", "correct_count")),
         deficientCount: toNumberValue(pick(raw, "deficientCount", "deficient_count")),
         wrongCount: toNumberValue(pick(raw, "wrongCount", "wrong_count")),

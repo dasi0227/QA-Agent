@@ -26,17 +26,19 @@ public class AssessStatCalculator {
         // 1. 校验整轮练习是否完整
         validate(context);
         List<AssessItemDetail> items = context.getItems();
+        int perfect = 0;
         int correct = 0;
         int deficient = 0;
         int wrong = 0;
         int unknown = 0;
         int totalScore = 0;
-        // 2. 统计四类结果和总分
+        // 2. 统计五类结果和总分
         for (AssessItemDetail item : items) {
             FeedbackResult resultType = resultType(item.getResult());
             totalScore += item.getScore();
             switch (resultType) {
-                case PERFECT, CORRECT -> correct++;
+                case PERFECT -> perfect++;
+                case CORRECT -> correct++;
                 case DEFICIENT -> deficient++;
                 case WRONG -> wrong++;
                 case UNKNOWN -> unknown++;
@@ -45,13 +47,14 @@ public class AssessStatCalculator {
         // 3. 计算平均分和达标率
         int total = items.size();
         int score = Math.round((float) totalScore / total);
-        BigDecimal accuracy = BigDecimal.valueOf(correct + deficient)
+        BigDecimal accuracy = BigDecimal.valueOf(perfect + correct + deficient)
                 .multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(total), 2, RoundingMode.HALF_UP);
         return AssessStats.builder()
                 .totalQuestions(total)
                 .score(score)
                 .accuracy(accuracy)
+                .perfectCount(perfect)
                 .correctCount(correct)
                 .deficientCount(deficient)
                 .wrongCount(wrong)

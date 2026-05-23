@@ -43,10 +43,7 @@ export function PracticeHistoryPage() {
     return (
         <div className="page-frame practice-history-page">
             <div className="practice-history-page__head">
-                <div>
-                    <span>练习历史</span>
-                    <h1>{qaSetQuery.data?.title || "问答集练习历史"}</h1>
-                </div>
+                <h1>练习历史 · {qaSetQuery.data?.title || "问答集练习历史"}</h1>
                 <LinkButton to={`/repository/qa-set/${qaSetId}`} variant="ghost">返回问答集</LinkButton>
             </div>
 
@@ -73,6 +70,7 @@ export function PracticeHistoryPage() {
                             <div className="practice-history-card__metrics">
                                 <span>分数 {record.score ?? "-"}</span>
                                 <span>达标率 {record.accuracy ?? "-"}%</span>
+                                <span>完美 {record.perfectCount}</span>
                                 <span>正确 {record.correctCount}</span>
                                 <span>缺漏 {record.deficientCount}</span>
                                 <span>错误 {record.wrongCount}</span>

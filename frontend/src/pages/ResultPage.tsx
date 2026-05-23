@@ -14,7 +14,10 @@ function pointBody(point: AssessPoint) {
 
 function resultMeta(item: Pick<PracticeFlowItem, "result" | "status" | "unknown">) {
     const raw = item.unknown ? "UNKNOWN" : (item.result || item.status || "").toUpperCase();
-    if (raw === "PERFECT" || raw === "CORRECT") {
+    if (raw === "PERFECT") {
+        return { label: "完美", tone: "perfect" };
+    }
+    if (raw === "CORRECT") {
         return { label: "正确", tone: "correct" };
     }
     if (raw === "DEFICIENT") {
@@ -169,7 +172,7 @@ export function ResultPage() {
                             <span>平均分</span>
                         </div>
                         <div>
-                            <strong>{session.answeredCount} / {session.totalQuestions || items.length}</strong>
+                            <strong>{(session.perfectCount ?? 0) + (session.correctCount ?? 0)} / {session.totalQuestions || items.length}</strong>
                             <span>完成情况</span>
                         </div>
                     </div>
@@ -177,6 +180,10 @@ export function ResultPage() {
             </section>
 
             <section className="result-distribution" aria-label="结果分布">
+                <article className="result-stat-tile result-stat-tile--perfect">
+                    <span>完美 / 无懈可击</span>
+                    <strong>{session.perfectCount}</strong>
+                </article>
                 <article className="result-stat-tile result-stat-tile--correct">
                     <span>正确 / 完全掌握</span>
                     <strong>{session.correctCount}</strong>

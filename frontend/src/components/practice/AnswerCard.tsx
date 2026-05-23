@@ -20,8 +20,14 @@ function statusClass(item: PracticeFlowItem, feedbackMode: PracticeFeedbackMode)
         if (item.status === "DRAFT") return "answered";
         return "unanswered";
     }
-    if (item.result === "PERFECT" || item.result === "CORRECT" || item.result === "DEFICIENT") {
+    if (item.result === "PERFECT") {
+        return "perfect";
+    }
+    if (item.result === "CORRECT") {
         return "correct";
+    }
+    if (item.result === "DEFICIENT") {
+        return "deficient";
     }
     if (item.result === "WRONG") {
         return "wrong";

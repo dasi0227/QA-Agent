@@ -448,10 +448,19 @@
 }
 
 
-.practice-result--perfect,
-.practice-result--correct,
-.practice-result--deficient {
+.practice-result--perfect {
+  background: #c8853b;
+}
+
+
+.practice-result--correct {
   background: #4f8a67;
+}
+
+
+.practice-result--deficient {
+  background: #d7b957;
+  color: #292520;
 }
 
 
@@ -461,8 +470,7 @@
 
 
 .practice-result--unknown {
-  background: #d7b957;
-  color: #292520;
+  background: #7b8ca8;
 }
 
 
@@ -619,7 +627,15 @@
 
 .answer-dot--answered { background: #f7f1e8; }
 
-.answer-dot--unknown { background: #d7b957; }
+.answer-dot--perfect { background: #c8853b; }
+
+.answer-dot--correct { background: #4f8a67; }
+
+.answer-dot--deficient { background: #d7b957; }
+
+.answer-dot--wrong { background: #b55a4c; }
+
+.answer-dot--unknown { background: #7b8ca8; }
 
 .answer-dot--unanswered { background: #6f675d; }
 
@@ -655,10 +671,24 @@
 }
 
 
+.answer-card__number--perfect {
+  background: #c8853b;
+  border-color: #c8853b;
+  color: #fff;
+}
+
+
 .answer-card__number--correct {
   background: #4f8a67;
   border-color: #4f8a67;
   color: #fff;
+}
+
+
+.answer-card__number--deficient {
+  background: #d7b957;
+  border-color: #d7b957;
+  color: #292520;
 }
 
 
@@ -670,9 +700,9 @@
 
 
 .answer-card__number--unknown {
-  background: #d7b957;
-  border-color: #d7b957;
-  color: #292520;
+  background: #7b8ca8;
+  border-color: #7b8ca8;
+  color: #fff;
 }
 
 

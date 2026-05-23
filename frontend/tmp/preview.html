@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>答题卡 & 结果标签颜色预览</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+    background: #faf6ef;
+    color: #292520;
+    padding: 48px 24px;
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+  }
+  .preview {
+    width: min(720px, 100%);
+    display: grid;
+    gap: 40px;
+  }
+  h1 {
+    font-size: 28px;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  section {
+    background: #fffcf7;
+    border: 1px solid rgba(67, 59, 48, 0.1);
+    border-radius: 22px;
+    padding: 32px;
+  }
+  h2 {
+    font-size: 18px;
+    margin-bottom: 24px;
+    color: rgba(41, 37, 32, 0.6);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Result Chips ── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: #fff;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .chip--perfect  { background: #c8853b; }
+  .chip--correct  { background: #4f8a67; }
+  .chip--deficient{ background: #d7b957; color: #292520; }
+  .chip--wrong    { background: #b55a4c; }
+  .chip--unknown  { background: #7b8ca8; }
+
+  /* ── Answer Card Dots ── */
+  .dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+  .dot-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #292520;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+  }
+  .dot--perfect   { background: #c8853b; }
+  .dot--correct   { background: #4f8a67; }
+  .dot--deficient { background: #d7b957; }
+  .dot--wrong     { background: #b55a4c; }
+  .dot--unknown   { background: #7b8ca8; }
+
+  /* ── Answer Card Numbers ── */
+  .numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .num {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    color: #fff;
+  }
+  .num--perfect   { background: #c8853b; border: 1px solid #c8853b; }
+  .num--correct   { background: #4f8a67; border: 1px solid #4f8a67; }
+  .num--deficient { background: #d7b957; border: 1px solid #d7b957; color: #292520; }
+  .num--wrong     { background: #b55a4c; border: 1px solid #b55a4c; }
+  .num--unknown   { background: #7b8ca8; border: 1px solid #7b8ca8; }
+
+  /* ── Stat Tile bars ── */
+  .bars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .bar-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .bar {
+    width: 4px;
+    height: 28px;
+    border-radius: 2px;
+  }
+  .bar--perfect   { background: #c8853b; }
+  .bar--correct   { background: #4f8a67; }
+  .bar--deficient { background: #d7b957; }
+  .bar--wrong     { background: #b55a4c; }
+  .bar--unknown   { background: #7b8ca8; }
+
+  /* ── Color Swatches ── */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    display: grid;
+    gap: 6px;
+  }
+  .swatch__color {
+    height: 48px;
+    border-radius: 12px;
+  }
+  .swatch__label {
+    font-size: 13px;
+    font-weight: 800;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .swatch__hex {
+    font-size: 11px;
+    color: rgba(41, 37, 32, 0.5);
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+</style>
+</head>
+<body>
+<div class="preview">
+  <h1>判题标签颜色方案</h1>
+
+  <section>
+    <h2>色板</h2>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="swatch__color" style="background:#c8853b"></div>
+        <div class="swatch__label">PERFECT 完美</div>
+        <div class="swatch__hex">#c8853b</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background:#4f8a67"></div>
+        <div class="swatch__label">CORRECT 正确</div>
+        <div class="swatch__hex">#4f8a67</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background:#d7b957"></div>
+        <div class="swatch__label">DEFICIENT 缺漏</div>
+        <div class="swatch__hex">#d7b957</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background:#b55a4c"></div>
+        <div class="swatch__label">WRONG 错误</div>
+        <div class="swatch__hex">#b55a4c</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__color" style="background:#7b8ca8"></div>
+        <div class="swatch__label">UNKNOWN 不会</div>
+        <div class="swatch__hex">#7b8ca8</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>结果页 Chip 标签</h2>
+    <div class="chips">
+      <span class="chip chip--perfect">完美</span>
+      <span class="chip chip--correct">正确</span>
+      <span class="chip chip--deficient">缺漏</span>
+      <span class="chip chip--wrong">错误</span>
+      <span class="chip chip--unknown">不会</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>答题卡 Legend 圆点</h2>
+    <div class="dots">
+      <div class="dot-row"><span class="dot dot--perfect"></span> 完美</div>
+      <div class="dot-row"><span class="dot dot--correct"></span> 正确</div>
+      <div class="dot-row"><span class="dot dot--deficient"></span> 缺漏</div>
+      <div class="dot-row"><span class="dot dot--wrong"></span> 错误</div>
+      <div class="dot-row"><span class="dot dot--unknown"></span> 不会</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>答题卡数字圆圈</h2>
+    <div class="numbers">
+      <span class="num num--perfect">1</span>
+      <span class="num num--correct">2</span>
+      <span class="num num--deficient">3</span>
+      <span class="num num--wrong">4</span>
+      <span class="num num--unknown">5</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>统计卡片色条</h2>
+    <div class="bars">
+      <div class="bar-item"><span class="bar bar--perfect"></span> 完美</div>
+      <div class="bar-item"><span class="bar bar--correct"></span> 正确</div>
+      <div class="bar-item"><span class="bar bar--deficient"></span> 缺漏</div>
+      <div class="bar-item"><span class="bar bar--wrong"></span> 错误</div>
+      <div class="bar-item"><span class="bar bar--unknown"></span> 不会</div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

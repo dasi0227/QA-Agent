@@ -3,14 +3,16 @@ package com.dasi.qa.agent.domain.document.service.crud;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.types.dto.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.List;
 
 @Service
@@ -45,6 +47,9 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request) {
         if (!StringUtils.hasText(request.getId())) {
             request.setId(idUtil.nextId());
+        }
+        if (!"MARKDOWN".equalsIgnoreCase(request.getFileType())) {
+            throw new ApiException(ResultCode.BAD_REQUEST);
         }
         return repository.createSourceDocument(request, currentUserId());
     }

@@ -45,6 +45,8 @@ public class PracticeSession {
     
     private BigDecimal accuracy;
 
+    private Integer perfectCount;
+
     private Integer correctCount;
 
     private Integer deficientCount;

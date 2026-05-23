@@ -151,11 +151,20 @@ export function DocumentPage() {
                             <input
                                 ref={uploadFileInputRef}
                                 type="file"
-                                accept=".md,.txt,.json,.csv,.yaml,.yml,.xml,.html"
+                                accept=".md,.markdown"
                                 style={{ display: "none" }}
                                 onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
+                                    const ext = file.name.split(".").pop()?.toLowerCase();
+                                    if (ext !== "md" && ext !== "markdown") {
+                                        showErrorDialog({
+                                            title: "文件类型不支持",
+                                            message: "仅支持上传 .md 或 .markdown 格式的资料文件，请转换后重新上传。",
+                                        });
+                                        e.target.value = "";
+                                        return;
+                                    }
                                     try {
                                         await uploadDocumentMutation.mutateAsync(file);
                                     } catch { /* handled by mutation */ }

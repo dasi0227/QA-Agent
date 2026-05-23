@@ -18,6 +18,7 @@ public class AssessResponse {
     private String qaSetId;
     private Integer score;
     private BigDecimal accuracy;
+    private Integer perfectCount;
     private Integer correctCount;
     private Integer deficientCount;
     private Integer wrongCount;

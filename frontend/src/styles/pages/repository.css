@@ -151,21 +151,15 @@
 
 .practice-history-page__head {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 24px;
 }
 
 
-.practice-history-page__head span {
-  color: #8e642d;
-  font-size: 13px;
-}
-
-
 .practice-history-page__head h1 {
-  margin: 8px 0 0;
+  margin: 0;
   color: var(--ink);
   font-family: var(--font-serif);
   font-size: clamp(30px, 4vw, 48px);

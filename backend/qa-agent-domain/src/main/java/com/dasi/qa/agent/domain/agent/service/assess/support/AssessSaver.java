@@ -51,6 +51,7 @@ public class AssessSaver {
         AssessSaveCommand command = AssessSaveCommand.builder()
                 .score(stats.getScore())
                 .accuracy(stats.getAccuracy())
+                .perfectCount(stats.getPerfectCount())
                 .correctCount(stats.getCorrectCount())
                 .deficientCount(stats.getDeficientCount())
                 .wrongCount(stats.getWrongCount())

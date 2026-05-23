@@ -52,7 +52,7 @@ export const router = createBrowserRouter([
           { path: "/repository", element: <Navigate to="/repository/qa-set" replace /> },
           { path: "/repository/qa-set", element: withRouteLoading(<QASetPage />) },
           { path: "/repository/qa-set/:id", element: withRouteLoading(<QASetPage />) },
-          { path: "/repository/qa-set/:qaSetId/practice-history", element: withRouteLoading(<PracticeHistoryPage />) },
+          { path: "/repository/qa-set/:qaSetId/history", element: withRouteLoading(<PracticeHistoryPage />) },
           { path: "/repository/question", element: withRouteLoading(<QuestionPage />) },
           { path: "/repository/document", element: withRouteLoading(<DocumentPage />) },
           { path: "/qa", element: <Navigate to="/quiz" replace /> },

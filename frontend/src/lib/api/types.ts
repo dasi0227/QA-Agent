@@ -284,6 +284,7 @@ export type PracticeFlowSession = {
     answeredCount: number;
     score: number | null;
     accuracy: number | null;
+    perfectCount: number;
     correctCount: number;
     deficientCount: number;
     wrongCount: number;
