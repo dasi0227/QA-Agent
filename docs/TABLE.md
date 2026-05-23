@@ -261,7 +261,7 @@
 | `answered_count` | `INT` | 已回答题数 |
 | `current_index` | `INT` | 最近停留题号，用于恢复进度 |
 | `last_active_at` | `DATETIME` | 最近练习活跃时间 |
-| `duration_seconds` | `INT` | 累计用时秒数 |
+| `duration_seconds` | `INT` | 累计活跃作答秒数，以前端传入累计值和后端 max 规则持久化，不用 `finished_at - started_at` 推算 |
 | `score` | `INT` | 整轮平均分 |
 | `accuracy` | `DECIMAL(10,2)` | 整轮达标率 |
 | `correct_count` | `INT` | `PERFECT + CORRECT` 数量 |
@@ -312,6 +312,7 @@
 
 1. 当前没有 `feedback_detail_json` 总字段，已经拆成 `feedback_judge_detail` 和 `feedback_hint_detail`。
 2. UNKNOWN 分支只写 `feedback_hint_detail`；普通判题分支只写 `feedback_judge_detail`。
+3. `AFTER_ALL` 提交本轮前通常为 `UNANSWERED` / `DRAFT` / `UNKNOWN`；提交本轮后统一写入 `SUBMITTED`、`result`、`score` 和反馈字段。
 
 ### 3.12 `message_job`
 

@@ -1,11 +1,9 @@
 package com.dasi.qa.agent.interfaces.interceptor;
 
-import static com.dasi.qa.agent.types.constant.StringConstant.AUTH_BEARER_PREFIX;
-
-import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.exception.ApiException;
+import com.dasi.qa.agent.domain.util.IJwtUtil;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +15,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 @Slf4j
 public class JwtInterceptor implements HandlerInterceptor {
+
+    private static final String AUTH_BEARER_PREFIX = "Bearer ";
 
     private final IJwtUtil IJwtUtil;
     private final IContextUtil contextUtil;

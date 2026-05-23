@@ -21,4 +21,6 @@ public class ItemSaveRequest {
     private String userAnswer;
 
     private Integer currentIndex;
+
+    private Integer durationSeconds;
 }

@@ -26,6 +26,100 @@
 }
 
 
+.assessment-generating {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+
+.assessment-generating__panel {
+  width: min(680px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 34px;
+  border: 1px solid rgba(183, 133, 74, 0.16);
+  border-radius: 28px;
+  background: rgba(255, 250, 242, 0.92);
+  box-shadow: 0 24px 80px rgba(67, 59, 48, 0.08);
+}
+
+
+.assessment-generating__eyebrow {
+  color: #8e642d;
+  font-size: 13px;
+}
+
+
+.assessment-generating__panel h1 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 4vw, 48px);
+  letter-spacing: 0;
+}
+
+
+.assessment-generating__panel p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+
+
+.assessment-generating__steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+
+.assessment-generating__steps span {
+  position: relative;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(115, 134, 154, 0.18);
+  border-radius: 999px;
+  background: rgba(247, 241, 232, 0.72);
+  color: #5f7488;
+  font-size: 13px;
+}
+
+
+.assessment-generating__steps span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  transform: translateX(-100%);
+  animation: assessment-step-shimmer 1.8s ease-in-out infinite;
+}
+
+
+.assessment-generating__steps span:nth-child(2)::after {
+  animation-delay: 180ms;
+}
+
+
+.assessment-generating__steps span:nth-child(3)::after {
+  animation-delay: 360ms;
+}
+
+
+@keyframes assessment-step-shimmer {
+  0% { transform: translateX(-100%); }
+  70% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+
 .practice-top-status {
   width: min(var(--practice-layout-width), 100%);
   margin: 0 auto 18px;
@@ -424,6 +518,43 @@
   padding-left: 18px;
   color: var(--ink-soft);
   line-height: 1.6;
+}
+
+
+.review-workspace__eyebrow {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: #8e642d;
+  font-size: 13px;
+}
+
+
+.review-answer-block {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid rgba(183, 133, 74, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 250, 242, 0.78);
+}
+
+
+.review-answer-block span {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+
+.review-answer-block p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+
+.review-answer-block--standard {
+  background: rgba(247, 241, 232, 0.72);
 }
 
 

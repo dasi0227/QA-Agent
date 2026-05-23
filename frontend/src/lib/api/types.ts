@@ -279,6 +279,7 @@ export type PracticeFlowSession = {
     status: PracticeSessionStatus;
     selectedModule: string;
     currentIndex: number;
+    durationSeconds: number;
     totalQuestions: number;
     answeredCount: number;
     score: number | null;
@@ -335,13 +336,17 @@ export type SaveAnswerInput = {
     sessionItemId: string;
     userAnswer?: string;
     currentIndex: number;
+    durationSeconds?: number;
 };
 
 export type SubmitItemInput = SaveAnswerInput;
 
 export type SubmitSessionInput = {
     sessionId: string;
+    durationSeconds?: number;
 };
+
+export type AbandonPracticeInput = SubmitSessionInput;
 
 export type PracticeSessionItem = {
     id: string;

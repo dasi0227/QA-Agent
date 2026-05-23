@@ -18,8 +18,11 @@ import com.dasi.qa.agent.types.dto.request.practice.PracticeSubmitRequest;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeStateResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeDetailResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.exception.ApiException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -27,6 +30,8 @@ import java.util.List;
 
 @Service
 public class PracticeFlowService implements IPracticeFlowService {
+
+    private static final Logger log = LoggerFactory.getLogger(PracticeFlowService.class);
 
     private final IPracticeRepository practiceRepository;
     private final IFeedbackAgent feedbackAgent;
@@ -67,6 +72,11 @@ public class PracticeFlowService implements IPracticeFlowService {
     }
 
     @Override
+    public List<PracticeSessionResponse> history(String qaSetId) {
+        return practiceRepository.queryPracticeHistory(qaSetId, contextUtil.getUserId());
+    }
+
+    @Override
     public PracticeDetailResponse restart(PracticeRestartRequest request) {
         practiceRepository.abandonActivePractice(request.getQaSetId(), contextUtil.getUserId());
         PracticeInitRequest initRequest = PracticeInitRequest.builder()
@@ -80,7 +90,7 @@ public class PracticeFlowService implements IPracticeFlowService {
 
     @Override
     public PracticeDetailResponse abandon(PracticeAbandonRequest request) {
-        return practiceRepository.abandonPractice(request.getSessionId(), contextUtil.getUserId());
+        return practiceRepository.abandonPractice(request.getSessionId(), request.getDurationSeconds(), contextUtil.getUserId());
     }
 
     @Override
@@ -102,6 +112,7 @@ public class PracticeFlowService implements IPracticeFlowService {
                     .sessionItemId(request.getSessionItemId())
                     .userAnswer(request.getUserAnswer())
                     .currentIndex(request.getCurrentIndex())
+                    .durationSeconds(request.getDurationSeconds())
                     .build();
             return confirmItem(submitRequest, true);
         }
@@ -116,13 +127,44 @@ public class PracticeFlowService implements IPracticeFlowService {
     @Override
     public PracticeDetailResponse submit(PracticeSubmitRequest request) {
         String userId = contextUtil.getUserId();
+        PracticeStateVO state = practiceRepository.getPracticeState(request.getSessionId(), userId);
+        log.info("【练习流程】提交本轮: sessionId={}, feedbackMode={}", request.getSessionId(), state.getFeedbackMode().name());
 
-        // 判断是否所有题目都做完了
-        if (!practiceRepository.isPracticeSessionReadyForAssess(request.getSessionId(), userId)) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+        // 逐题反馈
+        if (state.getFeedbackMode().isItemByItem()) {
+            // 判断是否全部提交
+            if (!practiceRepository.isPracticeSessionReadyForItemByItemAssess(request.getSessionId(), userId)) {
+                throw new ApiException(ResultCode.BAD_REQUEST);
+            }
+        }
+        // 整轮反馈
+        else {
+            // 判断是否全部做了
+            if (!practiceRepository.isPracticeSessionReadyForAfterAllAssess(request.getSessionId(), userId)) {
+                throw new ApiException(ResultCode.BAD_REQUEST);
+            }
+            List<PracticeItemResponse> items = practiceRepository.queryPracticeItemsForFeedback(request.getSessionId(), userId);
+            log.info("【练习流程】生成整轮反馈: sessionId={}, total={}", request.getSessionId(), items.size());
+            for (PracticeItemResponse item : items) {
+                if (item.getResult() != null) {
+                    continue;
+                }
+                FeedbackRequest feedbackRequest = FeedbackRequest.builder()
+                        .sessionItemId(item.getSessionItemId())
+                        .userAnswer(item.getUserAnswer())
+                        .unknown(Boolean.TRUE.equals(item.getUnknown()))
+                        .build();
+                feedbackAgent.execute(feedbackRequest);
+                practiceRepository.refreshPracticeItemProgress(
+                        request.getSessionId(),
+                        item.getSessionItemId(),
+                        null,
+                        request.getDurationSeconds(),
+                        userId
+                );
+            }
         }
 
-        // 评估
         AssessRequest assessRequest = AssessRequest.builder().sessionId(request.getSessionId()).build();
         assessAgent.execute(assessRequest);
         return practiceRepository.detailPractice(request.getSessionId(), userId);
@@ -140,6 +182,7 @@ public class PracticeFlowService implements IPracticeFlowService {
                 request.getSessionId(),
                 request.getSessionItemId(),
                 request.getCurrentIndex(),
+                request.getDurationSeconds(),
                 userId
         );
     }

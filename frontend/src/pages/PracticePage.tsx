@@ -3,6 +3,7 @@ import { Clock, CornerUpLeft, Save } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
+import { AssessmentGeneratingPanel } from "@/components/practice/AssessmentGeneratingPanel";
 import { AnswerCard } from "@/components/practice/AnswerCard";
 import { PracticeLayout } from "@/components/practice/PracticeLayout";
 import { QuestionWorkspace } from "@/components/practice/QuestionWorkspace";
@@ -24,13 +25,14 @@ function clampIndex(index: number, total: number) {
     return Math.min(Math.max(index, 0), total - 1);
 }
 
-function elapsedLabel(startedAt?: string) {
-    if (!startedAt) return "00:00";
-    const started = new Date(startedAt).getTime();
-    if (!Number.isFinite(started)) return "00:00";
-    const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+function durationLabel(totalSeconds: number) {
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor(seconds / 60);
     const remainSeconds = seconds % 60;
+    if (hours > 0) {
+        return `${hours}:${String(minutes % 60).padStart(2, "0")}:${String(remainSeconds).padStart(2, "0")}`;
+    }
     return `${String(minutes).padStart(2, "0")}:${String(remainSeconds).padStart(2, "0")}`;
 }
 
@@ -48,20 +50,29 @@ export function PracticePage() {
     const [answer, setAnswer] = useState("");
     const [saveStatus, setSaveStatus] = useState("自动保存");
     const [abandonOpen, setAbandonOpen] = useState(false);
-    const [elapsed, setElapsed] = useState("00:00");
+    const [durationSeconds, setDurationSeconds] = useState(0);
     const saveTimerRef = useRef<number | null>(null);
+    const durationBaseRef = useRef(0);
+    const durationStartedAtRef = useRef<number | null>(null);
 
     const detail = detailQuery.data;
     const items = detail?.items ?? [];
     const session = detail?.session;
     const currentItem = items[currentIndex];
     const readonly = session?.status === "FINISHED" || session?.status === "ABANDONED";
+    const feedbackMode = session?.feedbackMode ?? "ITEM_BY_ITEM";
+    const afterAll = feedbackMode === "AFTER_ALL";
+    const itemSubmitted = currentItem?.status === "SUBMITTED";
+    const itemReadonly = readonly || (!afterAll && itemSubmitted);
 
     useEffect(() => {
         if (!detail) return;
         const nextIndex = clampIndex(detail.session.currentIndex, detail.items.length);
         setCurrentIndex(nextIndex);
         setAnswer(detail.items[nextIndex]?.userAnswer ?? "");
+        durationBaseRef.current = detail.session.durationSeconds ?? 0;
+        durationStartedAtRef.current = Date.now();
+        setDurationSeconds(durationBaseRef.current);
         window.localStorage.setItem(RECENT_PRACTICE_KEY, JSON.stringify({
             sessionId: detail.session.id,
             qaSetId: detail.session.qaSetId,
@@ -79,13 +90,19 @@ export function PracticePage() {
     }, [currentItem?.sessionItemId]);
 
     useEffect(() => {
-        const timer = window.setInterval(() => setElapsed(elapsedLabel(session?.startedAt)), 1000);
-        setElapsed(elapsedLabel(session?.startedAt));
+        const timer = window.setInterval(() => {
+            if (readonly || durationStartedAtRef.current == null) {
+                setDurationSeconds(durationBaseRef.current);
+                return;
+            }
+            const delta = Math.floor((Date.now() - durationStartedAtRef.current) / 1000);
+            setDurationSeconds(durationBaseRef.current + delta);
+        }, 1000);
         return () => window.clearInterval(timer);
-    }, [session?.startedAt]);
+    }, [readonly]);
 
     useEffect(() => {
-        if (!currentItem || readonly || currentItem.status === "SUBMITTED") return;
+        if (!currentItem || itemReadonly) return;
         if ((currentItem.userAnswer ?? "") === answer) return;
         setSaveStatus("保存中");
         if (saveTimerRef.current) {
@@ -97,6 +114,7 @@ export function PracticePage() {
                     sessionItemId: currentItem.sessionItemId,
                     userAnswer: answer,
                     currentIndex,
+                    durationSeconds,
                 }, {
                     onSuccess: () => setSaveStatus("已保存"),
                     onError: () => setSaveStatus("保存失败"),
@@ -107,24 +125,25 @@ export function PracticePage() {
                 window.clearTimeout(saveTimerRef.current);
             }
         };
-    }, [answer, currentIndex, currentItem, readonly, saveMutation, sessionId]);
+    }, [answer, currentIndex, currentItem, durationSeconds, itemReadonly, saveMutation, sessionId]);
 
-    const flushAnswer = async () => {
-        if (!currentItem || readonly || currentItem.status === "SUBMITTED") return;
-        if ((currentItem.userAnswer ?? "") === answer) return;
+    const flushAnswer = async (force = false, nextIndex = currentIndex) => {
+        if (!currentItem || itemReadonly) return;
+        if (!force && (currentItem.userAnswer ?? "") === answer) return;
         setSaveStatus("保存中");
         await saveMutation.mutateAsync({
             sessionId,
             sessionItemId: currentItem.sessionItemId,
             userAnswer: answer,
-            currentIndex,
+            currentIndex: nextIndex,
+            durationSeconds,
         });
         setSaveStatus("已保存");
     };
 
     const jumpTo = async (index: number) => {
-        await flushAnswer();
         const nextIndex = clampIndex(index, items.length);
+        await flushAnswer(true, nextIndex);
         setCurrentIndex(nextIndex);
         setAnswer(items[nextIndex]?.userAnswer ?? "");
     };
@@ -135,13 +154,15 @@ export function PracticePage() {
             showErrorDialog({ title: "请先作答", message: "提交本题前需要填写答案，或者选择“不会”。" });
             return;
         }
+        setSaveStatus("判题中");
         await submitItemMutation.mutateAsync({
             sessionId,
             sessionItemId: currentItem.sessionItemId,
             userAnswer: answer,
             currentIndex,
+            durationSeconds,
         });
-        setSaveStatus("判题中");
+        setSaveStatus("已提交");
     };
 
     const handleUnknown = async () => {
@@ -151,31 +172,43 @@ export function PracticePage() {
             sessionItemId: currentItem.sessionItemId,
             userAnswer: answer,
             currentIndex,
+            durationSeconds,
         });
         setSaveStatus("已标记不会");
     };
 
+    const itemHasAnswer = (item: typeof currentItem, index: number) => {
+        if (!item) return false;
+        if (item.unknown || item.status === "UNKNOWN") return true;
+        if (index === currentIndex) return answer.trim().length > 0;
+        return (item.userAnswer ?? "").trim().length > 0;
+    };
+
     const handleSubmitSession = async () => {
-        await flushAnswer();
-        const remaining = items.filter((item) => item.status !== "SUBMITTED" && item.status !== "UNKNOWN");
+        await flushAnswer(true);
+        const remaining = afterAll
+            ? items.filter((item, index) => !itemHasAnswer(item, index))
+            : items.filter((item) => item.status !== "SUBMITTED");
         if (remaining.length) {
             showErrorDialog({
                 title: "还有题目未完成",
-                message: `当前还有 ${remaining.length} 道题未提交或未标记不会。`,
+                message: afterAll
+                    ? `当前还有 ${remaining.length} 道题未作答或未标记不会。`
+                    : `当前还有 ${remaining.length} 道题未提交。`,
             });
             return;
         }
-        await submitSessionMutation.mutateAsync({ sessionId });
+        await submitSessionMutation.mutateAsync({ sessionId, durationSeconds });
         navigate(`/practice/${sessionId}/result`);
     };
 
     const handleExit = async () => {
-        await flushAnswer();
+        await flushAnswer(true);
         navigate("/quiz");
     };
 
     const handleAbandon = async () => {
-        await abandonMutation.mutateAsync({ sessionId });
+        await abandonMutation.mutateAsync({ sessionId, durationSeconds });
         navigate("/quiz");
     };
 
@@ -191,7 +224,7 @@ export function PracticePage() {
             </div>
             <div className="practice-top-status__right">
                 <span><Save size={14} />{saveStatus}</span>
-                <span><Clock size={14} />{elapsed}</span>
+                <span><Clock size={14} />{durationLabel(durationSeconds)}</span>
             </div>
         </>
     );
@@ -202,13 +235,16 @@ export function PracticePage() {
             index={currentIndex}
             total={items.length}
             answer={answer}
-            submitting={submitItemMutation.isPending || markUnknownMutation.isPending}
-            readonly={readonly}
+            feedbackMode={feedbackMode}
+            showFeedback={feedbackMode === "ITEM_BY_ITEM" && currentItem?.status === "SUBMITTED"}
+            submitting={submitItemMutation.isPending || markUnknownMutation.isPending || saveMutation.isPending}
+            readonly={itemReadonly}
             onAnswerChange={setAnswer}
             onPrev={() => jumpTo(currentIndex - 1)}
             onNext={() => jumpTo(currentIndex + 1)}
             onUnknown={handleUnknown}
             onSubmit={handleSubmitItem}
+            onSaveAndNext={() => jumpTo(currentIndex + 1)}
         />
     );
 
@@ -216,7 +252,7 @@ export function PracticePage() {
         <AnswerCard
             items={items}
             currentIndex={currentIndex}
-            feedbackMode={session?.feedbackMode ?? "ITEM_BY_ITEM"}
+            feedbackMode={feedbackMode}
             onJump={jumpTo}
             onSubmitSession={handleSubmitSession}
             onAbandon={() => setAbandonOpen(true)}
@@ -244,6 +280,10 @@ export function PracticePage() {
                 <SiteFooter />
             </div>
         );
+    }
+
+    if (submitSessionMutation.isPending) {
+        return <AssessmentGeneratingPanel />;
     }
 
     return (

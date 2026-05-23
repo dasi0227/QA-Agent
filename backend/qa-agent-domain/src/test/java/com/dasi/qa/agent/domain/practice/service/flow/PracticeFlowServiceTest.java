@@ -139,6 +139,66 @@ class PracticeFlowServiceTest {
         assertEquals(90, detail.getSession().getScore());
     }
 
+    @Test
+    void afterAllSubmitGeneratesItemFeedbackBeforeAssess() {
+        FakePracticeRepository repository = new FakePracticeRepository();
+        repository.feedbackMode = PracticeFeedbackMode.AFTER_ALL;
+        repository.feedbackItems = List.of(
+                PracticeItemResponse.builder()
+                        .sessionItemId("item-1")
+                        .userAnswer("answer")
+                        .unknown(false)
+                        .build(),
+                PracticeItemResponse.builder()
+                        .sessionItemId("item-2")
+                        .userAnswer("")
+                        .unknown(true)
+                        .build()
+        );
+        FakeFeedbackAgent feedbackAgent = new FakeFeedbackAgent(repository);
+        FakeAssessAgent assessAgent = new FakeAssessAgent(repository);
+        PracticeFlowService service = newService(repository, feedbackAgent, assessAgent);
+
+        PracticeDetailResponse detail = service.submit(PracticeSubmitRequest.builder()
+                .sessionId("session-1")
+                .durationSeconds(120)
+                .build());
+
+        assertTrue(feedbackAgent.called);
+        assertEquals(2, feedbackAgent.callCount);
+        assertTrue(assessAgent.called);
+        assertEquals(120, repository.refreshedDurationSeconds);
+        assertEquals("FINISHED", detail.getSession().getStatus());
+    }
+
+    @Test
+    void itemByItemSubmitDoesNotRegenerateItemFeedback() {
+        FakePracticeRepository repository = new FakePracticeRepository();
+        FakeFeedbackAgent feedbackAgent = new FakeFeedbackAgent(repository);
+        FakeAssessAgent assessAgent = new FakeAssessAgent(repository);
+        PracticeFlowService service = newService(repository, feedbackAgent, assessAgent);
+
+        service.submit(PracticeSubmitRequest.builder()
+                .sessionId("session-1")
+                .durationSeconds(90)
+                .build());
+
+        assertFalse(feedbackAgent.called);
+        assertTrue(assessAgent.called);
+    }
+
+    @Test
+    void historyReturnsFinishedPracticeSessions() {
+        FakePracticeRepository repository = new FakePracticeRepository();
+        PracticeFlowService service = newService(repository);
+
+        List<PracticeSessionResponse> history = service.history("set-1");
+
+        assertEquals(1, history.size());
+        assertEquals("FINISHED", history.get(0).getStatus());
+        assertEquals(180, history.get(0).getDurationSeconds());
+    }
+
     private PracticeFlowService newService(FakePracticeRepository repository) {
         return newService(repository, new FakeFeedbackAgent(), new FakeAssessAgent());
     }
@@ -168,6 +228,8 @@ class PracticeFlowServiceTest {
         private boolean feedbackUnknown;
         private String feedbackResult;
         private PracticeFeedbackMode feedbackMode = PracticeFeedbackMode.ITEM_BY_ITEM;
+        private List<PracticeItemResponse> feedbackItems = List.of();
+        private Integer refreshedDurationSeconds;
 
         @Override
         public PracticeDetailResponse initPractice(PracticeInitRequest request, String sessionId, List<String> sessionItemIds, String userId) {
@@ -209,9 +271,10 @@ class PracticeFlowServiceTest {
         }
 
         @Override
-        public PracticeItemResponse refreshPracticeItemProgress(String sessionId, String sessionItemId, Integer currentIndex, String userId) {
+        public PracticeItemResponse refreshPracticeItemProgress(String sessionId, String sessionItemId, Integer currentIndex, Integer durationSeconds, String userId) {
             this.progressRefreshed = true;
             this.savedCurrentIndex = currentIndex;
+            this.refreshedDurationSeconds = durationSeconds;
             return item("SUBMITTED", feedbackResult == null ? "CORRECT" : feedbackResult);
         }
 
@@ -220,13 +283,33 @@ class PracticeFlowServiceTest {
         }
 
         @Override
-        public PracticeDetailResponse abandonPractice(String sessionId, String userId) {
+        public PracticeDetailResponse abandonPractice(String sessionId, Integer durationSeconds, String userId) {
             return detail(sessionId, "ABANDONED", null);
         }
 
         @Override
-        public boolean isPracticeSessionReadyForAssess(String sessionId, String userId) {
+        public boolean isPracticeSessionReadyForItemByItemAssess(String sessionId, String userId) {
             return true;
+        }
+
+        @Override
+        public boolean isPracticeSessionReadyForAfterAllAssess(String sessionId, String userId) {
+            return true;
+        }
+
+        @Override
+        public List<PracticeItemResponse> queryPracticeItemsForFeedback(String sessionId, String userId) {
+            return feedbackItems;
+        }
+
+        @Override
+        public List<PracticeSessionResponse> queryPracticeHistory(String qaSetId, String userId) {
+            PracticeSessionResponse response = new PracticeSessionResponse();
+            response.setId("session-history-1");
+            response.setQaSetId(qaSetId);
+            response.setStatus("FINISHED");
+            response.setDurationSeconds(180);
+            return List.of(response);
         }
 
         @Override
@@ -273,6 +356,7 @@ class PracticeFlowServiceTest {
 
         private final FakePracticeRepository repository;
         private boolean called;
+        private int callCount;
         private FeedbackRequest request;
 
         private FakeFeedbackAgent() {
@@ -286,6 +370,7 @@ class PracticeFlowServiceTest {
         @Override
         public FeedbackResponse execute(FeedbackRequest request) {
             this.called = true;
+            this.callCount++;
             this.request = request;
             if (repository != null) {
                 repository.feedbackUnknown = Boolean.TRUE.equals(request.getUnknown());

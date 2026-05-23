@@ -66,16 +66,11 @@ function formatAccuracy(value: number | null) {
     return value == null ? "-" : `${value}%`;
 }
 
-function formatDuration(startedAt?: string, finishedAt?: string) {
-    if (!startedAt || !finishedAt) {
+function formatDurationSeconds(value?: number | null) {
+    if (value == null) {
         return "";
     }
-    const started = new Date(startedAt).getTime();
-    const finished = new Date(finishedAt).getTime();
-    if (!Number.isFinite(started) || !Number.isFinite(finished) || finished < started) {
-        return "";
-    }
-    const totalSeconds = Math.floor((finished - started) / 1000);
+    const totalSeconds = Math.max(0, Math.floor(value));
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -101,7 +96,7 @@ export function ResultPage() {
     const summary = session?.summary || assessDetail?.overallComment || "本轮练习已完成，系统已保存你的作答记录。";
     const accuracyValue = session?.accuracy == null ? 0 : Math.min(100, Math.max(0, session.accuracy));
     const finishedAt = formatDateTime(session?.finishedAt);
-    const totalDuration = formatDuration(session?.startedAt, session?.finishedAt);
+    const totalDuration = formatDurationSeconds(session?.durationSeconds);
 
     if (detailQuery.isLoading) {
         return <div className="page-frame"><div className="status-card">正在读取练习结果...</div></div>;
@@ -263,7 +258,12 @@ export function ResultPage() {
                         {items.map((item, index) => {
                             const meta = resultMeta(item);
                             return (
-                                <article key={item.sessionItemId} className="result-question-row">
+                                <button
+                                    key={item.sessionItemId}
+                                    type="button"
+                                    className="result-question-row result-question-row--clickable"
+                                    onClick={() => navigate(`/practice/${session.id || sessionId}/review?index=${index}`)}
+                                >
                                     <span className="result-question-row__number">{index + 1}</span>
                                     <div className="result-question-row__body">
                                         <strong>{item.question || "未命名题目"}</strong>
@@ -271,7 +271,7 @@ export function ResultPage() {
                                     </div>
                                     <span className={`result-chip result-chip--${meta.tone}`}>{meta.label}</span>
                                     <strong className="result-question-row__score">{item.score == null ? "-" : item.score}</strong>
-                                </article>
+                                </button>
                             );
                         })}
                     </div>

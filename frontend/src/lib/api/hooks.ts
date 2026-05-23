@@ -16,6 +16,7 @@ import type {
     PracticeFlowItem,
     PracticeFlowSession,
     PracticeSessionDetail,
+    AbandonPracticeInput,
     QuestionItem,
     QuestionItemDraft,
     QuestionSet,
@@ -102,6 +103,7 @@ export const apiKeys = {
     taskList: ["task-list"] as const,
     existingPractice: (qaSetId: string) => ["practice", "session", "exist", qaSetId] as const,
     practiceDetail: (sessionId: string) => ["practice", "session", "detail", sessionId] as const,
+    practiceHistory: (qaSetId: string) => ["practice", "session", "history", qaSetId] as const,
 } as const;
 
 type QueryControlOptions = {
@@ -311,6 +313,7 @@ export function normalizePracticeFlowSession(raw: unknown): PracticeFlowSession 
         status: toStringValue(pick(raw, "status"), "IN_PROGRESS"),
         selectedModule: toStringValue(pick(raw, "selectedModule", "selected_module")),
         currentIndex: toNumberValue(pick(raw, "currentIndex", "current_index")),
+        durationSeconds: toNumberValue(pick(raw, "durationSeconds", "duration_seconds")),
         totalQuestions: toNumberValue(pick(raw, "totalQuestions", "total_questions")),
         answeredCount: toNumberValue(pick(raw, "answeredCount", "answered_count")),
         score: pick(raw, "score") == null ? null : toNumberValue(pick(raw, "score")),
@@ -836,6 +839,19 @@ export function usePracticeDetailQuery(sessionId?: string, options: QueryControl
     });
 }
 
+export function usePracticeHistoryQuery(qaSetId?: string, options: QueryControlOptions = {}) {
+    return useQuery({
+        queryKey: apiKeys.practiceHistory(qaSetId ?? ""),
+        enabled: Boolean(qaSetId) && (options.enabled ?? true),
+        queryFn: async () => {
+            const raw = await apiRequest<unknown[]>("/practice/session/history", {
+                query: { qaSetId: qaSetId ?? "" },
+            });
+            return Array.isArray(raw) ? raw.map(normalizePracticeFlowSession) : [];
+        },
+    });
+}
+
 export function useStartPracticeMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -901,6 +917,7 @@ export function useSubmitPracticeSessionMutation() {
             await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(variables.sessionId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
             await queryClient.invalidateQueries({ queryKey: apiKeys.existingPractice(detail.session.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.practiceHistory(detail.session.qaSetId) });
         },
     });
 }
@@ -923,7 +940,7 @@ export function useRestartPracticeMutation() {
 export function useAbandonPracticeMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: SubmitSessionInput) => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/abandon", {
+        mutationFn: async (input: AbandonPracticeInput) => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/abandon", {
             method: "POST",
             body: input,
         })),

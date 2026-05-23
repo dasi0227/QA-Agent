@@ -5,6 +5,7 @@ type AnswerCardProps = {
     items: PracticeFlowItem[];
     currentIndex: number;
     feedbackMode: PracticeFeedbackMode;
+    readonly?: boolean;
     onJump: (index: number) => void;
     onSubmitSession: () => void;
     onAbandon: () => void;
@@ -15,8 +16,8 @@ function statusClass(item: PracticeFlowItem, feedbackMode: PracticeFeedbackMode)
     if (item.unknown || item.status === "UNKNOWN" || item.result === "UNKNOWN") {
         return "unknown";
     }
-    if (feedbackMode === "AFTER_ALL" && !item.result) {
-        if (item.status === "DRAFT" || item.status === "SUBMITTED") return "answered";
+    if (feedbackMode === "AFTER_ALL" && item.status !== "SUBMITTED") {
+        if (item.status === "DRAFT") return "answered";
         return "unanswered";
     }
     if (item.result === "PERFECT" || item.result === "CORRECT" || item.result === "DEFICIENT") {
@@ -35,6 +36,7 @@ export function AnswerCard({
     items,
     currentIndex,
     feedbackMode,
+    readonly,
     onJump,
     onSubmitSession,
     onAbandon,
@@ -69,16 +71,18 @@ export function AnswerCard({
                 ))}
             </div>
 
-            <div className="answer-card__footer-actions">
-                <button type="button" className="answer-card__submit" onClick={onSubmitSession} disabled={submitting}>
-                    <SendHorizontal size={16} />
-                    <span>{submitting ? "判题中" : "提交整轮"}</span>
-                </button>
-                <button type="button" className="answer-card__abandon" onClick={onAbandon}>
-                    <LogOut size={15} />
-                    <span>放弃该轮</span>
-                </button>
-            </div>
+            {!readonly ? (
+                <div className="answer-card__footer-actions">
+                    <button type="button" className="answer-card__submit" onClick={onSubmitSession} disabled={submitting}>
+                        <SendHorizontal size={16} />
+                        <span>{submitting ? "判题中" : "提交整轮"}</span>
+                    </button>
+                    <button type="button" className="answer-card__abandon" onClick={onAbandon}>
+                        <LogOut size={15} />
+                        <span>放弃该轮</span>
+                    </button>
+                </div>
+            ) : null}
         </aside>
     );
 }

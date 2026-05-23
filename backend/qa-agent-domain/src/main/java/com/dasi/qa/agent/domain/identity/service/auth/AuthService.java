@@ -1,16 +1,9 @@
 package com.dasi.qa.agent.domain.identity.service.auth;
 
-import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
-import com.dasi.qa.agent.domain.util.IOssUtil;
-import com.dasi.qa.agent.domain.util.IEmailUtil;
-import com.dasi.qa.agent.domain.util.IJwtUtil;
-import com.dasi.qa.agent.domain.util.IRedisUtil;
-import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
-import static com.dasi.qa.agent.types.constant.StringConstant.VERIFY_CODE_FORMAT;
-
+import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
+import com.dasi.qa.agent.domain.util.*;
 import com.dasi.qa.agent.types.constant.RedisConstant;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.auth.LoginRequest;
 import com.dasi.qa.agent.types.dto.request.auth.RefreshRequest;
 import com.dasi.qa.agent.types.dto.request.auth.RegisterRequest;
@@ -19,16 +12,18 @@ import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.auth.AuthResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import com.dasi.qa.agent.domain.util.IIdUtil;
 import java.util.Random;
 
 @Service
 public class AuthService implements IAuthService {
+
+    private static final String VERIFY_CODE_FORMAT = "%06d";
 
     private final IIdentityRepository identityRepository;
     private final PasswordEncoder passwordEncoder;

@@ -14,4 +14,6 @@ public class PracticeAbandonRequest {
 
     @NotBlank(message = "sessionId 不能为空")
     private String sessionId;
+
+    private Integer durationSeconds;
 }

@@ -167,10 +167,11 @@ public class PracticeRepository implements IPracticeRepository {
         practiceSessionItemMapper.update(null, new LambdaUpdateWrapper<PracticeSessionItem>()
                 .set(PracticeSessionItem::getUserAnswer, request.getUserAnswer())
                 .set(PracticeSessionItem::getStatus, nextStatus)
+                .set(!"SUBMITTED".equals(item.getStatus()) && StringUtils.hasText(request.getUserAnswer()), PracticeSessionItem::getUnknown, false)
                 .set(PracticeSessionItem::getUpdatedAt, now)
                 .eq(PracticeSessionItem::getId, request.getSessionItemId())
                 .eq(PracticeSessionItem::getUserId, userId));
-        touchSession(session.getId(), request.getCurrentIndex(), userId, now);
+        touchSession(session.getId(), request.getCurrentIndex(), request.getDurationSeconds(), userId, now);
         refreshAnsweredCount(session.getId(), userId, now);
         return toFlowItem(requirePracticeSessionItem(request.getSessionItemId()), qaItemMapper.selectById(item.getQaItemId()));
     }
@@ -188,18 +189,18 @@ public class PracticeRepository implements IPracticeRepository {
                 .set(PracticeSessionItem::getUpdatedAt, now)
                 .eq(PracticeSessionItem::getId, request.getSessionItemId())
                 .eq(PracticeSessionItem::getUserId, userId));
-        touchSession(session.getId(), request.getCurrentIndex(), userId, now);
+        touchSession(session.getId(), request.getCurrentIndex(), request.getDurationSeconds(), userId, now);
         refreshAnsweredCount(session.getId(), userId, now);
         return toFlowItem(requirePracticeSessionItem(request.getSessionItemId()), qaItemMapper.selectById(item.getQaItemId()));
     }
 
     @Override
     @CacheEvict(cacheNames = {RedisConstant.PRACTICE_SESSION_CACHE, RedisConstant.PRACTICE_SESSION_ITEM_CACHE}, allEntries = true)
-    public PracticeItemResponse refreshPracticeItemProgress(String sessionId, String sessionItemId, Integer currentIndex, String userId) {
+    public PracticeItemResponse refreshPracticeItemProgress(String sessionId, String sessionItemId, Integer currentIndex, Integer durationSeconds, String userId) {
         PracticeSession session = requirePracticeSession(sessionId, userId);
         PracticeSessionItem item = requireSessionItem(sessionItemId, sessionId, userId);
         LocalDateTime now = LocalDateTime.now();
-        touchSession(session.getId(), currentIndex, userId, now);
+        touchSession(session.getId(), currentIndex, durationSeconds, userId, now);
         refreshAnsweredCount(session.getId(), userId, now);
         return toFlowItem(requirePracticeSessionItem(sessionItemId), qaItemMapper.selectById(item.getQaItemId()));
     }
@@ -218,19 +219,26 @@ public class PracticeRepository implements IPracticeRepository {
 
     @Override
     @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
-    public PracticeDetailResponse abandonPractice(String sessionId, String userId) {
+    public PracticeDetailResponse abandonPractice(String sessionId, Integer durationSeconds, String userId) {
         requirePracticeSession(sessionId, userId);
         LocalDateTime now = LocalDateTime.now();
-        practiceSessionMapper.update(null, new LambdaUpdateWrapper<PracticeSession>()
+        LambdaUpdateWrapper<PracticeSession> wrapper = new LambdaUpdateWrapper<PracticeSession>()
                 .set(PracticeSession::getStatus, "ABANDONED")
                 .set(PracticeSession::getUpdatedAt, now)
                 .eq(PracticeSession::getId, sessionId)
-                .eq(PracticeSession::getUserId, userId));
+                .eq(PracticeSession::getUserId, userId)
+                .eq(PracticeSession::getStatus, "IN_PROGRESS");
+        if (durationSeconds != null && durationSeconds >= 0) {
+            PracticeSession session = requirePracticeSession(sessionId, userId);
+            int nextDuration = Math.max(session.getDurationSeconds() == null ? 0 : session.getDurationSeconds(), durationSeconds);
+            wrapper.set(PracticeSession::getDurationSeconds, nextDuration);
+        }
+        practiceSessionMapper.update(null, wrapper);
         return detailPractice(sessionId, userId);
     }
 
     @Override
-    public boolean isPracticeSessionReadyForAssess(String sessionId, String userId) {
+    public boolean isPracticeSessionReadyForItemByItemAssess(String sessionId, String userId) {
         PracticeSession session = requirePracticeSession(sessionId, userId);
         if (!"IN_PROGRESS".equals(session.getStatus())) {
             return false;
@@ -238,8 +246,54 @@ public class PracticeRepository implements IPracticeRepository {
         Long remaining = practiceSessionItemMapper.selectCount(new LambdaQueryWrapper<PracticeSessionItem>()
                 .eq(PracticeSessionItem::getSessionId, sessionId)
                 .eq(PracticeSessionItem::getUserId, userId)
-                .notIn(PracticeSessionItem::getStatus, List.of("SUBMITTED", "UNKNOWN")));
+                .ne(PracticeSessionItem::getStatus, "SUBMITTED"));
         return remaining != null && remaining == 0;
+    }
+
+    @Override
+    public boolean isPracticeSessionReadyForAfterAllAssess(String sessionId, String userId) {
+        PracticeSession session = requirePracticeSession(sessionId, userId);
+        if (!"IN_PROGRESS".equals(session.getStatus())) {
+            return false;
+        }
+        List<PracticeSessionItem> items = practiceSessionItemMapper.selectList(new LambdaQueryWrapper<PracticeSessionItem>()
+                .eq(PracticeSessionItem::getSessionId, sessionId)
+                .eq(PracticeSessionItem::getUserId, userId));
+        return !items.isEmpty() && items.stream()
+                .allMatch(item -> Boolean.TRUE.equals(item.getUnknown()) || StringUtils.hasText(item.getUserAnswer()));
+    }
+
+    @Override
+    public List<PracticeItemResponse> queryPracticeItemsForFeedback(String sessionId, String userId) {
+        requirePracticeSession(sessionId, userId);
+        List<PracticeSessionItem> items = practiceSessionItemMapper.selectList(new LambdaQueryWrapper<PracticeSessionItem>()
+                .eq(PracticeSessionItem::getSessionId, sessionId)
+                .eq(PracticeSessionItem::getUserId, userId)
+                .orderByAsc(PracticeSessionItem::getSortOrder));
+        Map<String, QaItem> qaItemMap = items.isEmpty()
+                ? new HashMap<>()
+                : qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
+                        .in(QaItem::getId, items.stream().map(PracticeSessionItem::getQaItemId).toList())
+                        .eq(QaItem::getUserId, userId))
+                .stream()
+                .collect(Collectors.toMap(QaItem::getId, Function.identity()));
+        return items.stream()
+                .map(item -> toFlowItem(item, qaItemMap.get(item.getQaItemId())))
+                .toList();
+    }
+
+    @Override
+    public List<PracticeSessionResponse> queryPracticeHistory(String qaSetId, String userId) {
+        requireQaSet(qaSetId, userId);
+        return practiceSessionMapper.selectList(new LambdaQueryWrapper<PracticeSession>()
+                        .eq(PracticeSession::getQaSetId, qaSetId)
+                        .eq(PracticeSession::getUserId, userId)
+                        .eq(PracticeSession::getStatus, "FINISHED")
+                        .orderByDesc(PracticeSession::getFinishedAt)
+                        .orderByDesc(PracticeSession::getCreatedAt))
+                .stream()
+                .map(session -> toResponse(session, PracticeSessionResponse.class))
+                .toList();
     }
 
     @Override
@@ -300,6 +354,7 @@ public class PracticeRepository implements IPracticeRepository {
                 .status(session.getStatus())
                 .selectedModuleTag(session.getSelectedModule())
                 .currentIndex(session.getCurrentIndex())
+                .durationSeconds(session.getDurationSeconds())
                 .totalQuestions(session.getTotalQuestions())
                 .answeredCount(session.getAnsweredCount())
                 .score(session.getScore())
@@ -392,14 +447,20 @@ public class PracticeRepository implements IPracticeRepository {
         return item;
     }
 
-    private void touchSession(String sessionId, Integer currentIndex, String userId, LocalDateTime now) {
+    private void touchSession(String sessionId, Integer currentIndex, Integer durationSeconds, String userId, LocalDateTime now) {
+        PracticeSession session = requirePracticeSession(sessionId, userId);
         LambdaUpdateWrapper<PracticeSession> wrapper = new LambdaUpdateWrapper<PracticeSession>()
                 .set(PracticeSession::getLastActiveAt, now)
                 .set(PracticeSession::getUpdatedAt, now)
                 .eq(PracticeSession::getId, sessionId)
-                .eq(PracticeSession::getUserId, userId);
+                .eq(PracticeSession::getUserId, userId)
+                .eq(PracticeSession::getStatus, "IN_PROGRESS");
         if (currentIndex != null) {
             wrapper.set(PracticeSession::getCurrentIndex, currentIndex);
+        }
+        if (durationSeconds != null && durationSeconds >= 0) {
+            int nextDuration = Math.max(session.getDurationSeconds() == null ? 0 : session.getDurationSeconds(), durationSeconds);
+            wrapper.set(PracticeSession::getDurationSeconds, nextDuration);
         }
         practiceSessionMapper.update(null, wrapper);
     }

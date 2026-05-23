@@ -320,6 +320,23 @@
     grid-template-columns: 1fr;
   }
 
+  .assessment-generating__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-history-page__head,
+  .practice-history-card {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-history-page__head {
+    display: grid;
+  }
+
+  .practice-history-card__metrics {
+    justify-content: flex-start;
+  }
+
   .question-workspace__keyword-popover {
     top: calc(100% + 10px);
     left: 0;

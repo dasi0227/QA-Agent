@@ -9,12 +9,17 @@ import com.dasi.qa.agent.types.dto.request.practice.PracticeSubmitRequest;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeItemResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeStateResponse;
 import com.dasi.qa.agent.types.dto.response.practice.PracticeDetailResponse;
+import com.dasi.qa.agent.types.dto.response.practice.PracticeSessionResponse;
+
+import java.util.List;
 
 public interface IPracticeFlowService {
 
     PracticeDetailResponse init(PracticeInitRequest request);
 
     PracticeStateResponse exist(String qaSetId);
+
+    List<PracticeSessionResponse> history(String qaSetId);
 
     PracticeDetailResponse detail(String sessionId);
 

@@ -296,6 +296,9 @@ export function QASetPage() {
                                     <LinkButton to={`/quiz?questionSetId=${selectedSetQuery.data.id}`} variant="primary">
                                         开始练习
                                     </LinkButton>
+                                    <LinkButton to={`/repository/qa-set/${selectedSetQuery.data.id}/practice-history`} variant="soft">
+                                        练习历史
+                                    </LinkButton>
                                     <LinkButton
                                         to={firstItemId ? `/repository/question?qaSetId=${selectedSetQuery.data.id}&itemId=${firstItemId}` : "#"}
                                         variant="soft"

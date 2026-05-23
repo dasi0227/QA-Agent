@@ -1,7 +1,7 @@
-import { ArrowLeft, ArrowRight, CircleHelp, SendHorizontal } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleHelp, Save, SendHorizontal } from "lucide-react";
 import { Eye, EyeOff, Lightbulb } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { PracticeFlowItem } from "@/lib/api/types";
+import type { PracticeFeedbackMode, PracticeFlowItem } from "@/lib/api/types";
 import { BaseButton } from "@/components/base/button";
 import { TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
@@ -12,6 +12,8 @@ type QuestionWorkspaceProps = {
     index: number;
     total: number;
     answer: string;
+    feedbackMode: PracticeFeedbackMode;
+    showFeedback?: boolean;
     submitting?: boolean;
     readonly?: boolean;
     onAnswerChange: (value: string) => void;
@@ -19,6 +21,7 @@ type QuestionWorkspaceProps = {
     onNext: () => void;
     onUnknown: () => void;
     onSubmit: () => void;
+    onSaveAndNext: () => void;
 };
 
 export function QuestionWorkspace({
@@ -26,6 +29,8 @@ export function QuestionWorkspace({
     index,
     total,
     answer,
+    feedbackMode,
+    showFeedback,
     submitting,
     readonly,
     onAnswerChange,
@@ -33,8 +38,10 @@ export function QuestionWorkspace({
     onNext,
     onUnknown,
     onSubmit,
+    onSaveAndNext,
 }: QuestionWorkspaceProps) {
     const submitted = item.status === "SUBMITTED";
+    const afterAll = feedbackMode === "AFTER_ALL";
     const [keywordsOpen, setKeywordsOpen] = useState(false);
     const [hintOpen, setHintOpen] = useState(false);
     const moduleLabel = useMemo(() => {
@@ -107,12 +114,18 @@ export function QuestionWorkspace({
                 <BaseButton variant="soft" leadingIcon={<CircleHelp size={16} />} onClick={onUnknown} disabled={readonly || submitted || submitting}>
                     标记不会
                 </BaseButton>
-                <BaseButton variant="primary" leadingIcon={<SendHorizontal size={16} />} onClick={onSubmit} disabled={readonly || submitted || submitting}>
-                    {submitted ? "已提交" : submitting ? "判题中" : "提交本题"}
-                </BaseButton>
+                {afterAll ? (
+                    <BaseButton variant="primary" leadingIcon={<Save size={16} />} onClick={onSaveAndNext} disabled={readonly || submitting}>
+                        {submitting ? "保存中" : "保存并下一题"}
+                    </BaseButton>
+                ) : (
+                    <BaseButton variant="primary" leadingIcon={<SendHorizontal size={16} />} onClick={onSubmit} disabled={readonly || submitted || submitting}>
+                        {submitted ? "已提交" : submitting ? "判题中" : "提交本题"}
+                    </BaseButton>
+                )}
             </div>
 
-            <QuestionFeedbackPanel item={item} />
+            {showFeedback ? <QuestionFeedbackPanel item={item} /> : null}
         </main>
     );
 }

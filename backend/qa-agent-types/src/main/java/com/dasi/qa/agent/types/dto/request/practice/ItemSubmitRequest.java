@@ -21,4 +21,6 @@ public class ItemSubmitRequest {
     private String userAnswer;
 
     private Integer currentIndex;
+
+    private Integer durationSeconds;
 }

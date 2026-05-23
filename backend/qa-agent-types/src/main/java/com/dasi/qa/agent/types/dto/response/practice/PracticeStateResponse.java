@@ -22,6 +22,7 @@ public class PracticeStateResponse {
     private String status;
     private String selectedModuleTag;
     private Integer currentIndex;
+    private Integer durationSeconds;
     private Integer totalQuestions;
     private Integer answeredCount;
     private Integer score;

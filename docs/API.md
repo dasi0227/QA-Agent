@@ -299,13 +299,14 @@
 | --- | --- | --- | --- |
 | POST | `/practice/session/init` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?` |
 | GET | `/practice/session/exist?qaSetId=...` | 是 | `qaSetId` |
+| GET | `/practice/session/history?qaSetId=...` | 是 | `qaSetId` |
 | GET | `/practice/session/detail?sessionId=...` | 是 | `sessionId` |
-| POST | `/practice/qaSetEntry/save` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
-| POST | `/practice/qaSetEntry/unknown` | 是 | 同 `/practice/qaSetEntry/save` |
-| POST | `/practice/qaSetEntry/answer` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex` |
-| POST | `/practice/session/submit` | 是 | `sessionId` |
+| POST | `/practice/item/save` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex`, `durationSeconds?` |
+| POST | `/practice/item/unknown` | 是 | 同 `/practice/item/save` |
+| POST | `/practice/item/answer` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex`, `durationSeconds?` |
+| POST | `/practice/session/submit` | 是 | `sessionId`, `durationSeconds?` |
 | POST | `/practice/session/restart` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?`, `sessionId?` |
-| POST | `/practice/session/abandon` | 是 | `sessionId` |
+| POST | `/practice/session/abandon` | 是 | `sessionId`, `durationSeconds?` |
 
 响应 `PracticeSessionDetailResponse`：
 
@@ -330,11 +331,13 @@
 
 说明：
 
-1. `/practice/qaSetEntry/save` 只保存草稿，不触发 Agent。
-2. 逐题反馈模式下 `/practice/qaSetEntry/answer` 调用 FeedbackAgent，并由 `FeedbackSaver` 写入 `practice_session_item`。
-3. `/practice/session/submit` 调用 AssessAgent，并由 `AssessSaver` 写入 `practice_session`、将 session 标记为 `FINISHED`。
-4. `/practice/session/restart` 会把同题集未完成会话标记为 `ABANDONED` 后创建新会话。
-5. 进度恢复以服务端 `detail` 为准，前端 localStorage 只保存最近 session 快照。
+1. `/practice/item/save` 只保存草稿、当前题号和累计用时，不触发 Agent。
+2. `ITEM_BY_ITEM` 模式下 `/practice/item/answer` 调用 FeedbackAgent，并由 `FeedbackSaver` 写入 `practice_session_item`。
+3. `AFTER_ALL` 模式做题阶段不调用 `/practice/item/answer`；提交本轮时 `/practice/session/submit` 逐题调用 FeedbackAgent，再调用 AssessAgent。
+4. `/practice/session/submit` 由 `AssessSaver` 写入 `practice_session`，并将 session 标记为 `FINISHED`。
+5. `/practice/session/history` 只返回当前用户当前题集的 `FINISHED` 会话。
+6. `/practice/session/restart` 会把同题集未完成会话标记为 `ABANDONED` 后创建新会话。
+7. 进度恢复以服务端 `detail` 为准，前端 localStorage 只保存最近 session 快照。
 
 ### 6.2 练习会话查询接口
 
@@ -346,6 +349,6 @@
 
 ### 6.3 练习题接口说明
 
-练习题明细不再暴露独立 session-qaSetEntry 查询接口。刷题页统一通过 `GET /practice/session/detail?sessionId=...` 获取 session、题目快照、作答状态、反馈和结果。
+练习题明细不再暴露独立 session item 查询接口。刷题页统一通过 `GET /practice/session/detail?sessionId=...` 获取 session、题目快照、作答状态、反馈和结果。
 
-练习题的草稿保存、不会标记和单题提交统一走 `/practice/qaSetEntry/*`。
+练习题的草稿保存、不会标记和单题提交统一走 `/practice/item/*`。

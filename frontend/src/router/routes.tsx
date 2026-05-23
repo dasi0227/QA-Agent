@@ -17,6 +17,8 @@ const DocumentPage = lazy(() => import("@/pages/DocumentPage").then((module) => 
 const CreatePage = lazy(() => import("@/pages/CreatePage").then((module) => ({ default: module.CreatePage })));
 const PracticePage = lazy(() => import("@/pages/PracticePage").then((module) => ({ default: module.PracticePage })));
 const ResultPage = lazy(() => import("@/pages/ResultPage").then((module) => ({ default: module.ResultPage })));
+const ReviewPage = lazy(() => import("@/pages/ReviewPage").then((module) => ({ default: module.ReviewPage })));
+const PracticeHistoryPage = lazy(() => import("@/pages/PracticeHistoryPage").then((module) => ({ default: module.PracticeHistoryPage })));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
 
 function withRouteLoading(element: ReactElement) {
@@ -50,6 +52,7 @@ export const router = createBrowserRouter([
           { path: "/repository", element: <Navigate to="/repository/qa-set" replace /> },
           { path: "/repository/qa-set", element: withRouteLoading(<QASetPage />) },
           { path: "/repository/qa-set/:id", element: withRouteLoading(<QASetPage />) },
+          { path: "/repository/qa-set/:qaSetId/practice-history", element: withRouteLoading(<PracticeHistoryPage />) },
           { path: "/repository/question", element: withRouteLoading(<QuestionPage />) },
           { path: "/repository/document", element: withRouteLoading(<DocumentPage />) },
           { path: "/qa", element: <Navigate to="/quiz" replace /> },
@@ -62,6 +65,7 @@ export const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       { path: "/practice/:sessionId", element: withRouteLoading(<PracticePage />) },
+      { path: "/practice/:sessionId/review", element: withRouteLoading(<ReviewPage />) },
       {
         element: <FlowShell />,
         children: [

@@ -54,6 +54,12 @@ public class PracticeController {
         return Result.success(practiceFlowService.exist(qaSetId));
     }
 
+    // 获取已完成练习历史
+    @GetMapping("/session/history")
+    public Result<List<PracticeSessionResponse>> history(@RequestParam("qaSetId") String qaSetId) {
+        return Result.success(practiceFlowService.history(qaSetId));
+    }
+
     // 获取练习信息
     @GetMapping("/session/detail")
     public Result<PracticeDetailResponse> detail(@RequestParam("sessionId") String sessionId) {

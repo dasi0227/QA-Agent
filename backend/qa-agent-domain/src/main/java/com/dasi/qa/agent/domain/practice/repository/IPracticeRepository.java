@@ -27,13 +27,19 @@ public interface IPracticeRepository {
 
     PracticeItemResponse markUnknownOnly(ItemSaveRequest request, String userId);
 
-    PracticeItemResponse refreshPracticeItemProgress(String sessionId, String sessionItemId, Integer currentIndex, String userId);
+    PracticeItemResponse refreshPracticeItemProgress(String sessionId, String sessionItemId, Integer currentIndex, Integer durationSeconds, String userId);
 
     void abandonActivePractice(String qaSetId, String userId);
 
-    PracticeDetailResponse abandonPractice(String sessionId, String userId);
+    PracticeDetailResponse abandonPractice(String sessionId, Integer durationSeconds, String userId);
 
-    boolean isPracticeSessionReadyForAssess(String sessionId, String userId);
+    boolean isPracticeSessionReadyForItemByItemAssess(String sessionId, String userId);
+
+    boolean isPracticeSessionReadyForAfterAllAssess(String sessionId, String userId);
+
+    List<PracticeItemResponse> queryPracticeItemsForFeedback(String sessionId, String userId);
+
+    List<PracticeSessionResponse> queryPracticeHistory(String qaSetId, String userId);
 
     List<PracticeSessionResponse> queryPracticeSession(PracticeQueryRequest request, String userId);
 }

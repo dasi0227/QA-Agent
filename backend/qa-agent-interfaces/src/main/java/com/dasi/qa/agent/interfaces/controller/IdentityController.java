@@ -17,11 +17,11 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 
-import static com.dasi.qa.agent.types.constant.StringConstant.AVATAR_ROOT_PATH;
-
 @RestController
 @RequestMapping("/identity")
 public class IdentityController {
+
+    private static final String AVATAR_ROOT_PATH = "avatar/";
 
     private final IProfileCrudService identityService;
     private final IOssUtil aliOssUtil;
