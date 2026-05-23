@@ -977,8 +977,8 @@
 
 .qa-set-create-option:hover {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.68);
-  border-color: rgba(168, 116, 56, 0.28);
+  background: linear-gradient(180deg, rgba(246, 237, 226, 0.98) 0%, rgba(241, 230, 214, 0.98) 100%);
+  border-color: rgba(168, 116, 56, 0.24);
   box-shadow: 0 16px 34px rgba(77, 63, 40, 0.08);
 }
 
@@ -990,11 +990,6 @@
   box-shadow: none;
 }
 
-
-.qa-set-create-option--primary {
-  background: linear-gradient(180deg, rgba(246, 237, 226, 0.98) 0%, rgba(241, 230, 214, 0.98) 100%);
-  border-color: rgba(168, 116, 56, 0.24);
-}
 
 
 .qa-set-create-option__icon {

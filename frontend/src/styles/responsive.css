@@ -304,16 +304,18 @@
 
   .practice-main {
     grid-template-columns: 1fr;
+    overflow: auto;
   }
 
   .answer-card {
     position: static;
     min-height: auto;
+    overflow: visible;
   }
 
   .question-workspace {
-    min-height: auto;
     padding: 20px;
+    overflow: visible;
   }
 
   .practice-feedback__grid {

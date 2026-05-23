@@ -432,7 +432,7 @@ export function QASetPage() {
 
                             <button
                                 type="button"
-                                className="qa-set-create-option qa-set-create-option--primary"
+                                className="qa-set-create-option"
                                 onClick={() => navigate("/create")}
                             >
                                 <span className="qa-set-create-option__icon"><Sparkles size={20} /></span>

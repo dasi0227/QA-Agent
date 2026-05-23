@@ -204,21 +204,21 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 322px;
-  align-items: start;
   gap: 18px;
+  overflow: hidden;
 }
 
 
 .question-workspace {
-  min-height: clamp(600px, calc(100dvh - 380px), 780px);
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 28px;
   border: 1px solid rgba(67, 59, 48, 0.12);
   border-radius: 22px;
-  background: rgba(255, 252, 247, 0.9);
+  background: #fffcf7;
   box-shadow: none;
+  overflow-y: auto;
 }
 
 
@@ -561,7 +561,6 @@
 .answer-card {
   position: sticky;
   top: 18px;
-  min-height: clamp(600px, calc(100dvh - 380px), 780px);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -570,6 +569,7 @@
   background: #2f2a24;
   color: #f7f1e8;
   box-shadow: none;
+  overflow-y: auto;
 }
 
 

@@ -517,5 +517,10 @@
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin: 18px 0 28px;
+  margin: 18px 0 5px;
+}
+
+.result-spacer {
+  flex: none;
+  height: 5px;
 }

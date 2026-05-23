@@ -286,6 +286,7 @@ export function ResultPage() {
                     {restartPracticeMutation.isPending ? "重新开始中" : "重新练习"}
                 </BaseButton>
             </div>
+            <div className="result-spacer" />
         </div>
     );
 }
