@@ -24,13 +24,11 @@ public class DocumentChunk {
     
     private Integer chunkIndex;
     
-    private String titlePath;
-    
+    private String headingPath;
+
     private String content;
-    
+
     private String summary;
-    
-    private String moduleTagsJson;
 
     private LocalDateTime createdAt;
     

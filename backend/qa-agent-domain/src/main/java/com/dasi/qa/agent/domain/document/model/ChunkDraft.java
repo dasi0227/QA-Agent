@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,9 +13,8 @@ public class ChunkDraft {
 
     private String chunkId;
     private int chunkIndex;
-    private String titlePath;
+    private String headingPath;
     private String content;
-    private List<String> moduleTags;
     private String summary;
 
 }

@@ -16,9 +16,8 @@ public class DocumentChunkRequest extends BaseRequest {
 
     private String documentId;
     private Integer chunkIndex;
-    private String titlePath;
+    private String headingPath;
     private String content;
     private String summary;
-    private String moduleTagsJson;
     private String embeddingVector;
 }

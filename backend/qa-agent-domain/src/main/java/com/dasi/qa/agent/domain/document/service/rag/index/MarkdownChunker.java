@@ -5,8 +5,8 @@ import com.vladsch.flexmark.ast.Heading;
 import com.vladsch.flexmark.ast.Paragraph;
 import com.vladsch.flexmark.ast.FencedCodeBlock;
 import com.vladsch.flexmark.ast.IndentedCodeBlock;
-import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Block;
+import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 import org.springframework.stereotype.Component;
@@ -43,8 +43,8 @@ public class MarkdownChunker {
         for (Node node : document.getChildren()) {
             if (node instanceof Heading heading) {
                 if (!currentContent.isEmpty()) {
-                    chunks.addAll(splitByLength(chunkIndex, buildTitlePath(headingStack),
-                            currentContent.toString().trim(), headingStack));
+                    chunks.addAll(splitByLength(chunkIndex, buildHeadingPath(headingStack),
+                            currentContent.toString().trim()));
                     chunkIndex = chunks.size();
                     currentContent.setLength(0);
                 }
@@ -82,8 +82,8 @@ public class MarkdownChunker {
         }
 
         if (!currentContent.isEmpty()) {
-            chunks.addAll(splitByLength(chunkIndex, buildTitlePath(headingStack),
-                    currentContent.toString().trim(), headingStack));
+            chunks.addAll(splitByLength(chunkIndex, buildHeadingPath(headingStack),
+                    currentContent.toString().trim()));
         }
 
         for (int i = 0; i < chunks.size(); i++) {
@@ -93,16 +93,14 @@ public class MarkdownChunker {
         return chunks;
     }
 
-    private String buildTitlePath(List<String> headingStack) {
+    private String buildHeadingPath(List<String> headingStack) {
         return String.join(" > ", headingStack);
     }
 
-    private List<ChunkDraft> splitByLength(int startIndex, String titlePath,
-                                           String content, List<String> moduleTags) {
+    private List<ChunkDraft> splitByLength(int startIndex, String headingPath, String content) {
         List<ChunkDraft> result = new ArrayList<>();
         if (content.length() <= MAX_CHUNK_LENGTH) {
-            result.add(new ChunkDraft("", startIndex, titlePath, content,
-                    new ArrayList<>(moduleTags), ""));
+            result.add(new ChunkDraft("", startIndex, headingPath, content, ""));
             return result;
         }
 
@@ -116,8 +114,7 @@ public class MarkdownChunker {
                 continue;
             }
             if (buf.length() + section.length() > MAX_CHUNK_LENGTH && !buf.isEmpty()) {
-                result.add(new ChunkDraft("", idx++, titlePath, buf.toString().trim(),
-                        new ArrayList<>(moduleTags), ""));
+                result.add(new ChunkDraft("", idx++, headingPath, buf.toString().trim(), ""));
                 buf.setLength(0);
             }
             if (!buf.isEmpty()) {
@@ -127,8 +124,7 @@ public class MarkdownChunker {
         }
 
         if (!buf.isEmpty()) {
-            result.add(new ChunkDraft("", idx, titlePath, buf.toString().trim(),
-                    new ArrayList<>(moduleTags), ""));
+            result.add(new ChunkDraft("", idx, headingPath, buf.toString().trim(), ""));
         }
 
         return result;

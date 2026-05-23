@@ -121,10 +121,9 @@
 | `documentId` | 所属资料 ID |
 | `fileName` | 所属资料文件名 |
 | `chunkIndex` | 在资料内的顺序号 |
-| `titlePath` | 标题路径，如 `Redis > 持久化 > RDB` |
+| `headingPath` | 章节路径，如 `Redis > 持久化 > RDB` |
 | `content` | 切片正文 |
 | `summary` | AI 摘要（≤80 字） |
-| `moduleTagsJson` | 模块标签 JSON 数组字符串 |
 
 ## 5. QA
 

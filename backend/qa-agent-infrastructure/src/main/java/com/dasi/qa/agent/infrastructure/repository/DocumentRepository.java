@@ -200,12 +200,9 @@ public class DocumentRepository implements IDocumentRepository {
             entity.setDocumentId(documentId);
             entity.setUserId(userId);
             entity.setChunkIndex(draft.getChunkIndex());
-            entity.setTitlePath(draft.getTitlePath());
+            entity.setHeadingPath(draft.getHeadingPath());
             entity.setContent(draft.getContent());
             entity.setSummary(draft.getSummary());
-            if (draft.getModuleTags() != null && !draft.getModuleTags().isEmpty()) {
-                entity.setModuleTagsJson(toJsonArray(draft.getModuleTags()));
-            }
             entity.setCreatedAt(LocalDateTime.now());
             entity.setUpdatedAt(LocalDateTime.now());
             documentChunkMapper.insert(entity);
@@ -237,7 +234,7 @@ public class DocumentRepository implements IDocumentRepository {
     public void batchInsertChunkSearch(List<ChunkSearchRow> rows) {
         String sql = """
                 INSERT INTO chunk_search (chunk_id, document_id, user_id, chunk_index,
-                    title_path, content, summary, module_tags_json, embedding, content_tsv,
+                    heading_path, content, summary, embedding, content_tsv,
                     created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::vector, to_tsvector('zh', ?), NOW(), NOW())
                 """;
@@ -248,10 +245,9 @@ public class DocumentRepository implements IDocumentRepository {
                     row.getDocumentId(),
                     row.getUserId(),
                     row.getChunkIndex(),
-                    row.getTitlePath(),
+                    row.getHeadingPath(),
                     row.getContent(),
                     row.getSummary(),
-                    toJsonArray(row.getModuleTags()),
                     vectorToString(row.getEmbedding()),
                     row.getContent()
             });
@@ -269,8 +265,8 @@ public class DocumentRepository implements IDocumentRepository {
     public List<ChunkSearchRow> semanticSearch(float[] queryVector, String userId,
             List<String> docIds, int limit) {
         StringBuilder sql = new StringBuilder("""
-                SELECT chunk_id, document_id, user_id, chunk_index, title_path,
-                       content, summary, module_tags_json,
+                SELECT chunk_id, document_id, user_id, chunk_index, heading_path,
+                       content, summary,
                        1 - (embedding <=> ?::vector) AS vector_score,
                        0 AS keyword_score
                 FROM chunk_search
@@ -291,8 +287,8 @@ public class DocumentRepository implements IDocumentRepository {
     public List<ChunkSearchRow> keywordSearch(String queryText, String userId,
             List<String> docIds, int limit) {
         StringBuilder sql = new StringBuilder("""
-                SELECT chunk_id, document_id, user_id, chunk_index, title_path,
-                       content, summary, module_tags_json,
+                SELECT chunk_id, document_id, user_id, chunk_index, heading_path,
+                       content, summary,
                        0 AS vector_score,
                        ts_rank(content_tsv, to_tsquery('zh', ?)) AS keyword_score
                 FROM chunk_search
@@ -433,15 +429,9 @@ public class DocumentRepository implements IDocumentRepository {
             row.setDocumentId(rs.getString("document_id"));
             row.setUserId(rs.getString("user_id"));
             row.setChunkIndex(rs.getInt("chunk_index"));
-            row.setTitlePath(rs.getString("title_path"));
+            row.setHeadingPath(rs.getString("heading_path"));
             row.setContent(rs.getString("content"));
             row.setSummary(rs.getString("summary"));
-            String tagsJson = rs.getString("module_tags_json");
-            if (tagsJson != null) {
-                row.setModuleTags(parseJsonArray(tagsJson));
-            } else {
-                row.setModuleTags(List.of());
-            }
             row.setVectorScore((float) rs.getDouble("vector_score"));
             row.setKeywordScore((float) rs.getDouble("keyword_score"));
             return row;

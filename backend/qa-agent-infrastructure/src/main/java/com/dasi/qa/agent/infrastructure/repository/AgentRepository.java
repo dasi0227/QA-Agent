@@ -775,7 +775,7 @@ public class AgentRepository implements IAgentRepository {
                 results.add(ChunkVO.builder()
                         .chunkId(chunk.getId())
                         .documentId(chunk.getDocumentId())
-                        .titlePath(chunk.getTitlePath())
+                        .titlePath(chunk.getHeadingPath())
                         .summary(chunk.getSummary())
                         .content(chunk.getContent())
                         .build());

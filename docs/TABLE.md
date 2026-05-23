@@ -117,10 +117,9 @@
 | `document_id` | `CHAR(36)` | 外键到 `source_document.id` |
 | `user_id` | `CHAR(36)` | 用户隔离字段 |
 | `chunk_index` | `INT` | 在资料中的顺序 |
-| `title_path` | `VARCHAR(500)` | 标题路径，如 `Redis > 跳表` |
+| `heading_path` | `VARCHAR(500)` | 章节路径，如 `Redis > 跳表` |
 | `content` | `LONGTEXT` | 切片正文 |
 | `summary` | `LONGTEXT` | 由 summarizer LLM 生成的摘要 |
-| `module_tags_json` | `JSON` | 从标题路径提取的标签数组 |
 | `created_at` | `DATETIME` | 创建时间 |
 | `updated_at` | `DATETIME` | 更新时间 |
 
@@ -342,10 +341,9 @@
 | `document_id` | `VARCHAR(36)` | 资料 ID |
 | `user_id` | `VARCHAR(36)` | 用户隔离字段 |
 | `chunk_index` | `INT` | 切片顺序 |
-| `title_path` | `VARCHAR(500)` | 标题路径 |
+| `heading_path` | `VARCHAR(500)` | 章节路径 |
 | `content` | `TEXT` | 切片正文 |
 | `summary` | `TEXT` | 切片摘要 |
-| `module_tags_json` | `JSONB` | 标签数组 |
 | `embedding` | `vector(1024)` | DashScope embedding |
 | `content_tsv` | `TSVECTOR` | zhparser 全文索引字段 |
 | `created_at` | `TIMESTAMP` | 创建时间 |
@@ -357,7 +355,7 @@
 2. `idx_cs_tsv`：GIN 全文索引
 3. `idx_cs_user`
 4. `idx_cs_document`
-5. `idx_cs_title_path`
+5. `idx_cs_heading_path`
 
 ## 5. 与代码相关的几个注意点
 

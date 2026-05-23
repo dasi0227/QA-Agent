@@ -76,14 +76,14 @@ public class RagEvidenceProvider {
         private String chunkId;
         private String content;
         private String summary;
-        private List<String> moduleTags;
+        private String headingPath;
 
         static EvidenceItem from(SearchResult result) {
             return EvidenceItem.builder()
                     .chunkId(result.getChunkId())
                     .content(result.getContent())
                     .summary(result.getSummary())
-                    .moduleTags(result.getModuleTags())
+                    .headingPath(result.getHeadingPath())
                     .build();
         }
     }

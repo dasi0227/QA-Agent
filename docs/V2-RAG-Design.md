@@ -101,7 +101,7 @@ DocumentController.upload/update
 `MarkdownChunker` 的行为：
 
 1. 用 flexmark 解析 Markdown AST
-2. 按 H1 ~ H6 标题层级维护 `titlePath`
+2. 按 H1 ~ H6 标题层级维护 `headingPath`
 3. 段落、围栏代码块、缩进代码块都可进入切片正文
 4. 单切片正文超过 `2000` 字符时，按空行二次切分
 5. 最终为每个切片补 `chunkIndex`
@@ -112,9 +112,8 @@ DocumentController.upload/update
 | --- | --- |
 | `chunkId` | 后续由 `IndexService` 填 UUID |
 | `chunkIndex` | 顺序索引 |
-| `titlePath` | 标题路径 |
+| `headingPath` | 章节路径 |
 | `content` | 切片正文 |
-| `moduleTags` | 当前实现直接复用标题层级 |
 | `summary` | 后续补摘要 |
 
 ## 5. 摘要与向量化
@@ -146,10 +145,9 @@ DocumentController.upload/update
 保存业务真数据：
 
 1. `chunk_id`
-2. `title_path`
+2. `heading_path`
 3. `content`
 4. `summary`
-5. `module_tags_json`
 
 ### 6.2 PostgreSQL `chunk_search`
 
@@ -163,8 +161,6 @@ DocumentController.upload/update
 
 1. `embedding` 用 pgvector 的 `?::vector`
 2. `content_tsv` 用 `to_tsvector('zh', content)`
-3. `module_tags_json` 用 `JSONB`
-
 ## 7. 搜索链路
 
 ```text

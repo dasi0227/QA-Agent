@@ -119,10 +119,9 @@ public class IndexService implements IIndexService {
             row.setDocumentId(documentId);
             row.setUserId(userId);
             row.setChunkIndex(draft.getChunkIndex());
-            row.setTitlePath(draft.getTitlePath());
+            row.setHeadingPath(draft.getHeadingPath());
             row.setContent(draft.getContent());
             row.setSummary(draft.getSummary());
-            row.setModuleTags(draft.getModuleTags());
             row.setEmbedding(embeddings.get(i));
             searchRows.add(row);
         }
