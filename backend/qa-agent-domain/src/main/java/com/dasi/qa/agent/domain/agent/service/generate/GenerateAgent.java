@@ -125,6 +125,8 @@ public class GenerateAgent implements IGenerateAgent {
         eventPublisher.publishEvent(GeneratePhase.INIT, GenerateStatus.PROCESSING, "生成任务已创建");
 
         try {
+            Thread.sleep(1000);
+
             // 读取并构建用户专属模型
             ChatModelListener tokenListener = new ChatModelListener() {
                 @Override

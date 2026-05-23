@@ -291,7 +291,6 @@ export function CreatePage() {
                                             <X size={14} />
                                         </button>
                                         <div className="create-page__doc-card-name">{doc.fileName}</div>
-                                        <div className="create-page__doc-card-meta">{doc.fileType || "未知类型"}</div>
                                     </div>
                                 ))}
                             </div>

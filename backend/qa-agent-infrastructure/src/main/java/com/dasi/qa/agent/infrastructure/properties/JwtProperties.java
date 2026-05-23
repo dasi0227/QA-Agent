@@ -11,7 +11,7 @@ public class JwtProperties {
 
     private String issuer;
 
-    private Long accessTokenTtlMinutes = 15L;
+    private Long accessTokenTtlMinutes = 30L;
 
     private Long refreshTokenTtlDays = 7L;
 }
