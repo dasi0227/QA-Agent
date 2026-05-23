@@ -263,7 +263,8 @@
 | `duration_seconds` | `INT` | 累计活跃作答秒数，以前端传入累计值和后端 max 规则持久化，不用 `finished_at - started_at` 推算 |
 | `score` | `INT` | 整轮平均分 |
 | `accuracy` | `DECIMAL(10,2)` | 整轮达标率 |
-| `correct_count` | `INT` | `PERFECT + CORRECT` 数量 |
+| `perfect_count` | `INT` | `PERFECT` 数量 |
+| `correct_count` | `INT` | `CORRECT` 数量 |
 | `deficient_count` | `INT` | `DEFICIENT` 数量 |
 | `wrong_count` | `INT` | `WRONG` 数量 |
 | `unknown_count` | `INT` | `UNKNOWN` 数量 |

@@ -22,21 +22,24 @@ GenerateAgent 负责把用户资料生成结构化问答集，并通过 SSE 实�
 
 ## 2. 执行入口
 
-入口接口：`POST /qa/set/create`
+生成分两步：
 
-`QaController` 的职责只有：
+1. `POST /qa/set/task` — Controller 生成 `taskId`，调用 `createGenerationTask()` 创建任务记录，同步返回 `{ taskId }`
+2. `POST /qa/set/create` — 前端携带 `taskId`，Controller 创建 `SseEmitter`，异步调用 `generationAgent.execute(userId, request, sseEventHandler)` 启动 DAG
 
-1. 创建 `SseEmitter`
-2. 取当前用户 ID
-3. 在线程池中异步调用 `generationAgent.execute(userId, request, sseEventHandler)`
+`QaController` 的职责：
+
+1. `/qa/set/task`：生成 `taskId` → `createGenerationTask()` → 返回 `taskId`
+2. `/qa/set/create`：创建 `SseEmitter` → 取当前用户 ID → 线程池异步执行生成
 
 ## 3. 主流程
 
 ```text
 GenerateAgent.execute()
+  -> taskId = request.getTaskId()
   -> 读取 UserProfileInfo / Style / Allow
-  -> createGenerationTask()
   -> publish INIT 事件
+  -> Thread.sleep(1000)   // 避免 INIT 与下一条事件瞬发
   -> UserLlmModelProvider.getUserLlmModel()
   -> GenerateSupervisor
   -> 预构建各阶段 Context

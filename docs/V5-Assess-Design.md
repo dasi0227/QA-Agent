@@ -47,7 +47,8 @@ AssessAgent 负责一轮练习完成后的同步整轮评估。它基于已经�
   "qaSetId": "qa-set-id",
   "score": 75,
   "accuracy": 80.00,
-  "correctCount": 3,
+  "perfectCount": 1,
+  "correctCount": 2,
   "deficientCount": 5,
   "wrongCount": 1,
   "unknownCount": 1,
@@ -103,7 +104,8 @@ AssessAgent.execute()
 | --- | --- |
 | `score` | 所有单题 `score` 平均值，四舍五入为整数 |
 | `accuracy` | `(PERFECT + CORRECT + DEFICIENT) / totalQuestions * 100`，保留 2 位 |
-| `correctCount` | `PERFECT + CORRECT` 数量 |
+| `perfectCount` | `PERFECT` 数量 |
+| `correctCount` | `CORRECT` 数量 |
 | `deficientCount` | `DEFICIENT` 数量 |
 | `wrongCount` | `WRONG` 数量 |
 | `unknownCount` | `UNKNOWN` 数量 |
