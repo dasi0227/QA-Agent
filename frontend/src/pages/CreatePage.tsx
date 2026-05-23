@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { ArrowUp, History, Loader, Paperclip, Plus, Settings, X } from "lucide-react";
-import { Link } from "react-router";
+import { ArrowLeft, ArrowUp, History, Loader, Paperclip, Plus, Settings, X } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router";
+
 import { TextArea } from "@/components/base/field";
 import {
     apiKeys,
     useDocumentsQuery,
+    useCreateTaskMutation,
     useCreateQuestionSetStream,
     useTaskStatusQuery,
     useTaskMessagesQuery,
@@ -18,6 +20,7 @@ import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const STORAGE_KEY = "create-page-draft";
 const ACTIVE_TASK_KEY = "qa-agent.active-task-id";
+const TASK_FORM_CACHE_KEY = "qa-agent.task-form-cache";
 
 function loadDraft(): { selectedIds: string[]; userPrompt: string } {
     try {
@@ -33,6 +36,37 @@ function saveDraft(selectedIds: string[], userPrompt: string) {
 
 function clearDraft() {
     localStorage.removeItem(STORAGE_KEY);
+}
+
+type TaskFormCache = {
+    title: string;
+    userPrompt: string;
+    documentIds: string[];
+    requestedCount: number;
+    jobDescription: string;
+    docNames: string[];
+};
+
+function getTaskFormCache(): TaskFormCache | null {
+    try {
+        const raw = sessionStorage.getItem(TASK_FORM_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.userPrompt === "string" && Array.isArray(parsed.documentIds)) {
+            return parsed as TaskFormCache;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+function setTaskFormCache(cache: TaskFormCache) {
+    sessionStorage.setItem(TASK_FORM_CACHE_KEY, JSON.stringify(cache));
+}
+
+function clearTaskFormCache() {
+    sessionStorage.removeItem(TASK_FORM_CACHE_KEY);
 }
 
 function parseJsonArray(json: string): string[] {
@@ -88,8 +122,11 @@ function buildTimelineNodes(events: SseEvent[]): TimelineNode[] {
 
 export function CreatePage() {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
+    const { taskId: urlTaskId } = useParams();
     const [draft] = useState(loadDraft);
     const documentsQuery = useDocumentsQuery();
+    const createTask = useCreateTaskMutation();
     const createStream = useCreateQuestionSetStream();
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>(draft.selectedIds);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -100,7 +137,7 @@ export function CreatePage() {
     const [jobDescription, setJobDescription] = useState("");
     const { showErrorDialog } = useGlobalErrorDialog();
 
-    const [streamState, setStreamState] = useState<"idle" | "streaming">("idle");
+    const [streamState, setStreamState] = useState<"idle" | "streaming">(() => urlTaskId ? "streaming" : "idle");
     const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
     const [streamError, setStreamError] = useState("");
     const [snapshot, setSnapshot] = useState<{
@@ -109,9 +146,9 @@ export function CreatePage() {
     } | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Manual recovery via history dialog
-    const [recoveryTaskId, setRecoveryTaskId] = useState<string | null>(null);
-    const [recoveryTrigger, setRecoveryTrigger] = useState(0);
+    // Manual recovery via history dialog (also used when entering via /create/:taskId)
+    const [recoveryTaskId, setRecoveryTaskId] = useState<string | null>(() => urlTaskId ?? null);
+    const [recoveryTrigger, setRecoveryTrigger] = useState(() => urlTaskId ? 1 : 0);
     const taskStatusQuery = useTaskStatusQuery(recoveryTaskId ?? undefined, { poll: recoveryTrigger > 0 });
     const taskMessagesQuery = useTaskMessagesQuery(recoveryTaskId ?? undefined, { poll: recoveryTrigger > 0 });
     const taskListQuery = useTaskListQuery();
@@ -158,6 +195,61 @@ export function CreatePage() {
             setRecoveryTrigger(0);
         }
     }, [taskStatusQuery.isError, taskMessagesQuery.isError, recoveryTrigger]);
+
+    // When entering /create/:taskId with cached form data, start SSE stream
+    const streamInitiated = useRef(false);
+    useEffect(() => {
+        if (!urlTaskId || streamInitiated.current) return;
+        const cached = getTaskFormCache();
+        if (!cached) return; // No cache — recovery polling handles it
+        streamInitiated.current = true;
+        clearTaskFormCache();
+        setSnapshot({ userPrompt: cached.userPrompt, docNames: cached.docNames });
+        setSseEvents([]);
+        setStreamError("");
+        queryClient.invalidateQueries({ queryKey: apiKeys.taskList });
+        createStream.mutateAsync({
+            taskId: urlTaskId,
+            title: cached.title,
+            userPrompt: cached.userPrompt,
+            documentIds: cached.documentIds,
+            requestedQuestionCount: cached.requestedCount,
+            jobDescription: cached.jobDescription,
+            onEvent: (event: SseEvent) => {
+                if (!sessionStorage.getItem(ACTIVE_TASK_KEY)) {
+                    sessionStorage.setItem(ACTIVE_TASK_KEY, event.taskId);
+                }
+                setSseEvents((prev) => [...prev, event]);
+            },
+        }).catch((err) => {
+            setStreamError(err instanceof Error ? err.message : "生成失败，请重试");
+        });
+    }, [urlTaskId, queryClient, createStream]);
+
+    // Reset streamInitiated ref when urlTaskId changes (same-component route transition)
+    useEffect(() => {
+        streamInitiated.current = false;
+    }, [urlTaskId]);
+
+    // When urlTaskId changes (same-component route transition):
+    // - appears: trigger recovery polling
+    // - disappears (back to /create): reset to idle form
+    useEffect(() => {
+        if (urlTaskId) {
+            setStreamState("streaming");
+            setSseEvents([]);
+            setStreamError("");
+            setRecoveryTaskId(urlTaskId);
+            setRecoveryTrigger((n) => n + 1);
+        } else {
+            setStreamState("idle");
+            setSseEvents([]);
+            setStreamError("");
+            setSnapshot(null);
+            setRecoveryTaskId(null);
+            setRecoveryTrigger(0);
+        }
+    }, [urlTaskId]);
 
     const form = useForm({
         defaultValues: {
@@ -217,11 +309,7 @@ export function CreatePage() {
 
     const handleSelectHistoryTask = (task: TaskListItem) => {
         setHistoryOpen(false);
-        setStreamState("streaming");
-        setSseEvents([]);
-        setStreamError("");
-        setRecoveryTaskId(task.taskId);
-        setRecoveryTrigger((n) => n + 1);
+        navigate(`/create/${task.taskId}`);
     };
 
     const handleSubmit = form.handleSubmit(async (values) => {
@@ -234,35 +322,33 @@ export function CreatePage() {
         }
 
         const docNames = selectedDocuments.map((d) => d.fileName);
-        setSnapshot({ userPrompt: values.userPrompt, docNames });
-        setStreamState("streaming");
-        setSseEvents([]);
-        setStreamError("");
-        setRecoveryTaskId(null);
-        setRecoveryTrigger(0);
-        setSelectedDocumentIds([]);
-        form.reset({ userPrompt: "" });
-        clearDraft();
-
-        // Invalidate task list so new task appears in history
-        queryClient.invalidateQueries({ queryKey: apiKeys.taskList });
+        const documentIds = [...selectedDocumentIds];
 
         try {
-            await createStream.mutateAsync({
+            const { taskId } = await createTask.mutateAsync({
                 title: qaSetTitle,
                 userPrompt: values.userPrompt,
-                documentIds: selectedDocumentIds,
+                documentIds,
                 requestedQuestionCount: requestedCount,
                 jobDescription: jobDescription || undefined,
-                onEvent: (event: SseEvent) => {
-                    if (!sessionStorage.getItem(ACTIVE_TASK_KEY)) {
-                        sessionStorage.setItem(ACTIVE_TASK_KEY, event.taskId);
-                    }
-                    setSseEvents((prev) => [...prev, event]);
-                },
             });
-        } catch (err) {
-            setStreamError(err instanceof Error ? err.message : "生成失败，请重试");
+
+            setTaskFormCache({
+                title: qaSetTitle,
+                userPrompt: values.userPrompt,
+                documentIds,
+                requestedCount,
+                jobDescription: jobDescription,
+                docNames,
+            });
+
+            setSelectedDocumentIds([]);
+            form.reset({ userPrompt: "" });
+            clearDraft();
+
+            navigate(`/create/${taskId}`, { replace: true });
+        } catch {
+            // error handled by mutation
         }
     });
 
@@ -307,6 +393,14 @@ export function CreatePage() {
                 ) : (
                     /* ── Streaming State ── */
                     <div className="create-page__stream-area" ref={scrollRef}>
+                        {urlTaskId ? (
+                            <div className="create-page__back-row">
+                                <Link to="/create" className="btn btn--soft">
+                                    <ArrowLeft size={16} />
+                                    <span>返回</span>
+                                </Link>
+                            </div>
+                        ) : null}
                         {/* User message bubble */}
                         {snapshot ? (
                             <>
@@ -470,8 +564,8 @@ export function CreatePage() {
                                 type="submit"
                                 className="create-page__send-btn"
                                 aria-label="发送"
-                                disabled={createStream.isPending}
-                                style={{ opacity: createStream.isPending ? 0.5 : undefined }}
+                                disabled={createTask.isPending || createStream.isPending}
+                                style={{ opacity: (createTask.isPending || createStream.isPending) ? 0.5 : undefined }}
                             >
                                 <ArrowUp size={20} strokeWidth={2.5} />
                             </button>

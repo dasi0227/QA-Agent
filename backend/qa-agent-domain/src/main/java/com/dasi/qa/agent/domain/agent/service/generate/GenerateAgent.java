@@ -19,7 +19,6 @@ import com.dasi.qa.agent.domain.agent.service.generate.support.WebEvidenceProvid
 import com.dasi.qa.agent.domain.agent.service.shared.EventPublisher;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
-import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
@@ -53,6 +52,8 @@ public class GenerateAgent implements IGenerateAgent {
 
     private static final int BATCH_SIZE = 10;
     private static final int MAX_RETRY = 2;
+    private static final int GROUP_SIZE = 3;
+
 
     private final IJsonUtil jsonUtil;
     private final IPromptUtil promptUtil;
@@ -64,7 +65,6 @@ public class GenerateAgent implements IGenerateAgent {
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
     private final GenerateSaver generateSaver;
-    private final IIdUtil idUtil;
 
     public GenerateAgent(IJsonUtil jsonUtil,
                          IPromptUtil promptUtil,
@@ -75,8 +75,7 @@ public class GenerateAgent implements IGenerateAgent {
                          WebEvidenceProvider webEvidenceProvider,
                          @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor,
-                         GenerateSaver generateSaver,
-                         IIdUtil idUtil) {
+                         GenerateSaver generateSaver) {
         this.jsonUtil = jsonUtil;
         this.promptUtil = promptUtil;
         this.agentRepository = agentRepository;
@@ -87,7 +86,6 @@ public class GenerateAgent implements IGenerateAgent {
         this.supervisorChatModel = supervisorModel;
         this.applicationTaskExecutor = applicationTaskExecutor;
         this.generateSaver = generateSaver;
-        this.idUtil = idUtil;
     }
 
     /**
@@ -103,8 +101,7 @@ public class GenerateAgent implements IGenerateAgent {
      */
     @Override
     public void execute(String userId, CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler) {
-        // 生成本次任务唯一标识
-        String taskId = idUtil.nextId();
+        String taskId = request.getTaskId();
 
         // 读取用户信息
         UserProfileInfoVO info = agentRepository.getUserProfileInfo(userId);
@@ -112,8 +109,6 @@ public class GenerateAgent implements IGenerateAgent {
         UserProfileAllowVO allow = agentRepository.getUserProfileAllow(userId);
         String userProfileJson = jsonUtil.toJsonString(info);
         String answerStyle = style.getAnswerStyle();
-        // 写入任务主记录，确保后续状态可追踪
-        agentRepository.createGenerationTask(taskId, userId, request, allow);
 
         // 跨阶段累计 token，用于并发场景下的线程安全统计
         AtomicInteger totalTokens = new AtomicInteger(0);
@@ -150,6 +145,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .userProfileJson(userProfileJson)
                     .allow(allow)
                     .supervisor(supervisor)
+                    .eventPublisher(eventPublisher)
                     .build();
 
             ValidateContext validateContext = ValidateContext.builder()
@@ -157,12 +153,14 @@ public class GenerateAgent implements IGenerateAgent {
                     .request(request)
                     .answerStyle(answerStyle)
                     .supervisor(supervisor)
+                    .eventPublisher(eventPublisher)
                     .build();
 
             DecideContext decideContext = DecideContext.builder()
                     .taskId(taskId)
                     .request(request)
                     .supervisor(supervisor)
+                    .eventPublisher(eventPublisher)
                     .build();
 
             AbortContext abortContext = AbortContext.builder()
@@ -191,6 +189,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .userProfileJson(userProfileJson)
                     .answerStyle(answerStyle)
                     .supervisor(supervisor)
+                    .eventPublisher(eventPublisher)
                     .build();
 
             // 构建 DAG 运行上下文
@@ -238,7 +237,7 @@ public class GenerateAgent implements IGenerateAgent {
     private void doDecide(AgenticScope scope, DecideAgent decideAgent, DecideContext decideContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(decideContext.getTaskId(), GeneratePhase.DECIDE);
-        decideContext.getSupervisor().getEventPublisher().publishProgress("💭 需求分析", "正在分析需求是否符合生成场景...");
+        decideContext.getEventPublisher().publishProgress("💭 需求分析", "正在分析需求是否符合生成场景...");
 
         // 2. 调用智能体
         String retryHint = "";
@@ -290,7 +289,7 @@ public class GenerateAgent implements IGenerateAgent {
     private void doPlan(AgenticScope scope, PlanAgent planAgent, PlanContext planContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(planContext.getTaskId(), GeneratePhase.PLAN);
-        planContext.getSupervisor().getEventPublisher().publishProgress("🧭 模块规划", "正在分析资料结构，规划模块分配...");
+        planContext.getEventPublisher().publishProgress("🧭 模块规划", "正在分析资料结构，规划模块分配...");
 
         // 2. 拿到资料摘要
         String documentsSummary = agentRepository.getDocumentsSummary(
@@ -347,40 +346,50 @@ public class GenerateAgent implements IGenerateAgent {
         PlanResult planResult = readPlanResult(scope);
         List<PlanResult.PlanItem> planItems = planResult.getPlanItems();
 
-        // 3. Phase 1: 串行预搜全部模块的证据（RAG + Web）
-        writeContext.getSupervisor().getEventPublisher().publishProgress("📚 证据检索", "开始检索资料证据，共覆盖 " + planItems.size() + " 个模块...");
+        // 3. Phase 1: 每 3 个模块一组并发预搜证据（RAG + Web），组间串行
+        writeContext.getEventPublisher().publishProgress("📚 证据检索", "开始检索资料证据，共覆盖 " + planItems.size() + " 个模块...");
         Map<String, String> evidenceMap = new LinkedHashMap<>();
         Map<String, List<String>> chunkIdsMap = new LinkedHashMap<>();
-        for (PlanResult.PlanItem planItem : planItems) {
-            try {
-                List<RagEvidenceProvider.EvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().searchByPlanItem(
-                        writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
-                String evidenceJson;
-                if (writeContext.getWebEvidenceProvider() != null) {
-                    List<InterviewInsights> webEvidence = writeContext.getWebEvidenceProvider().search(
-                            writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem);
-                    evidenceJson = jsonUtil.toJsonString(Map.of(
-                            "ragResults", ragEvidence,
-                            "interviewInsights", webEvidence));
-                } else {
-                    evidenceJson = jsonUtil.toJsonString(ragEvidence);
-                }
-                evidenceMap.put(planItem.getModule(), evidenceJson);
-                chunkIdsMap.put(planItem.getModule(), ragEvidence.stream()
-                        .map(RagEvidenceProvider.EvidenceItem::getChunkId)
-                        .filter(StringUtils::hasText)
-                        .distinct()
-                        .toList());
-                writeContext.getSupervisor().getEventPublisher().publishProgress("📚 证据检索", "已完成「" + planItem.getModule() + "」证据检索");
-            } catch (Exception e) {
-                log.warn("【生成问答集】证据预搜失败: taskId={}, module={}", writeContext.getTaskId(), planItem.getModule(), e);
-                evidenceMap.put(planItem.getModule(), jsonUtil.toJsonString(List.of()));
-                chunkIdsMap.put(planItem.getModule(), List.of());
+
+        for (int g = 0; g < planItems.size(); g += GROUP_SIZE) {
+            List<PlanResult.PlanItem> group = planItems.subList(g, Math.min(g + GROUP_SIZE, planItems.size()));
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            for (PlanResult.PlanItem planItem : group) {
+                futures.add(CompletableFuture.runAsync(() -> {
+                    try {
+                        List<RagEvidenceProvider.EvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().searchByPlanItem(
+                                writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
+                        String evidenceJson;
+                        if (writeContext.getWebEvidenceProvider() != null) {
+                            List<InterviewInsights> webEvidence = writeContext.getWebEvidenceProvider().search(
+                                    writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem);
+                            evidenceJson = jsonUtil.toJsonString(Map.of(
+                                    "ragResults", ragEvidence,
+                                    "interviewInsights", webEvidence));
+                        } else {
+                            evidenceJson = jsonUtil.toJsonString(ragEvidence);
+                        }
+                        evidenceMap.put(planItem.getModule(), evidenceJson);
+                        chunkIdsMap.put(planItem.getModule(), ragEvidence.stream()
+                                .map(RagEvidenceProvider.EvidenceItem::getChunkId)
+                                .filter(StringUtils::hasText)
+                                .distinct()
+                                .toList());
+                    } catch (Exception e) {
+                        log.warn("【生成问答集】证据预搜失败: taskId={}, module={}", writeContext.getTaskId(), planItem.getModule(), e);
+                        evidenceMap.put(planItem.getModule(), jsonUtil.toJsonString(List.of()));
+                        chunkIdsMap.put(planItem.getModule(), List.of());
+                    }
+                }, applicationTaskExecutor));
+            }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            for (PlanResult.PlanItem planItem : group) {
+                writeContext.getEventPublisher().publishProgress("📚 证据检索", "已完成「" + planItem.getModule() + "」证据检索");
             }
         }
 
         // 4. Phase 2: 并行出题，agentAction 内只做纯 LLM 调用，零 DB 访问
-        writeContext.getSupervisor().getEventPublisher().publishProgress("️️✏️ 题目起草", "证据收集完毕，开始起草 " + planItems.size() + " 个模块的题目...");
+        writeContext.getEventPublisher().publishProgress("️️✏️ 题目起草", "证据收集完毕，开始起草 " + planItems.size() + " 个模块的题目...");
         List<DraftResult> draftResults = Collections.synchronizedList(new ArrayList<>());
         List<Object> moduleAgents = new ArrayList<>();
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.DRAFT);
@@ -488,7 +497,7 @@ public class GenerateAgent implements IGenerateAgent {
     private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext validateContext) {
         // 1. 更新状态
         agentRepository.updateTaskPhase(validateContext.getTaskId(), GeneratePhase.VALIDATE);
-        validateContext.getSupervisor().getEventPublisher().publishProgress("🔬 审校修订", "开始审校已生成的题目...");
+        validateContext.getEventPublisher().publishProgress("🔬 审校修订", "开始审校已生成的题目...");
 
         // 2. 初次生成的问答集合
         List<DraftResult> draftResults = readDraftResult(scope);
@@ -526,7 +535,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .toList();
 
         // 6. 写入共享领域
-        validateContext.getSupervisor().getEventPublisher().publishProgress("🔬 审校修订", "审校完成，" + validatedItems.size() + " 题通过");
+        validateContext.getEventPublisher().publishProgress("🔬 审校修订", "审校完成，" + validatedItems.size() + " 题通过");
         writeValidateResult(scope, validatedItems);
     }
 

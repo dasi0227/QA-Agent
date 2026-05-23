@@ -6,6 +6,7 @@ import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.qa.service.set.IQaSetService;
 import com.dasi.qa.agent.domain.qa.service.item.IQaItemService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
+import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
@@ -41,6 +42,7 @@ public class QaController {
     private final IGenerateAgent generationAgent;
     private final IAgentRepository agentRepository;
     private final IContextUtil contextUtil;
+    private final IIdUtil idUtil;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
     public QaController(IQaSetService qaSetService,
@@ -48,12 +50,14 @@ public class QaController {
                         IGenerateAgent generationAgent,
                         IAgentRepository agentRepository,
                         IContextUtil contextUtil,
+                        IIdUtil idUtil,
                         @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
         this.qaSetService = qaSetService;
         this.qaItemService = qaItemService;
         this.generationAgent = generationAgent;
         this.agentRepository = agentRepository;
         this.contextUtil = contextUtil;
+        this.idUtil = idUtil;
         this.applicationTaskExecutor = applicationTaskExecutor;
     }
 
@@ -97,8 +101,19 @@ public class QaController {
                 .build()));
     }
 
+    @PostMapping("/set/task")
+    public Result<TaskCreateResponse> taskCreate(@RequestBody @Valid CreateQaSetRequest request) {
+        String userId = contextUtil.getUserId();
+        String taskId = idUtil.nextId();
+        agentRepository.createGenerationTask(taskId, userId, request, agentRepository.getUserProfileAllow(userId));
+        return Result.success(TaskCreateResponse.builder().taskId(taskId).build());
+    }
+
     @PostMapping("/set/create")
     public SseEmitter qaSetCreate(@RequestBody @Valid CreateQaSetRequest request) {
+        if (!org.springframework.util.StringUtils.hasText(request.getTaskId())) {
+            throw new com.dasi.qa.agent.types.exception.ApiException(com.dasi.qa.agent.types.enumeration.ResultCode.BAD_REQUEST);
+        }
         SseEmitter emitter = new SseEmitter(600000L);
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);

@@ -164,6 +164,7 @@ export type DeleteQuestionItemInput = {
 };
 
 export type CreateQuestionSetInput = {
+    taskId?: string;
     title: string;
     userPrompt: string;
     documentIds: string[];

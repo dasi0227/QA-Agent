@@ -137,18 +137,20 @@
 | POST | `/qa/set/delete` | 是 | `id` |
 | GET | `/qa/set/export?id=...` | 是 | `id` |
 | POST | `/qa/set/import` | 是 | `file`，`multipart/form-data`，仅接受 `.dasi` |
-| POST | `/qa/set/create` | 是 | `title?`, `userPrompt`, `jobDescription?`, `documentIds`, `requestedQuestionCount` |
+| POST | `/qa/set/task` | 是 | `title?`, `userPrompt`, `jobDescription?`, `documentIds`, `requestedQuestionCount` |
+| POST | `/qa/set/create` | 是 | `taskId`, `title?`, `userPrompt`, `jobDescription?`, `documentIds`, `requestedQuestionCount` |
 | GET | `/qa/set/task-status?taskId=...` | 是 | `taskId` |
 | GET | `/qa/set/task-messages?taskId=...` | 是 | `taskId` |
 | GET | `/qa/set/task-list` | 是 | 无 |
 
 说明：
 
-1. `/qa/set/create` 返回 `text/event-stream`，不包 `Result<T>`。
-2. `requestedQuestionCount` 当前限制为 `10 ~ 100`。
-3. 删除 `qa_set` 时会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
-4. `/qa/set/export` 和 `/qa/set/import` 只处理题集资产，不导出练习历史、生成任务历史、资料引用和 RAG 切片 ID。
-5. 当前没有 `/qa/set/create/test` 调试接口。
+1. 生成问答集分两步：先 `POST /qa/set/task` 创建空任务拿到 `taskId`，再 `POST /qa/set/create` 携带 `taskId` 启动生成。
+2. `/qa/set/create` 返回 `text/event-stream`，不包 `Result<T>`。
+3. `/qa/set/task` 返回 `{ code: 0, data: { taskId: "..." } }`。
+4. `requestedQuestionCount` 当前限制为 `10 ~ 100`。
+5. 删除 `qa_set` 时会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
+6. `/qa/set/export` 和 `/qa/set/import` 只处理题集资产，不导出练习历史、生成任务历史、资料引用和 RAG 切片 ID。
 
 响应元素 `QaSetResponse`：
 

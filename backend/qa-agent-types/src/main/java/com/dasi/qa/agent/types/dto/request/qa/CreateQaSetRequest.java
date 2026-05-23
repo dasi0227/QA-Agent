@@ -17,6 +17,8 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateQaSetRequest {
 
+    private String taskId;
+
     @Builder.Default
     private String title = "未命名问答集";
 

@@ -49,6 +49,7 @@ export const router = createBrowserRouter([
           { path: "/profile", element: withRouteLoading(<ProfilePage />) },
           { path: "/quiz", element: withRouteLoading(<QuizPage />) },
           { path: "/create", element: withRouteLoading(<CreatePage />) },
+          { path: "/create/:taskId", element: withRouteLoading(<CreatePage />) },
           { path: "/repository", element: <Navigate to="/repository/qa-set" replace /> },
           { path: "/repository/qa-set", element: withRouteLoading(<QASetPage />) },
           { path: "/repository/qa-set/:id", element: withRouteLoading(<QASetPage />) },

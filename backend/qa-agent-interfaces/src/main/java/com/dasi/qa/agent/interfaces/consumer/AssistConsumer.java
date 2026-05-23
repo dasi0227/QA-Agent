@@ -31,11 +31,11 @@ public class AssistConsumer {
             String userId = jsonObject.getString("userId");
             jobId = StringConstant.ASSIST_JOB_ID_PREFIX + qaItemId;
 
-            log.info("【消息队列消费者】收到题目辅助补全补全任务: qaItemId={}, jobId={}", qaItemId, jobId);
+            log.info("【消息队列消费者】收到题目辅助补全任务: qaItemId={}, jobId={}", qaItemId, jobId);
             assistAgent.execute(qaItemId, userId);
             mqUtil.markSuccess(jobId);
         } catch (Exception exception) {
-            log.error("【消息队列消费者】题目辅助补全补全失败: qaItemId={}, jobId={}", qaItemId, jobId, exception);
+            log.error("【消息队列消费者】题目辅助补全失败: qaItemId={}, jobId={}", qaItemId, jobId, exception);
             if (jobId != null) {
                 mqUtil.recordError(jobId, exception.getMessage());
             }

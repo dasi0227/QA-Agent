@@ -11,6 +11,13 @@
 }
 
 
+.create-page__back-row {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+
 .create-page__main {
   flex: 1;
   display: flex;

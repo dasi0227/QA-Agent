@@ -15,7 +15,7 @@ public class RequestLoggerInterceptor implements HandlerInterceptor {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
-        log.info("【请求】请求进入: uri={}", request.getRequestURI());
+        log.debug("【请求】请求进入: uri={}", request.getRequestURI());
         return true;
     }
 }

@@ -10,7 +10,7 @@ export function NavCapsule() {
           key={item.key}
           to={item.to}
           className={({ isActive }) => cn("nav-link", isActive && "nav-link--active")}
-          end={item.key !== "repository"}
+          end={item.key !== "repository" && item.key !== "create"}
         >
           {item.label}
         </NavLink>

@@ -990,6 +990,22 @@ export function useUploadDocumentMutation() {
     });
 }
 
+export function useCreateTaskMutation() {
+    return useMutation({
+        mutationFn: async (input: CreateQuestionSetInput) =>
+            apiRequest<{ taskId: string }>("/qa/set/task", {
+                method: "POST",
+                body: {
+                    title: input.title,
+                    userPrompt: input.userPrompt,
+                    documentIds: input.documentIds,
+                    requestedQuestionCount: input.requestedQuestionCount,
+                    jobDescription: input.jobDescription || "暂无",
+                },
+            }),
+    });
+}
+
 export function useCreateQuestionSetStream() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -1006,6 +1022,7 @@ export function useCreateQuestionSetStream() {
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify({
+                    taskId: input.taskId,
                     title: input.title,
                     userPrompt: input.userPrompt,
                     documentIds: input.documentIds,

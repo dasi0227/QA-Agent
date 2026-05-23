@@ -236,7 +236,7 @@ public class DocumentRepository implements IDocumentRepository {
                 INSERT INTO chunk_search (chunk_id, document_id, user_id, chunk_index,
                     heading_path, content, summary, embedding, content_tsv,
                     created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::vector, to_tsvector('zh', ?), NOW(), NOW())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?::vector, to_tsvector('zh', ?), NOW(), NOW())
                 """;
         List<Object[]> batchArgs = new ArrayList<>();
         for (ChunkSearchRow row : rows) {
