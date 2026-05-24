@@ -88,6 +88,15 @@ public class IdentityRepository implements IIdentityRepository {
         return toUserAccountResponse(entity);
     }
 
+    @Override
+    @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
+    public void updatePassword(String userId, String encodedPassword) {
+        UserAccount entity = new UserAccount();
+        entity.setId(userId);
+        entity.setPassword(encodedPassword);
+        userAccountMapper.updateById(entity);
+    }
+
     @CacheEvict(cacheNames = RedisConstant.IDENTITY_USER_ACCOUNT_CACHE, allEntries = true)
     public void deleteUserAccount(String id, String userId) {
         UserAccount entity = userAccountMapper.selectById(id);

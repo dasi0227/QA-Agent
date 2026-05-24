@@ -5,12 +5,14 @@ import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IOssUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
+import com.dasi.qa.agent.types.dto.request.identity.ChangePasswordRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.Result;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.util.StringUtils;
@@ -39,6 +41,12 @@ public class IdentityController {
     @PostMapping("/account/update")
     public Result<UserAccountResponse> userAccountUpdate(@RequestBody UserAccountRequest request) {
         return Result.success(identityService.updateUserAccount(request));
+    }
+
+    @PostMapping("/account/password")
+    public Result<Void> accountPasswordUpdate(@RequestBody @Valid ChangePasswordRequest request) {
+        identityService.changePassword(request);
+        return Result.success();
     }
 
     @PostMapping("/account/delete")

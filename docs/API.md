@@ -44,7 +44,8 @@
 
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
-| POST | `/identity/account/update` | 是 | `id`, `username?`, `email?`, `password?`, `status?`, `avatar?` |
+| POST | `/identity/account/update` | 是 | `id`, `username?`, `email?`, `status?`, `avatar?` |
+| POST | `/identity/account/password` | 是 | `currentPassword`, `newPassword` |
 | POST | `/identity/account/delete` | 是 | `id` |
 | POST | `/identity/account/avatar` | 是 | `file`，`multipart/form-data` |
 
@@ -52,18 +53,19 @@
 
 1. `/identity/account/delete` 不是物理删除，底层是将账号状态置为 `DISABLED`。
 2. 头像上传会先删除旧 OSS 对象，再写入新的 object key。
+3. `/identity/account/update` 不再修改密码；密码修改必须走 `/identity/account/password`，并校验当前密码。
 
 ### 3.2 Profile 接口
 
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
 | GET | `/identity/profile/me` | 是 | 无 |
-| POST | `/identity/profile/create` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `answerStyle?`, `feedbackStyle?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` |
+| POST | `/identity/profile/create` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` |
 | POST | `/identity/profile/update` | 是 | 同上 |
 
 说明：
 
-1. `allowFallback` 当前只存在于 `user_profile` 表和内部 VO 中，不在公开请求/响应 DTO 中暴露。
+1. `allowFallback` 用于控制 Plan 失败时是否允许兜底规划。
 2. `llmBaseUrl`、`llmApiKey`、`llmModelName` 是 Generate / Feedback / Assess 三条 Agent 链路运行前置条件；缺失时会返回 `40902 LLM_NOT_CONFIGURED`。
 
 ## 4. Document
@@ -137,6 +139,7 @@
 | POST | `/qa/set/delete` | 是 | `id` |
 | GET | `/qa/set/export?id=...` | 是 | `id` |
 | POST | `/qa/set/import` | 是 | `file`，`multipart/form-data`，仅接受 `.dasi` |
+| POST | `/qa/set/empty` | 是 | `title`, `description?` |
 | POST | `/qa/set/task` | 是 | `title?`, `userPrompt`, `jobDescription?`, `documentIds`, `requestedQuestionCount` |
 | POST | `/qa/set/create` | 是 | `taskId`, `title?`, `userPrompt`, `jobDescription?`, `documentIds`, `requestedQuestionCount` |
 | GET | `/qa/set/task-status?taskId=...` | 是 | `taskId` |
@@ -151,6 +154,7 @@
 4. `requestedQuestionCount` 当前限制为 `10 ~ 100`。
 5. 删除 `qa_set` 时会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
 6. `/qa/set/export` 和 `/qa/set/import` 只处理题集资产，不导出练习历史、生成任务历史、资料引用和 RAG 切片 ID。
+7. `/qa/set/empty` 只创建题集框架，不创建 `qa_set_document_ref`，`documentCount=0`，后续可手动新增题目。
 
 响应元素 `QaSetResponse`：
 
@@ -276,19 +280,23 @@
 
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
-| GET | `/qa/qaSetEntry/detail?id=...` | 是 | `id` |
-| POST | `/qa/qaSetEntry/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `keywords?`, `hint?`, `sourceReliable?`, `sourceChunkIdsJson?`, `completeStatus?`, `sortOrder?` |
-| POST | `/qa/qaSetEntry/update` | 是 | 同上，`id` 必填 |
-| POST | `/qa/qaSetEntry/create` | 是 | `qaSetId`, `question` |
-| POST | `/qa/qaSetEntry/complete` | 是 | `id` |
-| POST | `/qa/qaSetEntry/delete` | 是 | `id` |
+| GET | `/qa/item/detail?id=...` | 是 | `id` |
+| POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `keywords?`, `hint?`, `sourceReliable?`, `sourceChunkIdsJson?`, `completeStatus?`, `sortOrder?` |
+| POST | `/qa/item/update` | 是 | 同上，`id` 必填 |
+| POST | `/qa/item/create/single` | 是 | `qaSetId`, `question` |
+| POST | `/qa/item/create/batch` | 是 | `qaSetId`, `questions[]`，有效题目最多 50 道 |
+| POST | `/qa/item/create` | 是 | `qaSetId`, `question`，兼容旧单题入口 |
+| POST | `/qa/item/complete` | 是 | `id` |
+| POST | `/qa/item/delete` | 是 | `id` |
 
 说明：
 
-1. 手动新增题目统一使用 `/qa/qaSetEntry/create`。
-2. `/qa/qaSetEntry/create` 会立即创建题目并返回 `completeStatus=PROCESSING`，后端用本地线程池异步执行 CompleteAgent 补全核心字段。
-3. `/qa/qaSetEntry/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent。
-4. `keywords` 和 `hint` 由 AssistAgent 异步补全；前端不查询 `message_job`。
+1. 新代码应使用 `/qa/item/create/single` 和 `/qa/item/create/batch`；`/qa/item/create` 只作为旧单题兼容入口保留。
+2. 单题和批量新增都会立即返回 `completeStatus=PROCESSING`，后端用本地线程池逐题异步执行 CompleteAgent 补全核心字段。
+3. 批量新增会在一个 MySQL 事务内创建题目，并一次性更新题集 `questionCount`。
+4. `/qa/item/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent。
+5. 空资料题集手动新增题目时，CompleteAgent 不执行 RAG 全资料检索，证据输入为空数组。
+6. `keywords` 和 `hint` 由 AssistAgent 异步补全；前端不查询 `message_job`。
 
 ## 6. Practice
 

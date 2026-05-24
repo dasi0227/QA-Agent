@@ -34,17 +34,18 @@ public class WebEvidenceProvider {
     }
 
     public List<InterviewInsights> search(String company, String role, PlanItem planItem) {
-        String focusTopics = planItem.getFocusTopics();
-        List<String> topics = !StringUtils.hasText(focusTopics)
-                ? List.of(planItem.getModule())
-                : List.of(focusTopics.split(","));
+        List<String> topics = planItem.getRetrievalQueries() == null ? List.of() : planItem.getRetrievalQueries().stream()
+                .filter(StringUtils::hasText)
+                .toList();
+        if (topics.isEmpty()) {
+            topics = List.of(planItem.getModule());
+        }
         List<InterviewInsights> results = new ArrayList<>();
         for (String topic : topics) {
-            topic = topic.trim();
-            if (topic.isEmpty()) {
+            if (!StringUtils.hasText(topic)) {
                 continue;
             }
-            String query = String.format("搜索 %s %s %s 面试面经", company, role, topic);
+            String query = String.format("搜索 %s %s %s %s 面试面经", company, role, planItem.getModule(), topic.trim());
             ChatResponse response = webSearchModel.chat(
                     SystemMessage.from(promptUtil.loadWebSearchPrompt()),
                     UserMessage.from(query));

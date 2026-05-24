@@ -18,6 +18,7 @@ public enum ResultCode {
     VERIFY_CODE_RATE_LIMITED(40003, "验证码发送过于频繁，请稍后再试"),
     EMAIL_ALREADY_REGISTERED(40004, "该邮箱已被注册"),
     USERNAME_CONFLICT(40005, "用户名已被注册"),
+    PASSWORD_INVALID(40006, "当前密码错误"),
     INTERNAL_ERROR(50000, "系统内部错误"),
     AGENT_ERROR(50001, "Agent 执行异常"),
     DOCUMENT_REFERENCED(50002, "当前资料仍被问答集引用，无法删除"),

@@ -4,6 +4,7 @@ import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.exception.ApiException;
+import com.dasi.qa.agent.types.dto.request.identity.ChangePasswordRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
@@ -62,12 +63,21 @@ public class ProfileCrudService implements IProfileCrudService {
         if (!StringUtils.hasText(request.getId())) {
             throw new ApiException(ResultCode.BAD_REQUEST);
         }
-        if (!StringUtils.hasText(request.getPassword())) {
-            request.setPassword(null);
-        } else {
-            request.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
+        request.setPassword(null);
         return repository.updateUserAccount(request, request.getId());
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        String userId = currentUserId();
+        UserAccountResponse current = repository.detailUserAccount(userId, userId);
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new ApiException(ResultCode.BAD_REQUEST);
+        }
+        if (!passwordEncoder.matches(request.getCurrentPassword(), current.getPassword())) {
+            throw new ApiException(ResultCode.PASSWORD_INVALID);
+        }
+        repository.updatePassword(userId, passwordEncoder.encode(request.getNewPassword()));
     }
 
     @Override

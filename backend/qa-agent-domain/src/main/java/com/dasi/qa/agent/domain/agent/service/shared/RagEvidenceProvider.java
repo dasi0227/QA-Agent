@@ -26,10 +26,13 @@ public class RagEvidenceProvider {
     }
 
     public List<EvidenceItem> searchByPlanItem(String userId, List<String> documentIds, PlanItem planItem) {
-        String focusTopics = planItem.getFocusTopics();
-        List<String> topics = !StringUtils.hasText(focusTopics)
-                ? List.of(planItem.getModule())
-                : List.of(focusTopics.split(","));
+        List<String> topics = planItem.getRetrievalQueries() == null ? List.of() : planItem.getRetrievalQueries().stream()
+                .filter(StringUtils::hasText)
+                .map(topic -> planItem.getModule() + " " + topic.trim())
+                .toList();
+        if (topics.isEmpty()) {
+            topics = List.of(planItem.getModule());
+        }
         return search(userId, documentIds, topics);
     }
 

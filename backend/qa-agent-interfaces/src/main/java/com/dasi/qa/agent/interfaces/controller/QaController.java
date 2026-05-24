@@ -8,6 +8,8 @@ import com.dasi.qa.agent.domain.qa.service.item.IQaItemService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
+import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
@@ -101,6 +103,11 @@ public class QaController {
                 .build()));
     }
 
+    @PostMapping("/set/empty")
+    public Result<QaSetResponse> qaSetEmptyCreate(@RequestBody @Valid CreateEmptyQaSetRequest request) {
+        return Result.success(qaSetService.createEmptyQaSet(request));
+    }
+
     @PostMapping("/set/task")
     public Result<TaskCreateResponse> taskCreate(@RequestBody @Valid CreateQaSetRequest request) {
         String userId = contextUtil.getUserId();
@@ -158,6 +165,16 @@ public class QaController {
     @PostMapping("/item/create")
     public Result<QaItemResponse> qaItemCreate(@RequestBody @Valid CreateQaItemRequest request) {
         return Result.success(qaItemService.createQaItem(request));
+    }
+
+    @PostMapping("/item/create/single")
+    public Result<QaItemResponse> qaItemCreateSingle(@RequestBody @Valid CreateQaItemRequest request) {
+        return Result.success(qaItemService.createQaItem(request));
+    }
+
+    @PostMapping("/item/create/batch")
+    public Result<List<QaItemResponse>> qaItemCreateBatch(@RequestBody @Valid CreateQaItemBatchRequest request) {
+        return Result.success(qaItemService.createQaItems(request));
     }
 
     @PostMapping("/item/complete")

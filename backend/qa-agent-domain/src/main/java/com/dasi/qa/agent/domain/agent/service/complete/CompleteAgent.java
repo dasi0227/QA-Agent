@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -73,8 +74,11 @@ public class CompleteAgent implements ICompleteAgent {
                 .chatModel(userModel)
                 .build();
 
-        // 3. 根据问题搜索相关资料
-        String evidence = jsonUtil.toJsonString(ragEvidenceProvider.searchByQuestion(userId, context.getDocumentIds(), context.getQuestion()));
+        // 3. 根据问题搜索相关资料。空引用题集不扩大到用户全部资料。
+        List<RagEvidenceProvider.EvidenceItem> evidenceItems = context.getDocumentIds() == null || context.getDocumentIds().isEmpty()
+                ? List.of()
+                : ragEvidenceProvider.searchByQuestion(userId, context.getDocumentIds(), context.getQuestion());
+        String evidence = jsonUtil.toJsonString(evidenceItems);
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {

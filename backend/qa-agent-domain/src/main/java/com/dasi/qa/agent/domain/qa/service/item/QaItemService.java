@@ -6,8 +6,11 @@ import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -72,6 +75,28 @@ public class QaItemService implements IQaItemService {
         QaItemResponse response = repository.createQaItem(idUtil.nextId(), request, userId);
         applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));
         return response;
+    }
+
+    @Override
+    public List<QaItemResponse> createQaItems(CreateQaItemBatchRequest request) {
+        List<String> questions = request.getQuestions().stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .toList();
+        if (questions.isEmpty() || questions.size() > 50) {
+            throw new ApiException(ResultCode.BAD_REQUEST);
+        }
+        CreateQaItemBatchRequest normalizedRequest = CreateQaItemBatchRequest.builder()
+                .qaSetId(request.getQaSetId())
+                .questions(questions)
+                .build();
+        String userId = contextUtil.getUserId();
+        List<String> ids = questions.stream().map(question -> idUtil.nextId()).toList();
+        List<QaItemResponse> responses = repository.createQaItems(ids, normalizedRequest, userId);
+        for (QaItemResponse response : responses) {
+            applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));
+        }
+        return responses;
     }
 
     @Override

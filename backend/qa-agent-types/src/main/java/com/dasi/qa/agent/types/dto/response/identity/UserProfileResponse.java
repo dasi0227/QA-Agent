@@ -19,6 +19,7 @@ public class UserProfileResponse extends BaseResponse {
     private String targetCompany;
     private Boolean allowGeneralKnowledge;
     private Boolean allowWebSearch;
+    private Boolean allowFallback;
     private String answerStyle;
     private String feedbackStyle;
     private String grade;

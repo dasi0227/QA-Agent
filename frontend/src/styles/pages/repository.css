@@ -1032,6 +1032,29 @@
   font-weight: 600;
 }
 
+.qa-set-empty-form {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(168, 116, 56, 0.14);
+  background: rgba(255, 252, 246, 0.72);
+}
+
+
+.qa-set-empty-form__textarea {
+  min-height: 96px;
+  background: rgba(255, 252, 246, 0.94);
+  border-color: rgba(183, 133, 74, 0.18);
+}
+
+
+.qa-set-empty-form__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 
 .doc-select-dialog__header {
   display: flex;

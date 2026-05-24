@@ -1,6 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { classifyError } from "@/lib/error/classifyError";
 import { emitGlobalError } from "@/lib/error/errorDialogBus";
+import { triggerAuthSessionWarning } from "@/components/layout/AuthSessionWarningDialog";
 import type { ErrorHandlingMeta } from "@/lib/error/types";
 
 function clearStoredSession() {
@@ -18,7 +19,11 @@ function redirectToLogin() {
         return;
     }
     clearStoredSession();
-    window.location.assign("/login");
+    triggerAuthSessionWarning({
+      reason: "expired",
+      title: "需要登录",
+      message: "当前页面需要登录后继续访问，如登录状态已失效，将自动返回登录页。",
+    });
 }
 
 export const queryClient = new QueryClient({

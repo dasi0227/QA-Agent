@@ -87,7 +87,7 @@
 
 补充：
 
-1. `allow_fallback` 当前存在于表结构和内部 VO 中，但不在公开 Profile API DTO 中暴露。
+1. `allow_fallback` 已在公开 Profile API DTO 中暴露，用于控制 Plan 失败时是否允许兜底规划。
 2. 三条 Agent 链路都依赖 `llm_*` 字段构造用户专属模型。
 
 ### 3.3 `source_document`
@@ -361,6 +361,6 @@
 ## 5. 与代码相关的几个注意点
 
 1. `qa_generation_task.stage`、`qa_generation_task_message.stage` 和 SSE `stage` 使用的是 `GeneratePhase.generateStage` 文案，不是英文枚举名。
-2. `user_profile.allow_fallback` 已入库，但当前 Profile API 不开放读写。
+2. `user_profile.allow_fallback` 已入库，并通过 Profile API 开放读写。
 3. `practice_session.finished_at` 在 Assess 重复执行时不会刷新；只在首次完成时写入。
 4. 删除 `source_document` 时不仅软删主记录，还会同步移除切片和 PostgreSQL 检索副本。

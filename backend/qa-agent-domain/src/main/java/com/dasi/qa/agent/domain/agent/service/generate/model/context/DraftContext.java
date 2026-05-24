@@ -23,5 +23,6 @@ public class DraftContext {
     private String userProfileJson;
     private String answerStyle;
     private GenerateSupervisor supervisor;
-    private List<String> sourceChunkIds;
+    private List<String> allowedSourceChunkIds;
+    private List<String> fallbackSourceChunkIds;
 }

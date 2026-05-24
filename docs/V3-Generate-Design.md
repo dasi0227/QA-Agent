@@ -177,12 +177,14 @@ SubAgent：`PlanAgent`
     {
       "module": "string",
       "questionCount": 10,
-      "focusTopics": "string",
+      "retrievalQueries": ["string"],
       "keyConcepts": "string"
     }
   ]
 }
 ```
+
+`retrievalQueries` 是专门用于 RAG 检索的具体查询数组。每个查询应是可直接检索的知识点短语，实际检索时会自动拼接 `module + " " + retrievalQuery`。如果数组为空，检索回退到 `module`。
 
 兜底：
 
@@ -209,7 +211,9 @@ SubAgent：`DraftAgent`
 
 1. 当前没有旧版文档里的“冲突提示”和 `evidence` 字段。
 2. `qa_item.keywords` 不再来自 `DraftResult`，由后置 `AssistAgent` 异步补全。
-3. `qa_item.source_reliable` 最终直接来自 `DraftResult`，只有资料证据足以支撑主要答案时才为 `true`。
+3. DraftAgent 需要从输入 evidence 中为每道题输出 `sourceChunkIds`，按相关性降序，不固定数量，不编造 evidence 之外的 chunkId。
+4. Java 会对白名单内的 `sourceChunkIds` 去重、保序、最多保留 5 个；如果模型返回空或全非法，使用当前 PlanItem evidence 的 top2 chunkId 兜底。
+5. `qa_item.source_reliable` 最终来自 DraftAgent，只有资料证据足以支撑主要答案时才为 `true`，但该标记不驱动 `sourceChunkIds` 清空。
 
 ### 6.5 VALIDATE
 
@@ -232,6 +236,8 @@ SubAgent：
 
 1. `PASS`
 2. `AMEND`
+
+AmendAgent 只修订题目内容，不重新选择 `sourceChunkIds`，也不修改 `sourceReliable`。GenerateAgent 会在修订后保留修订前已清洗的 `sourceReliable` 和 `sourceChunkIds`。
 
 ### 6.6 SUMMARIZE
 
@@ -260,7 +266,8 @@ SubAgent：`SummarizeAgent`
 2. 遍历 `DraftResult` 写入 `qa_item`
 3. 记录 `qa_set_document_ref`
 4. 对每份资料 `reference_count + 1`
-5. 保存完成后由 `GenerateSaver` 发送 `qa.qaSetEntry.assist` 消息补全 `keywords` 和 `hint`
+5. 保存 `sourceChunkIds` 前再做一次去重和最多 5 个的防御性截断
+6. 保存完成后由 `GenerateSaver` 发送 `qa.qaSetEntry.assist` 消息补全 `keywords` 和 `hint`
 
 ## 8. SSE 与任务状态
 

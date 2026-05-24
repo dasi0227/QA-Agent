@@ -7,7 +7,7 @@ import { Field, TextInput } from "@/components/base/field";
 import { GlassCard } from "@/components/base/card";
 import { useLoginMutation } from "@/lib/api/hooks";
 import { getRememberPreference } from "@/lib/auth";
-import { resolveAuthRedirectTarget, type AuthRedirectLocation } from "@/lib/authRedirect";
+import { parseAuthRedirectTarget, resolveAuthRedirectTarget, type AuthRedirectLocation } from "@/lib/authRedirect";
 
 const loginSchema = z.object({
   account: z.string().min(4, "用户名至少 4 位"),
@@ -30,7 +30,8 @@ export function LoginPage() {
     },
   });
 
-  const from = (location.state as { from?: AuthRedirectLocation } | null | undefined)?.from;
+  const from = (location.state as { from?: AuthRedirectLocation } | null | undefined)?.from
+    ?? parseAuthRedirectTarget(new URLSearchParams(location.search).get("from"));
 
   return (
     <GlassCard className="auth-form">

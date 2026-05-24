@@ -4,6 +4,8 @@ import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetConverter;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetExportFile;
 import com.dasi.qa.agent.domain.util.IContextUtil;
+import com.dasi.qa.agent.domain.util.IIdUtil;
+import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetImportRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
@@ -22,13 +24,16 @@ public class QaSetService implements IQaSetService {
     private final IQaRepository repository;
     private final IContextUtil contextUtil;
     private final QaSetConverter converter;
+    private final IIdUtil idUtil;
 
     public QaSetService(IQaRepository repository,
                         IContextUtil contextUtil,
-                        QaSetConverter converter) {
+                        QaSetConverter converter,
+                        IIdUtil idUtil) {
         this.repository = repository;
         this.contextUtil = contextUtil;
         this.converter = converter;
+        this.idUtil = idUtil;
     }
 
     @Override
@@ -39,6 +44,11 @@ public class QaSetService implements IQaSetService {
     @Override
     public List<QaSetResponse> queryQaSet(QaSetRequest request) {
         return repository.queryQaSet(request, contextUtil.getUserId());
+    }
+
+    @Override
+    public QaSetResponse createEmptyQaSet(CreateEmptyQaSetRequest request) {
+        return repository.createEmptyQaSet(idUtil.nextId(), request, contextUtil.getUserId());
     }
 
     @Override

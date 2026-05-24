@@ -17,6 +17,8 @@ public interface IIdentityRepository {
 
     UserAccountResponse updateUserAccount(UserAccountRequest request, String userId);
 
+    void updatePassword(String userId, String encodedPassword);
+
     void deleteUserAccount(String id, String userId);
 
     UserAccountResponse findUserAccountByUsername(String username);

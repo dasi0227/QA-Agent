@@ -72,6 +72,8 @@ import java.util.Map;
 @Repository
 public class AgentRepository implements IAgentRepository {
 
+    private static final int MAX_SOURCE_CHUNK_COUNT = 5;
+
     private final QaGenerationTaskMapper taskMapper;
     private final QaGenerationTaskMessageMapper taskMessageMapper;
     private final UserProfileMapper userProfileMapper;
@@ -367,7 +369,7 @@ public class AgentRepository implements IAgentRepository {
             item.setKeywords("");
             item.setHint("");
             item.setSourceReliable(draftResult.getSourceReliable() == null ? Boolean.FALSE : draftResult.getSourceReliable());
-            item.setSourceChunkIdsJson(JSON.toJSONString(draftResult.getSourceChunkIds() != null ? draftResult.getSourceChunkIds() : List.of()));
+            item.setSourceChunkIdsJson(JSON.toJSONString(limitSourceChunkIds(draftResult.getSourceChunkIds())));
             item.setCompleteStatus(CompleteStatus.SOLVED.name());
             item.setSortOrder(sortOrder++);
             qaItemMapper.insert(item);
@@ -684,6 +686,17 @@ public class AgentRepository implements IAgentRepository {
         } catch (Exception exception) {
             return false;
         }
+    }
+
+    private List<String> limitSourceChunkIds(List<String> sourceChunkIds) {
+        if (sourceChunkIds == null || sourceChunkIds.isEmpty()) {
+            return List.of();
+        }
+        return sourceChunkIds.stream()
+                .filter(StringUtils::hasText)
+                .distinct()
+                .limit(MAX_SOURCE_CHUNK_COUNT)
+                .toList();
     }
 
     private List<String> qaSetDocumentIds(String qaSetId) {

@@ -1,6 +1,7 @@
 package com.dasi.qa.agent.domain.identity.service.crud;
 
 import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
+import com.dasi.qa.agent.types.dto.request.identity.ChangePasswordRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
@@ -16,6 +17,8 @@ public interface IProfileCrudService {
     UserAccountResponse createUserAccount(UserAccountRequest request);
 
     UserAccountResponse updateUserAccount(UserAccountRequest request);
+
+    void changePassword(ChangePasswordRequest request);
 
     void deleteUserAccount(String id);
 

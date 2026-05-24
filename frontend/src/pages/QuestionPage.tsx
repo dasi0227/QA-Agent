@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { AlertTriangle, Plus, X } from "lucide-react";
+import { AlertTriangle, ListPlus, Plus, X } from "lucide-react";
 import { BaseButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea } from "@/components/base/field";
 import {
     parseDelimitedValues,
     useCreateSmartQuestionItemMutation,
+    useCreateSmartQuestionItemsBatchMutation,
     useDocumentChunksQuery,
     useQuestionItemQuery,
     useQuestionSetItemsQuery,
@@ -23,6 +24,8 @@ const MODULE_OPTIONS = [
     "Zookeeper", "Elasticsearch", "K8s", "Grafana", "分布式", "高并发", "微服务", "设计模式",
     "数据结构与算法", "计算机网络", "操作系统", "测试", "运维", "安全",
 ] as const;
+
+const BATCH_POLL_LIMIT = 30;
 
 const emptyItemDraft: QuestionItemDraft = {
     question: "",
@@ -57,8 +60,10 @@ export function QuestionPage() {
     const itemIdParam = searchParams.get("itemId") || "";
 
     const selectedSetItemsQuery = useQuestionSetItemsQuery(qaSetId);
+    const refetchSelectedSetItems = selectedSetItemsQuery.refetch;
     const updateQuestionItemMutation = useUpdateQuestionItemMutation();
     const createSmartQuestionItemMutation = useCreateSmartQuestionItemMutation();
+    const createSmartQuestionItemsBatchMutation = useCreateSmartQuestionItemsBatchMutation();
     const retryCompleteQuestionItemMutation = useRetryCompleteQuestionItemMutation();
 
     const itemList = selectedSetItemsQuery.data ?? [];
@@ -72,7 +77,11 @@ export function QuestionPage() {
     const [itemDraft, setItemDraft] = useState<QuestionItemDraft>(emptyItemDraft);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [createMode, setCreateMode] = useState<"single" | "batch">("single");
     const [smartQuestionDraft, setSmartQuestionDraft] = useState("");
+    const [batchQuestionDraft, setBatchQuestionDraft] = useState("");
+    const [batchTrackingIds, setBatchTrackingIds] = useState<string[]>([]);
+    const [batchPollCount, setBatchPollCount] = useState(0);
     const [selectedModuleDraft, setSelectedModuleDraft] = useState<string[]>([]);
     const [selectedKeywordsDraft, setSelectedKeywordsDraft] = useState<string[]>([]);
     const [keywordInput, setKeywordInput] = useState("");
@@ -94,6 +103,15 @@ export function QuestionPage() {
         () => MODULE_OPTIONS.filter((moduleTag) => !selectedModuleDraft.includes(moduleTag)),
         [selectedModuleDraft],
     );
+    const batchQuestionList = useMemo(
+        () => batchQuestionDraft.split(/\r?\n/).map((question) => question.trim()).filter(Boolean),
+        [batchQuestionDraft],
+    );
+    const trackedBatchItems = useMemo(
+        () => itemList.filter((item) => batchTrackingIds.includes(item.id)),
+        [batchTrackingIds, itemList],
+    );
+    const trackedBatchProcessingCount = trackedBatchItems.filter((item) => item.completeStatus === "PROCESSING").length;
 
     useEffect(() => {
         if (!qaSetId) {
@@ -133,6 +151,22 @@ export function QuestionPage() {
         return () => window.clearInterval(timer);
     }, [activeItem?.completeStatus, activeItemQuery]);
 
+    useEffect(() => {
+        if (!batchTrackingIds.length) {
+            return;
+        }
+        if (batchPollCount >= BATCH_POLL_LIMIT || (trackedBatchItems.length > 0 && trackedBatchProcessingCount === 0)) {
+            setBatchTrackingIds([]);
+            setBatchPollCount(0);
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            setBatchPollCount((current) => current + 1);
+            refetchSelectedSetItems();
+        }, 2000);
+        return () => window.clearTimeout(timer);
+    }, [batchPollCount, batchTrackingIds, refetchSelectedSetItems, trackedBatchItems.length, trackedBatchProcessingCount]);
+
     const handleSelectItem = (itemId: string) => {
         navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${itemId}`, { replace: true });
     };
@@ -154,8 +188,10 @@ export function QuestionPage() {
     };
 
     const closeCreateDialog = () => {
-        if (createSmartQuestionItemMutation.isPending) return;
+        if (createSmartQuestionItemMutation.isPending || createSmartQuestionItemsBatchMutation.isPending) return;
         setSmartQuestionDraft("");
+        setBatchQuestionDraft("");
+        setCreateMode("single");
         setCreateDialogOpen(false);
     };
 
@@ -166,6 +202,22 @@ export function QuestionPage() {
         setSmartQuestionDraft("");
         setCreateDialogOpen(false);
         navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${qaSetEntry.id}`, { replace: true });
+    };
+
+    const createBatchItems = async () => {
+        if (!batchQuestionList.length || batchQuestionList.length > 50) return;
+        const qaSetEntries = await createSmartQuestionItemsBatchMutation.mutateAsync({
+            qaSetId,
+            questions: batchQuestionList,
+        });
+        setBatchQuestionDraft("");
+        setCreateDialogOpen(false);
+        setCreateMode("single");
+        setBatchTrackingIds(qaSetEntries.map((item) => item.id));
+        setBatchPollCount(0);
+        if (qaSetEntries[0]) {
+            navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${qaSetEntries[0].id}`, { replace: true });
+        }
     };
 
     const retryCompleteItem = async () => {
@@ -245,6 +297,11 @@ export function QuestionPage() {
                                 {!selectedSetItemsQuery.isLoading && !selectedSetItemsQuery.isError && !itemList.length ? (
                                     <div className="tree-qaSetEntry">暂无题目</div>
                                 ) : null}
+                                {batchTrackingIds.length ? (
+                                    <div className="question-batch-status">
+                                        本批补全中 {trackedBatchProcessingCount}/{batchTrackingIds.length}
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     </aside>
@@ -303,7 +360,7 @@ export function QuestionPage() {
                                             <div className="question-detail-section__header">
                                                 <h2>标准回答</h2>
                                             </div>
-                                            <div className="question-detail-section__body">
+                                            <div className="question-detail-section__body question-detail-section__body--expanded">
                                                 <p>{activeItem.answer || "暂无标准回答"}</p>
                                             </div>
                                         </section>
@@ -312,7 +369,7 @@ export function QuestionPage() {
                                             <div className="question-detail-section__header">
                                                 <h2>知识点</h2>
                                             </div>
-                                            <div className="question-detail-section__body">
+                                            <div className="question-detail-section__body question-detail-section__body--expanded">
                                                 <p>{activeItem.knowledgeNote || "暂无知识点"}</p>
                                             </div>
                                         </section>
@@ -322,7 +379,7 @@ export function QuestionPage() {
                                                 <div className="question-detail-section__header">
                                                     <h2>答前提示</h2>
                                                 </div>
-                                                <div className="question-detail-section__body">
+                                                <div className="question-detail-section__body question-detail-section__body--expanded">
                                                     <p>{activeItem.hint}</p>
                                                 </div>
                                             </section>
@@ -458,28 +515,76 @@ export function QuestionPage() {
                             </button>
                         </div>
 
+                        <div className="question-create-dialog__mode-switch" role="tablist" aria-label="新增题目方式">
+                            <button
+                                type="button"
+                                className={cn("question-create-dialog__mode", createMode === "single" && "question-create-dialog__mode--active")}
+                                onClick={() => setCreateMode("single")}
+                            >
+                                单题
+                            </button>
+                            <button
+                                type="button"
+                                className={cn("question-create-dialog__mode", createMode === "batch" && "question-create-dialog__mode--active")}
+                                onClick={() => setCreateMode("batch")}
+                            >
+                                批量
+                            </button>
+                        </div>
+
                         <div className="question-edit-dialog__body">
-                            <Field label="问题">
-                                <TextArea
-                                    className="question-edit-dialog__textarea question-create-dialog__textarea"
-                                    value={smartQuestionDraft}
-                                    onChange={(event) => setSmartQuestionDraft(event.target.value)}
-                                    rows={5}
-                                    placeholder="输入一个技术面试问题"
-                                />
-                            </Field>
+                            {createMode === "single" ? (
+                                <Field label="问题">
+                                    <TextArea
+                                        className="question-edit-dialog__textarea question-create-dialog__textarea"
+                                        value={smartQuestionDraft}
+                                        onChange={(event) => setSmartQuestionDraft(event.target.value)}
+                                        rows={5}
+                                        placeholder="输入一个技术面试问题"
+                                    />
+                                </Field>
+                            ) : (
+                                <Field label={`问题列表（${batchQuestionList.length}/50）`}>
+                                    <TextArea
+                                        className="question-edit-dialog__textarea question-create-dialog__textarea question-create-dialog__textarea--batch"
+                                        value={batchQuestionDraft}
+                                        onChange={(event) => setBatchQuestionDraft(event.target.value)}
+                                        rows={10}
+                                        placeholder={"每行一道题，例如：\nRedis AOF 和 RDB 有什么区别？\nJVM 类加载过程是什么？"}
+                                    />
+                                    <div className={cn("question-create-dialog__hint", batchQuestionList.length > 50 && "question-create-dialog__hint--danger")}>
+                                        空行会自动忽略，单批最多 50 道题。
+                                    </div>
+                                </Field>
+                            )}
                         </div>
 
                         <div className="modal-card__footer">
                             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                <BaseButton
-                                    variant="primary"
-                                    type="button"
-                                    disabled={createSmartQuestionItemMutation.isPending || !smartQuestionDraft.trim()}
-                                    onClick={createSmartItem}
-                                >
-                                    {createSmartQuestionItemMutation.isPending ? "创建中" : "创建并智能补全"}
-                                </BaseButton>
+                                {createMode === "single" ? (
+                                    <BaseButton
+                                        variant="primary"
+                                        type="button"
+                                        disabled={createSmartQuestionItemMutation.isPending || !smartQuestionDraft.trim()}
+                                        onClick={createSmartItem}
+                                    >
+                                        {createSmartQuestionItemMutation.isPending ? "创建中" : "创建并智能补全"}
+                                    </BaseButton>
+                                ) : (
+                                    <BaseButton
+                                        variant="primary"
+                                        type="button"
+                                        leadingIcon={<ListPlus size={14} />}
+                                        disabled={
+                                            createSmartQuestionItemsBatchMutation.isPending
+                                            || batchQuestionList.length === 0
+                                            || batchQuestionList.length > 50
+                                        }
+                                        onClick={createBatchItems}
+                                    >
+                                        {createSmartQuestionItemsBatchMutation.isPending ? "创建中" : `批量创建 ${batchQuestionList.length} 题`}
+                                    </BaseButton>
+                                )}
                                 <BaseButton variant="ghost" type="button" onClick={closeCreateDialog}>
                                     取消
                                 </BaseButton>

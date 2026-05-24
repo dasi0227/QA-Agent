@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { FileUp, Sparkles, X } from "lucide-react";
+import { FileUp, FolderPlus, Sparkles, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
 import {
+    useCreateEmptyQuestionSetMutation,
     useDeleteQuestionSetMutation,
     useExportQuestionSetMutation,
     useImportQuestionSetMutation,
@@ -53,6 +54,9 @@ export function QASetPage() {
     const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [createSetDialogOpen, setCreateSetDialogOpen] = useState(false);
+    const [emptySetFormOpen, setEmptySetFormOpen] = useState(false);
+    const [emptySetTitleDraft, setEmptySetTitleDraft] = useState("");
+    const [emptySetDescriptionDraft, setEmptySetDescriptionDraft] = useState("");
     const [importError, setImportError] = useState("");
     const [importSuccess, setImportSuccess] = useState("");
     const [selectedTagsDraft, setSelectedTagsDraft] = useState<string[]>([]);
@@ -67,6 +71,7 @@ export function QASetPage() {
     const updateQuestionSetMutation = useUpdateQuestionSetMutation();
     const importQuestionSetMutation = useImportQuestionSetMutation();
     const exportQuestionSetMutation = useExportQuestionSetMutation();
+    const createEmptyQuestionSetMutation = useCreateEmptyQuestionSetMutation();
 
     const hasQuestionSets = (questionSetsQuery.data?.length ?? 0) > 0;
     const setErrorMessage = questionSetsQuery.error instanceof Error ? questionSetsQuery.error.message : "";
@@ -124,9 +129,36 @@ export function QASetPage() {
     };
 
     const closeCreateSetDialog = () => {
-        if (importQuestionSetMutation.isPending) return;
+        if (importQuestionSetMutation.isPending || createEmptyQuestionSetMutation.isPending) return;
         setCreateSetDialogOpen(false);
+        setEmptySetFormOpen(false);
+        setEmptySetTitleDraft("");
+        setEmptySetDescriptionDraft("");
         setImportError("");
+    };
+
+    const createEmptySet = async () => {
+        const title = emptySetTitleDraft.trim();
+        if (!title) {
+            setImportError("请输入题集标题。");
+            return;
+        }
+        setImportError("");
+        setImportSuccess("");
+        try {
+            const createdSet = await createEmptyQuestionSetMutation.mutateAsync({
+                title,
+                description: emptySetDescriptionDraft.trim(),
+            });
+            setCreateSetDialogOpen(false);
+            setEmptySetFormOpen(false);
+            setEmptySetTitleDraft("");
+            setEmptySetDescriptionDraft("");
+            setImportSuccess("空题集创建成功");
+            navigate(`/repository/qa-set/${createdSet.id}`, { replace: true });
+        } catch (error) {
+            setImportError(error instanceof Error ? error.message : "空题集创建失败，请稍后重试。");
+        }
     };
 
     const handleImportFile = async (file?: File) => {
@@ -433,6 +465,19 @@ export function QASetPage() {
                             <button
                                 type="button"
                                 className="qa-set-create-option"
+                                disabled={createEmptyQuestionSetMutation.isPending}
+                                onClick={() => setEmptySetFormOpen(true)}
+                            >
+                                <span className="qa-set-create-option__icon"><FolderPlus size={20} /></span>
+                                <span className="qa-set-create-option__copy">
+                                    <strong>创建空题集</strong>
+                                    <small>只创建题集框架，之后手动新增题目。</small>
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                className="qa-set-create-option"
                                 onClick={() => navigate("/create")}
                             >
                                 <span className="qa-set-create-option__icon"><Sparkles size={20} /></span>
@@ -442,6 +487,50 @@ export function QASetPage() {
                                 </span>
                             </button>
                         </div>
+
+                        {emptySetFormOpen ? (
+                            <div className="qa-set-empty-form">
+                                <Field label="题集标题">
+                                    <input
+                                        className="input"
+                                        value={emptySetTitleDraft}
+                                        onChange={(event) => setEmptySetTitleDraft(event.target.value)}
+                                        placeholder="例如：操作系统面试题"
+                                        maxLength={50}
+                                    />
+                                </Field>
+                                <Field label="描述">
+                                    <TextArea
+                                        className="qa-set-empty-form__textarea"
+                                        value={emptySetDescriptionDraft}
+                                        onChange={(event) => setEmptySetDescriptionDraft(event.target.value)}
+                                        placeholder="可选，说明这套题的用途或范围"
+                                        maxLength={300}
+                                        rows={3}
+                                    />
+                                </Field>
+                                <div className="qa-set-empty-form__actions">
+                                    <BaseButton
+                                        variant="primary"
+                                        type="button"
+                                        disabled={createEmptyQuestionSetMutation.isPending || !emptySetTitleDraft.trim()}
+                                        onClick={createEmptySet}
+                                    >
+                                        {createEmptyQuestionSetMutation.isPending ? "创建中" : "创建空题集"}
+                                    </BaseButton>
+                                    <BaseButton
+                                        variant="ghost"
+                                        type="button"
+                                        onClick={() => {
+                                            setEmptySetFormOpen(false);
+                                            setImportError("");
+                                        }}
+                                    >
+                                        收起
+                                    </BaseButton>
+                                </div>
+                            </div>
+                        ) : null}
 
                         <input
                             ref={importFileInputRef}

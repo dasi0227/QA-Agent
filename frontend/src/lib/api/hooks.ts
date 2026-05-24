@@ -5,6 +5,9 @@ import type { ErrorHandlingMeta } from "@/lib/error/types";
 import type {
     AuthSession,
     AuthUser,
+    ChangePasswordInput,
+    CreateEmptyQuestionSetInput,
+    CreateSmartQuestionItemBatchInput,
     CreateSmartQuestionItemInput,
     DeleteQuestionItemInput,
     DocumentChunkRecord,
@@ -484,6 +487,15 @@ export function useSaveProfileMutation() {
     });
 }
 
+export function useChangePasswordMutation() {
+    return useMutation({
+        mutationFn: async (input: ChangePasswordInput) => apiRequest<void>("/identity/account/password", {
+            method: "POST",
+            body: input,
+        }),
+    });
+}
+
 export function useLoginMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -692,6 +704,20 @@ export function useUpdateQuestionSetMutation() {
     });
 }
 
+export function useCreateEmptyQuestionSetMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: CreateEmptyQuestionSetInput) => normalizeQuestionSet(await apiRequest<unknown>("/qa/set/empty", {
+            method: "POST",
+            body: input,
+        })),
+        onSuccess: async (result) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(result.id) });
+        },
+    });
+}
+
 function getFileNameFromDisposition(disposition: string | null, fallback: string) {
     if (!disposition) {
         return fallback;
@@ -771,7 +797,7 @@ export function useUpdateQuestionItemMutation() {
 export function useCreateSmartQuestionItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: CreateSmartQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/create", {
+        mutationFn: async (input: CreateSmartQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/create/single", {
             method: "POST",
             body: input,
         })),
@@ -779,6 +805,22 @@ export function useCreateSmartQuestionItemMutation() {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(result.id) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
+        },
+    });
+}
+
+export function useCreateSmartQuestionItemsBatchMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: CreateSmartQuestionItemBatchInput) => (await apiRequest<unknown[]>("/qa/item/create/batch", {
+            method: "POST",
+            body: input,
+        })).map(normalizeQuestionItem),
+        onSuccess: async (result, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
+            await Promise.all(result.map((item) => queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(item.id) })));
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
         },
     });

@@ -84,19 +84,47 @@
     padding-bottom: 8px;
   }
 
-  .profile-form__body,
-  .profile-form__footer {
-    padding-left: 0;
-    padding-right: 0;
+  .profile-settings {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    border-radius: 26px;
+  }
+
+  .profile-settings__rail {
+    border-right: 0;
+    border-bottom: 1px solid rgba(23, 22, 20, 0.08);
+    padding: 22px;
+  }
+
+  .profile-settings__nav {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .profile-settings__nav-item {
+    flex: 0 0 auto;
+    min-height: 42px;
+  }
+
+  .profile-settings__logout {
+    margin-top: 0;
+  }
+
+  .profile-settings__content {
+    padding: 24px;
   }
 
   .profile-grid--two {
     grid-template-columns: 1fr;
   }
 
-  .profile-form__footer {
-    align-items: flex-start;
-    flex-direction: column;
+  .profile-account {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-avatar-editor {
+    width: 120px;
   }
 
   .feature-grid {

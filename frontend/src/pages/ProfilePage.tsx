@@ -1,37 +1,64 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
+import { NavLink, Navigate, Outlet, useNavigate, useOutletContext } from "react-router";
 import { z } from "zod";
 import { BaseButton } from "@/components/base/button";
 import { Field, TextInput } from "@/components/base/field";
 import { LoadingCard } from "@/components/base/loading-card";
 import type { CropArea } from "@/components/profile/ProfileAvatarCropper";
-import { cn } from "@/lib/cn";
 import { clearAccessToken, useAuthState } from "@/lib/auth";
-import { useProfileQuery, useSaveProfileMutation, useUploadAvatarMutation } from "@/lib/api/hooks";
+import { useChangePasswordMutation, useProfileQuery, useSaveProfileMutation, useUploadAvatarMutation } from "@/lib/api/hooks";
+import type { AuthUser, Profile } from "@/lib/api/types";
+import { cn } from "@/lib/cn";
 import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
-const profileSchema = z.object({
+const personalSchema = z.object({
     targetRole: z.string().min(1, "请输入目标岗位"),
     targetDomain: z.string().min(1, "请选择目标方向"),
     targetCompany: z.string().min(1, "请输入目标公司"),
+    grade: z.string().min(1, "请输入年级"),
+    major: z.string().min(1, "请输入专业"),
+    stage: z.string().min(1, "请输入准备阶段"),
+});
+
+const agentSchema = z.object({
     allowGeneralKnowledge: z.boolean(),
     allowWebSearch: z.boolean(),
     allowFallback: z.boolean(),
     answerStyle: z.string().min(1, "请输入答案风格"),
     feedbackStyle: z.string().min(1, "请输入反馈风格"),
-    grade: z.string().min(1, "请输入年级"),
-    major: z.string().min(1, "请输入专业"),
-    stage: z.string().min(1, "请输入准备阶段"),
     llmBaseUrl: z.string(),
     llmApiKey: z.string(),
     llmModelName: z.string(),
 });
 
-type ProfileForm = z.infer<typeof profileSchema>;
+const passwordSchema = z.object({
+    currentPassword: z.string().min(1, "请输入当前密码"),
+    newPassword: z.string().min(8, "新密码至少 8 位"),
+    confirmPassword: z.string().min(1, "请再次输入新密码"),
+}).superRefine((value, context) => {
+    if (value.currentPassword === value.newPassword) {
+        context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "新密码不能和当前密码相同",
+            path: ["newPassword"],
+        });
+    }
+    if (value.newPassword !== value.confirmPassword) {
+        context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "两次输入的新密码不一致",
+            path: ["confirmPassword"],
+        });
+    }
+});
 
-const defaultProfile: ProfileForm = {
+type PersonalForm = z.infer<typeof personalSchema>;
+type AgentForm = z.infer<typeof agentSchema>;
+type PasswordForm = z.infer<typeof passwordSchema>;
+
+const defaultProfile: Profile = {
     targetRole: "Java 后端开发",
     targetDomain: "Java 后端",
     targetCompany: "互联网公司",
@@ -48,11 +75,26 @@ const defaultProfile: ProfileForm = {
     llmModelName: "",
 };
 
+const defaultPassword: PasswordForm = {
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+};
+
+type ProfileSettingsContext = {
+    profile: Profile;
+    currentUser?: AuthUser;
+};
+
 const LazyProfileAvatarCropper = lazy(() =>
     import("@/components/profile/ProfileAvatarCropper").then((module) => ({
         default: module.ProfileAvatarCropper,
     })),
 );
+
+function useProfileSettingsContext() {
+    return useOutletContext<ProfileSettingsContext>();
+}
 
 function getCroppedImg(imageSrc: string, crop: CropArea): Promise<Blob> {
     return new Promise((resolve, reject) => {
@@ -91,35 +133,88 @@ function getCroppedImg(imageSrc: string, crop: CropArea): Promise<Blob> {
 
 export function ProfilePage() {
     const navigate = useNavigate();
-    const { data, isError, error, refetch } = useProfileQuery();
-    const saveMutation = useSaveProfileMutation();
-    const uploadAvatarMutation = useUploadAvatarMutation();
+    const { data, isError, error, refetch, isLoading } = useProfileQuery();
     const authState = useAuthState();
-    const currentUser = authState.user;
-    const { showErrorDialog } = useGlobalErrorDialog();
-
-    const form = useForm<ProfileForm>({
-        resolver: zodResolver(profileSchema),
-        defaultValues: defaultProfile,
-    });
-
-    useEffect(() => {
-        if (data) {
-            form.reset(data);
-        }
-    }, [data, form]);
-
+    const profile = data ?? defaultProfile;
     const errorMessage = error instanceof Error ? error.message : "";
-    const allowGeneralKnowledge = form.watch("allowGeneralKnowledge");
+    const outletContext: ProfileSettingsContext = { profile, currentUser: authState.user ?? undefined };
+
     const handleLogout = () => {
         clearAccessToken();
         navigate("/login", { replace: true });
     };
 
+    return (
+        <div className="page-frame profile-page">
+            <div className="profile-settings">
+                <aside className="profile-settings__rail" aria-label="Profile 设置目录">
+                    <div className="profile-settings__brand">
+                        <span>Profile</span>
+                        <strong>个人设置</strong>
+                    </div>
+                    <nav className="profile-settings__nav" aria-label="个人设置">
+                        <NavLink to="/profile/info" className={({ isActive }) => cn("profile-settings__nav-item", isActive && "profile-settings__nav-item--active")}>
+                            个人
+                        </NavLink>
+                        <NavLink to="/profile/memory" className={({ isActive }) => cn("profile-settings__nav-item", isActive && "profile-settings__nav-item--active")}>
+                            记忆
+                        </NavLink>
+                        <NavLink to="/profile/config" className={({ isActive }) => cn("profile-settings__nav-item", isActive && "profile-settings__nav-item--active")}>
+                            智能体
+                        </NavLink>
+                    </nav>
+                    <BaseButton variant="outline" className="profile-settings__logout" type="button" onClick={handleLogout}>
+                        退出登录
+                    </BaseButton>
+                </aside>
+                <main className="profile-settings__content">
+                    {isError ? (
+                        <div className="status-card">
+                            <strong>Profile 加载失败</strong>
+                            <div className="qa-text">{errorMessage || "请重试后继续编辑。"}</div>
+                            <div>
+                                <BaseButton variant="soft" type="button" onClick={() => refetch()}>
+                                    重试
+                                </BaseButton>
+                            </div>
+                        </div>
+                    ) : isLoading ? (
+                        <LoadingCard />
+                    ) : (
+                        <Outlet context={outletContext} />
+                    )}
+                </main>
+            </div>
+        </div>
+    );
+}
+
+export function ProfileIndexRedirect() {
+    return <Navigate to="/profile/info" replace />;
+}
+
+export function ProfileInfoPage() {
+    const { profile, currentUser } = useProfileSettingsContext();
+    const saveMutation = useSaveProfileMutation();
+    const uploadAvatarMutation = useUploadAvatarMutation();
+    const changePasswordMutation = useChangePasswordMutation();
+    const { showErrorDialog } = useGlobalErrorDialog();
+    const personalForm = useForm<PersonalForm>({
+        resolver: zodResolver(personalSchema),
+        defaultValues: pickPersonalDefaults(profile),
+    });
+    const passwordForm = useForm<PasswordForm>({
+        resolver: zodResolver(passwordSchema),
+        defaultValues: defaultPassword,
+    });
+
+    useEffect(() => {
+        personalForm.reset(pickPersonalDefaults(profile));
+    }, [personalForm, profile]);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [avatarPreview, setAvatarPreview] = useState("");
     const avatarUrl = avatarPreview || currentUser?.avatar?.trim() || "";
-
     const [cropSrc, setCropSrc] = useState("");
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
@@ -173,213 +268,111 @@ export function ProfilePage() {
     };
 
     return (
-        <div className="page-frame profile-page">
-            <form
-                className="profile-form profile-form--flat"
-                onSubmit={form.handleSubmit(async (values) => {
-                    await saveMutation.mutateAsync(values);
-                })}
-            >
-                <div className="profile-form__body profile-form__body--flat">
-                    {isError ? (
-                        <div className="status-card">
-                            <strong>Profile 加载失败</strong>
-                            <div className="qa-text">{errorMessage || "请重试后继续编辑。"}</div>
-                            <div>
-                                <BaseButton variant="soft" type="button" onClick={() => refetch()}>
-                                    重试
-                                </BaseButton>
-                            </div>
-                        </div>
-                    ) : null}
+        <div className="profile-pane">
+            <div className="profile-pane__header">
+                <span>个人</span>
+                <h1>账户与求职信息</h1>
+            </div>
 
-                    <section className="profile-section">
-                        <div className="profile-section__title">账户信息</div>
-                        <div className="profile-grid profile-grid--two" style={{ alignItems: "start" }}>
-                            <Field label="用户名">
-                                <TextInput readOnly value={currentUser?.username ?? ""} />
-                            </Field>
-                            <div style={{ gridRow: "span 2", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: 8 }}>
-                                <span className="field__label">头像</span>
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    style={{
-                                        width: 128,
-                                        borderRadius: 24,
-                                        overflow: "hidden",
-                                        border: "1px solid var(--line)",
-                                        background: "var(--bg-glass)",
-                                        cursor: "pointer",
-                                        padding: 0,
-                                    }}
-                                    aria-label="更换头像"
-                                >
-                                    {avatarUrl ? (
-                                        <img
-                                            src={avatarUrl}
-                                            alt=""
-                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                        />
-                                    ) : (
-                                        <span style={{ fontFamily: "var(--font-sans)", fontSize: 32, color: "var(--ink-soft)" }}>
-                                            {currentUser?.username?.charAt(0)?.toUpperCase() || "U"}
-                                        </span>
-                                    )}
-                                </button>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    style={{ display: "none" }}
-                                    onChange={handleFileSelect}
-                                />
-                            </div>
-                            <Field label="邮箱">
-                                <TextInput readOnly value={currentUser?.email ?? ""} />
-                            </Field>
-                        </div>
-                    </section>
-
-                    <section className="profile-section">
-                        <div className="profile-section__title">求职信息</div>
-                        <div className="profile-grid profile-grid--two">
-                            <Field label="目标岗位" error={form.formState.errors.targetRole?.message}>
-                                <TextInput {...form.register("targetRole")} />
-                            </Field>
-                            <Field label="目标领域" error={form.formState.errors.targetDomain?.message}>
-                                <TextInput placeholder="Java 后端 / 中间件 / 数据库" {...form.register("targetDomain")} />
-                            </Field>
-                            <Field label="目标公司" error={form.formState.errors.targetCompany?.message}>
-                                <TextInput {...form.register("targetCompany")} />
-                            </Field>
-                            <Field label="当前阶段" error={form.formState.errors.stage?.message}>
-                                <TextInput {...form.register("stage")} />
-                            </Field>
-                            <Field label="专业" error={form.formState.errors.major?.message}>
-                                <TextInput {...form.register("major")} />
-                            </Field>
-                            <Field label="年级" error={form.formState.errors.grade?.message}>
-                                <TextInput {...form.register("grade")} />
-                            </Field>
-                        </div>
-                    </section>
-
-                    <section className="profile-section">
-                        <div className="profile-section__title">智能体配置</div>
-                        <div className="profile-grid">
-                            <Field label="Base URL">
-                                <TextInput placeholder="https://api.openai.com/v1" {...form.register("llmBaseUrl")} />
-                            </Field>
-                            <Field label="API Key">
-                                <TextInput type="password" placeholder="sk-..." {...form.register("llmApiKey")} />
-                            </Field>
-                            <Field label="模型名称">
-                                <TextInput placeholder="gpt-4o" {...form.register("llmModelName")} />
-                            </Field>
-                            <Field label="答案风格" error={form.formState.errors.answerStyle?.message}>
-                                <textarea
-                                    className="textarea profile-textarea"
-                                    rows={4}
-                                    {...form.register("answerStyle")}
-                                />
-                            </Field>
-                            <Field label="反馈风格" error={form.formState.errors.feedbackStyle?.message}>
-                                <textarea
-                                    className="textarea profile-textarea"
-                                    rows={4}
-                                    {...form.register("feedbackStyle")}
-                                />
-                            </Field>
-                        </div>
-                    </section>
-
-                    <section className="profile-section">
-                        <button
-                            type="button"
-                            className={cn("profile-switch", allowGeneralKnowledge && "profile-switch--active")}
-                            onClick={() =>
-                                form.setValue("allowGeneralKnowledge", !allowGeneralKnowledge, { shouldDirty: true })
-                            }
-                        >
-                            <span className="profile-switch__copy">
-                                <strong>通用知识</strong>
-                                <small>生成时优先依赖资料，必要时可补通用知识，并标注补充内容。</small>
-                            </span>
-                            <span className="profile-switch__track" aria-hidden="true">
-                                <span className="profile-switch__thumb" />
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            className={cn("profile-switch", form.watch("allowWebSearch") && "profile-switch--active")}
-                            onClick={() =>
-                                form.setValue("allowWebSearch", !form.getValues("allowWebSearch"), { shouldDirty: true })
-                            }
-                        >
-                            <span className="profile-switch__copy">
-                                <strong>面经搜索</strong>
-                                <small>允许生成链路补充网络搜索面经结果作为额外参考。</small>
-                            </span>
-                            <span className="profile-switch__track" aria-hidden="true">
-                                <span className="profile-switch__thumb" />
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            className={cn("profile-switch", form.watch("allowFallback") && "profile-switch--active")}
-                            onClick={() =>
-                                form.setValue("allowFallback", !form.getValues("allowFallback"), { shouldDirty: true })
-                            }
-                        >
-                            <span className="profile-switch__copy">
-                                <strong>错误回退</strong>
-                                <small>审校未通过时，允许使用 LLM 补充通用知识进行回退修订。</small>
-                            </span>
-                            <span className="profile-switch__track" aria-hidden="true">
-                                <span className="profile-switch__thumb" />
-                            </span>
-                        </button>
-                    </section>
-                </div>
-
-                <div className="profile-form__footer">
-                    <div className="profile-form__actions profile-form__actions--left">
-                        <BaseButton variant="primary" className="btn--profile-save" type="submit" disabled={saveMutation.isPending}>
-                            {saveMutation.isPending ? "保存中" : "保存设置"}
-                        </BaseButton>
-                        <BaseButton variant="outline" className="topbar__logout" type="button" onClick={handleLogout}>
-                            退出登录
-                        </BaseButton>
+            <section className="profile-section">
+                <div className="profile-section__title">账户信息</div>
+                <div className="profile-account">
+                    <button className="profile-avatar-editor" type="button" onClick={() => fileInputRef.current?.click()} aria-label="更换头像">
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="" />
+                        ) : (
+                            <span>{currentUser?.username?.charAt(0)?.toUpperCase() || "U"}</span>
+                        )}
+                    </button>
+                    <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileSelect} />
+                    <div className="profile-account__fields">
+                        <Field label="用户名">
+                            <TextInput readOnly value={currentUser?.username ?? ""} />
+                        </Field>
+                        <Field label="邮箱">
+                            <TextInput readOnly value={currentUser?.email ?? ""} />
+                        </Field>
                     </div>
                 </div>
+            </section>
+
+            <form
+                className="profile-form"
+                onSubmit={personalForm.handleSubmit(async (values) => {
+                    await saveMutation.mutateAsync({ ...profile, ...values });
+                })}
+            >
+                <section className="profile-section">
+                    <div className="profile-section__title">求职信息</div>
+                    <div className="profile-grid profile-grid--two">
+                        <Field label="目标岗位" error={personalForm.formState.errors.targetRole?.message}>
+                            <TextInput {...personalForm.register("targetRole")} />
+                        </Field>
+                        <Field label="目标领域" error={personalForm.formState.errors.targetDomain?.message}>
+                            <TextInput placeholder="Java 后端 / 中间件 / 数据库" {...personalForm.register("targetDomain")} />
+                        </Field>
+                        <Field label="目标公司" error={personalForm.formState.errors.targetCompany?.message}>
+                            <TextInput {...personalForm.register("targetCompany")} />
+                        </Field>
+                        <Field label="当前阶段" error={personalForm.formState.errors.stage?.message}>
+                            <TextInput {...personalForm.register("stage")} />
+                        </Field>
+                        <Field label="专业" error={personalForm.formState.errors.major?.message}>
+                            <TextInput {...personalForm.register("major")} />
+                        </Field>
+                        <Field label="年级" error={personalForm.formState.errors.grade?.message}>
+                            <TextInput {...personalForm.register("grade")} />
+                        </Field>
+                    </div>
+                    <div className="profile-form__actions">
+                        <BaseButton variant="primary" className="btn--profile-save" type="submit" disabled={saveMutation.isPending}>
+                            {saveMutation.isPending ? "保存中" : "保存个人信息"}
+                        </BaseButton>
+                    </div>
+                </section>
+            </form>
+
+            <form
+                className="profile-form"
+                onSubmit={passwordForm.handleSubmit(async (values) => {
+                    await changePasswordMutation.mutateAsync({
+                        currentPassword: values.currentPassword,
+                        newPassword: values.newPassword,
+                    });
+                    passwordForm.reset(defaultPassword);
+                })}
+            >
+                <section className="profile-section">
+                    <div className="profile-section__title">修改密码</div>
+                    <div className="profile-grid profile-grid--two">
+                        <Field label="当前密码" error={passwordForm.formState.errors.currentPassword?.message}>
+                            <TextInput type="password" {...passwordForm.register("currentPassword")} />
+                        </Field>
+                        <Field label="新密码" error={passwordForm.formState.errors.newPassword?.message}>
+                            <TextInput type="password" {...passwordForm.register("newPassword")} />
+                        </Field>
+                        <Field label="确认新密码" error={passwordForm.formState.errors.confirmPassword?.message}>
+                            <TextInput type="password" {...passwordForm.register("confirmPassword")} />
+                        </Field>
+                    </div>
+                    <div className="profile-form__actions">
+                        <BaseButton variant="outline" type="submit" disabled={changePasswordMutation.isPending}>
+                            {changePasswordMutation.isPending ? "修改中" : "修改密码"}
+                        </BaseButton>
+                    </div>
+                </section>
             </form>
 
             {cropSrc ? (
                 <div className="quiz-action-sheet" role="presentation" onClick={handleCropCancel}>
-                    <div
-                        className="modal-card"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="裁剪"
-                        style={{ width: "min(520px, 100%)" }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="modal-card" role="dialog" aria-modal="true" aria-label="裁剪" style={{ width: "min(520px, 100%)" }} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-card__header">
                             <h3 className="modal-card__title">裁剪</h3>
                         </div>
                         <div className="modal-card__body" style={{ position: "relative", minHeight: 320 }}>
                             <Suspense
                                 fallback={
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            inset: 0,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                        }}
-                                    >
+                                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                         <LoadingCard />
                                     </div>
                                 }
@@ -395,13 +388,8 @@ export function ProfilePage() {
                             </Suspense>
                         </div>
                         <div className="modal-card__footer">
-                            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                <BaseButton
-                                    variant="primary"
-                                    type="button"
-                                    disabled={uploadAvatarMutation.isPending}
-                                    onClick={handleCropConfirm}
-                                >
+                            <div className="profile-form__actions">
+                                <BaseButton variant="primary" type="button" disabled={uploadAvatarMutation.isPending} onClick={handleCropConfirm}>
                                     {uploadAvatarMutation.isPending ? "上传中" : "确认"}
                                 </BaseButton>
                                 <BaseButton variant="ghost" type="button" onClick={handleCropCancel}>
@@ -414,4 +402,150 @@ export function ProfilePage() {
             ) : null}
         </div>
     );
+}
+
+export function ProfileMemoryPage() {
+    return (
+        <div className="profile-pane profile-pane--empty">
+            <div className="profile-pane__header">
+                <span>记忆</span>
+                <h1>长期记忆</h1>
+            </div>
+            <div className="profile-empty-state">
+                <strong>记忆能力待接入</strong>
+                <p>这里会展示基于真实练习和评估沉淀的长期学习画像。当前先保留入口，等待 V6 Memory 字段确认后再接入数据。</p>
+            </div>
+        </div>
+    );
+}
+
+export function ProfileConfigPage() {
+    const { profile } = useProfileSettingsContext();
+    const saveMutation = useSaveProfileMutation();
+    const form = useForm<AgentForm>({
+        resolver: zodResolver(agentSchema),
+        defaultValues: pickAgentDefaults(profile),
+    });
+
+    useEffect(() => {
+        form.reset(pickAgentDefaults(profile));
+    }, [form, profile]);
+
+    const allowGeneralKnowledge = form.watch("allowGeneralKnowledge");
+    const allowWebSearch = form.watch("allowWebSearch");
+    const allowFallback = form.watch("allowFallback");
+
+    return (
+        <form
+            className="profile-pane"
+            onSubmit={form.handleSubmit(async (values) => {
+                await saveMutation.mutateAsync({ ...profile, ...values });
+            })}
+        >
+            <div className="profile-pane__header">
+                <span>智能体</span>
+                <h1>模型与行为配置</h1>
+            </div>
+
+            <section className="profile-section">
+                <div className="profile-section__title">模型配置</div>
+                <div className="profile-grid">
+                    <Field label="Base URL">
+                        <TextInput placeholder="https://api.openai.com/v1" {...form.register("llmBaseUrl")} />
+                    </Field>
+                    <Field label="API Key">
+                        <TextInput type="password" placeholder="sk-..." {...form.register("llmApiKey")} />
+                    </Field>
+                    <Field label="模型名称">
+                        <TextInput placeholder="gpt-4o" {...form.register("llmModelName")} />
+                    </Field>
+                </div>
+            </section>
+
+            <section className="profile-section">
+                <div className="profile-section__title">风格提示词</div>
+                <div className="profile-grid">
+                    <Field label="答案风格" error={form.formState.errors.answerStyle?.message}>
+                        <textarea className="textarea profile-textarea" rows={4} {...form.register("answerStyle")} />
+                    </Field>
+                    <Field label="反馈风格" error={form.formState.errors.feedbackStyle?.message}>
+                        <textarea className="textarea profile-textarea" rows={4} {...form.register("feedbackStyle")} />
+                    </Field>
+                </div>
+            </section>
+
+            <section className="profile-section">
+                <div className="profile-section__title">能力开关</div>
+                <button
+                    type="button"
+                    className={cn("profile-switch", allowGeneralKnowledge && "profile-switch--active")}
+                    onClick={() => form.setValue("allowGeneralKnowledge", !allowGeneralKnowledge, { shouldDirty: true })}
+                >
+                    <span className="profile-switch__copy">
+                        <strong>通用知识</strong>
+                        <small>生成时优先依赖资料，必要时可补通用知识，并标注补充内容。</small>
+                    </span>
+                    <span className="profile-switch__track" aria-hidden="true">
+                        <span className="profile-switch__thumb" />
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    className={cn("profile-switch", allowWebSearch && "profile-switch--active")}
+                    onClick={() => form.setValue("allowWebSearch", !allowWebSearch, { shouldDirty: true })}
+                >
+                    <span className="profile-switch__copy">
+                        <strong>面经搜索</strong>
+                        <small>允许生成链路补充网络搜索面经结果作为额外参考。</small>
+                    </span>
+                    <span className="profile-switch__track" aria-hidden="true">
+                        <span className="profile-switch__thumb" />
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    className={cn("profile-switch", allowFallback && "profile-switch--active")}
+                    onClick={() => form.setValue("allowFallback", !allowFallback, { shouldDirty: true })}
+                >
+                    <span className="profile-switch__copy">
+                        <strong>错误回退</strong>
+                        <small>审校未通过时，允许使用 LLM 补充通用知识进行回退修订。</small>
+                    </span>
+                    <span className="profile-switch__track" aria-hidden="true">
+                        <span className="profile-switch__thumb" />
+                    </span>
+                </button>
+            </section>
+
+            <div className="profile-form__actions">
+                <BaseButton variant="primary" className="btn--profile-save" type="submit" disabled={saveMutation.isPending}>
+                    {saveMutation.isPending ? "保存中" : "保存智能体配置"}
+                </BaseButton>
+            </div>
+        </form>
+    );
+}
+
+function pickPersonalDefaults(profile: Profile): PersonalForm {
+    return {
+        targetRole: profile.targetRole,
+        targetDomain: profile.targetDomain,
+        targetCompany: profile.targetCompany,
+        grade: profile.grade,
+        major: profile.major,
+        stage: profile.stage,
+    };
+}
+
+function pickAgentDefaults(profile: Profile): AgentForm {
+    return {
+        allowGeneralKnowledge: profile.allowGeneralKnowledge,
+        allowWebSearch: profile.allowWebSearch,
+        allowFallback: profile.allowFallback,
+        answerStyle: profile.answerStyle,
+        feedbackStyle: profile.feedbackStyle,
+        llmBaseUrl: profile.llmBaseUrl,
+        llmApiKey: profile.llmApiKey,
+        llmModelName: profile.llmModelName,
+    };
 }

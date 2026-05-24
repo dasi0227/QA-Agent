@@ -35,8 +35,8 @@ public class PlanResult {
         @Description("该模块题目数")
         private int questionCount;
 
-        @Description("重点考察话题，逗号分隔，用于 RAG 检索")
-        private String focusTopics;
+        @Description("专门用于 RAG 检索的具体查询主题数组")
+        private List<String> retrievalQueries;
 
         @Description("本模块必须覆盖的核心考点与生成边界")
         private String keyConcepts;

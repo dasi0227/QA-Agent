@@ -14,6 +14,8 @@ import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
 import com.dasi.qa.agent.infrastructure.persistent.entity.*;
+import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
@@ -95,6 +97,31 @@ public class QaRepository implements IQaRepository {
     private Integer countDocumentRefs(String qaSetId) {
         return Math.toIntExact(qaSetDocumentRefMapper.selectCount(
                 new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, qaSetId)));
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = RedisConstant.QA_SET_CACHE, allEntries = true)
+    public QaSetResponse createEmptyQaSet(String id, CreateEmptyQaSetRequest request, String userId) {
+        LocalDateTime now = LocalDateTime.now();
+        QaSet qaSet = QaSet.builder()
+                .id(id)
+                .userId(userId)
+                .taskId(null)
+                .title(request.getTitle().trim())
+                .description(StringUtils.hasText(request.getDescription()) ? request.getDescription().trim() : "")
+                .moduleTagsJson(JSON.toJSONString(List.of()))
+                .questionCount(0)
+                .practiceCount(0)
+                .averageScore(0)
+                .bestScore(0)
+                .averageAccuracy(BigDecimal.ZERO)
+                .bestAccuracy(BigDecimal.ZERO)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        qaSetMapper.insert(qaSet);
+        return detailQaSet(id, userId);
     }
 
     @Override
@@ -271,6 +298,58 @@ public class QaRepository implements IQaRepository {
                         .eq(QaSet::getId, request.getQaSetId())
                         .eq(QaSet::getUserId, userId));
         return toResponse(item, QaItemResponse.class);
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    @CacheEvict(cacheNames = {RedisConstant.QA_ITEM_CACHE, RedisConstant.QA_SET_CACHE}, allEntries = true)
+    public List<QaItemResponse> createQaItems(List<String> ids, CreateQaItemBatchRequest request, String userId) {
+        QaSet qaSet = qaSetMapper.selectById(request.getQaSetId());
+        if (qaSet == null) {
+            throw new ApiException(ResultCode.NOT_FOUND);
+        }
+        if (!userId.equals(qaSet.getUserId())) {
+            throw new ApiException(ResultCode.FORBIDDEN);
+        }
+        if (ids == null || ids.size() != request.getQuestions().size()) {
+            throw new ApiException(ResultCode.BAD_REQUEST);
+        }
+        Integer maxSortOrder = qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
+                        .eq(QaItem::getQaSetId, request.getQaSetId())
+                        .eq(QaItem::getUserId, userId))
+                .stream()
+                .map(QaItem::getSortOrder)
+                .filter(sortOrder -> sortOrder != null)
+                .max(Integer::compareTo)
+                .orElse(0);
+        List<QaItemResponse> responses = new java.util.ArrayList<>();
+        for (int i = 0; i < request.getQuestions().size(); i++) {
+            QaItem item = QaItem.builder()
+                    .id(ids.get(i))
+                    .userId(userId)
+                    .qaSetId(request.getQaSetId())
+                    .question(request.getQuestions().get(i))
+                    .knowledgeNote("")
+                    .answer("")
+                    .moduleTag("")
+                    .difficulty("")
+                    .keywords("")
+                    .hint("")
+                    .sourceReliable(Boolean.TRUE)
+                    .sourceChunkIdsJson("[]")
+                    .completeStatus(CompleteStatus.PROCESSING.name())
+                    .sortOrder(maxSortOrder + i + 1)
+                    .build();
+            qaItemMapper.insert(item);
+            responses.add(toResponse(item, QaItemResponse.class));
+        }
+        qaSetMapper.update(null,
+                new LambdaUpdateWrapper<QaSet>()
+                        .setSql("question_count = question_count + " + request.getQuestions().size())
+                        .set(QaSet::getUpdatedAt, LocalDateTime.now())
+                        .eq(QaSet::getId, request.getQaSetId())
+                        .eq(QaSet::getUserId, userId));
+        return responses;
     }
 
     @Override

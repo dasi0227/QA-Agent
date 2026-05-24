@@ -58,6 +58,11 @@ export type Profile = {
     llmModelName: string;
 };
 
+export type ChangePasswordInput = {
+    currentPassword: string;
+    newPassword: string;
+};
+
 export type DocumentRecord = {
     id: string;
     fileName: string;
@@ -158,9 +163,19 @@ export type CreateSmartQuestionItemInput = {
     question: string;
 };
 
+export type CreateSmartQuestionItemBatchInput = {
+    qaSetId: string;
+    questions: string[];
+};
+
 export type DeleteQuestionItemInput = {
     qaSetId: string;
     questionItemId: string;
+};
+
+export type CreateEmptyQuestionSetInput = {
+    title: string;
+    description?: string;
 };
 
 export type CreateQuestionSetInput = {

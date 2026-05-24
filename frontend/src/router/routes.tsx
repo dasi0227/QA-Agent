@@ -9,6 +9,10 @@ import { RouteLoadingCard } from "@/components/layout/RouteLoadingCard";
 const IndexPage = lazy(() => import("@/pages/IndexPage").then((module) => ({ default: module.IndexPage })));
 const LoginPage = lazy(() => import("@/pages/LoginPage").then((module) => ({ default: module.LoginPage })));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage").then((module) => ({ default: module.ProfilePage })));
+const ProfileIndexRedirect = lazy(() => import("@/pages/ProfilePage").then((module) => ({ default: module.ProfileIndexRedirect })));
+const ProfileInfoPage = lazy(() => import("@/pages/ProfilePage").then((module) => ({ default: module.ProfileInfoPage })));
+const ProfileMemoryPage = lazy(() => import("@/pages/ProfilePage").then((module) => ({ default: module.ProfileMemoryPage })));
+const ProfileConfigPage = lazy(() => import("@/pages/ProfilePage").then((module) => ({ default: module.ProfileConfigPage })));
 const QuizPage = lazy(() => import("@/pages/QuizPage").then((module) => ({ default: module.QuizPage })));
 const RegisterPage = lazy(() => import("@/pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
 const QASetPage = lazy(() => import("@/pages/QASetPage").then((module) => ({ default: module.QASetPage })));
@@ -46,7 +50,16 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
-          { path: "/profile", element: withRouteLoading(<ProfilePage />) },
+          {
+            path: "/profile",
+            element: withRouteLoading(<ProfilePage />),
+            children: [
+              { index: true, element: withRouteLoading(<ProfileIndexRedirect />) },
+              { path: "info", element: withRouteLoading(<ProfileInfoPage />) },
+              { path: "memory", element: withRouteLoading(<ProfileMemoryPage />) },
+              { path: "config", element: withRouteLoading(<ProfileConfigPage />) },
+            ],
+          },
           { path: "/quiz", element: withRouteLoading(<QuizPage />) },
           { path: "/create", element: withRouteLoading(<CreatePage />) },
           { path: "/create/:taskId", element: withRouteLoading(<CreatePage />) },
