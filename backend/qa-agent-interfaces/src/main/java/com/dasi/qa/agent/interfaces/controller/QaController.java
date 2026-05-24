@@ -3,20 +3,15 @@ package com.dasi.qa.agent.interfaces.controller;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
-import com.dasi.qa.agent.domain.qa.service.set.IQaSetService;
 import com.dasi.qa.agent.domain.qa.service.item.IQaItemService;
+import com.dasi.qa.agent.domain.qa.service.set.IQaSetService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
-import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
-import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
-import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
-import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
-import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
-import com.dasi.qa.agent.types.dto.request.qa.QaSetImportRequest;
-import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
-import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.*;
 import com.dasi.qa.agent.types.dto.response.qa.*;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,6 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -118,11 +114,10 @@ public class QaController {
 
     @PostMapping("/set/create")
     public SseEmitter qaSetCreate(@RequestBody @Valid CreateQaSetRequest request) {
-        if (!org.springframework.util.StringUtils.hasText(request.getTaskId())) {
-            throw new com.dasi.qa.agent.types.exception.ApiException(
-                    com.dasi.qa.agent.types.enumeration.ResultCode.BAD_REQUEST,
-                    "生成任务 ID 不能为空，请先创建生成任务");
+        if (!StringUtils.hasText(request.getTaskId())) {
+            throw new ApiException(ResultCode.BAD_REQUEST, "生成任务 ID 不能为空，请先创建生成任务");
         }
+
         SseEmitter emitter = new SseEmitter(600000L);
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);
@@ -164,13 +159,8 @@ public class QaController {
         return Result.success(qaItemService.updateQaItem(request));
     }
 
-    @PostMapping("/item/create")
-    public Result<QaItemResponse> qaItemCreate(@RequestBody @Valid CreateQaItemRequest request) {
-        return Result.success(qaItemService.createQaItem(request));
-    }
-
     @PostMapping("/item/create/single")
-    public Result<QaItemResponse> qaItemCreateSingle(@RequestBody @Valid CreateQaItemRequest request) {
+    public Result<QaItemResponse> qaItemCreateSingle(@RequestBody @Valid CreateQaItemSingleRequest request) {
         return Result.success(qaItemService.createQaItem(request));
     }
 

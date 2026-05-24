@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateQaItemRequest {
+public class CreateQaItemSingleRequest {
 
     @NotBlank
     private String qaSetId;

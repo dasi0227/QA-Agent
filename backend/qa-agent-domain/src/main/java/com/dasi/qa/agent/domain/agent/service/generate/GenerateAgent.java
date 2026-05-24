@@ -55,7 +55,7 @@ public class GenerateAgent implements IGenerateAgent {
     private static final int MAX_RETRY = 2;
     private static final int GROUP_SIZE = 3;
     private static final int MAX_SOURCE_CHUNK_COUNT = 5;
-    private static final int FALLBACK_SOURCE_CHUNK_COUNT = 2;
+    private static final int FALLBACK_SOURCE_CHUNK_COUNT = 5;
 
 
     private final IJsonUtil jsonUtil;
@@ -348,18 +348,15 @@ public class GenerateAgent implements IGenerateAgent {
      * WriteAgent 负责按模块并行执行 RAG 检索与 DraftAgent 出题，输出 draftResult 写入 scope。
      */
     private void doWrite(AgenticScope scope, DraftAgent draftAgent, WriteContext writeContext) {
-        // 1. 更新状态
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.WRITE);
 
-        // 2. 拿到计划结果
         PlanResult planResult = readPlanResult(scope);
         List<PlanResult.PlanItem> planItems = planResult.getPlanItems();
 
-        // 3. Phase 1: 每 3 个模块一组并发预搜证据（RAG + Web），组间串行
+        // Phase 1: 每 3 个模块一组并发预搜证据（RAG + Web），组间串行
         writeContext.getEventPublisher().publishProgress("📚 证据检索", "开始检索资料证据，共覆盖 " + planItems.size() + " 个模块...");
         Map<String, String> evidenceMap = Collections.synchronizedMap(new LinkedHashMap<>());
         Map<String, List<String>> chunkIdsMap = Collections.synchronizedMap(new LinkedHashMap<>());
-        Map<String, List<String>> fallbackChunkIdsMap = Collections.synchronizedMap(new LinkedHashMap<>());
 
         for (int g = 0; g < planItems.size(); g += GROUP_SIZE) {
             List<PlanResult.PlanItem> group = planItems.subList(g, Math.min(g + GROUP_SIZE, planItems.size()));
@@ -367,35 +364,28 @@ public class GenerateAgent implements IGenerateAgent {
             for (PlanResult.PlanItem planItem : group) {
                 futures.add(CompletableFuture.runAsync(() -> {
                     try {
-                        List<RagEvidenceProvider.EvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().searchByPlanItem(
-                                writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
+                        List<RagEvidenceProvider.RagEvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().searchByPlanItem(writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
                         String evidenceJson;
                         if (writeContext.getWebEvidenceProvider() != null) {
-                            List<InterviewInsights> webEvidence = writeContext.getWebEvidenceProvider().search(
-                                    writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem);
+                            String webSearchQuery = String.format("搜索 %s %s %s 面试面经", writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem.getModule());
+                            WebEvidenceProvider.WebEvidenceItem webEvidence = writeContext.getWebEvidenceProvider().search(webSearchQuery);
                             evidenceJson = jsonUtil.toJsonString(Map.of(
-                                    "ragResults", ragEvidence,
-                                    "interviewInsights", webEvidence));
+                                    "ragEvidence", ragEvidence,
+                                    "webEvidence", webEvidence)
+                            );
                         } else {
                             evidenceJson = jsonUtil.toJsonString(ragEvidence);
                         }
                         evidenceMap.put(planItem.getModule(), evidenceJson);
                         chunkIdsMap.put(planItem.getModule(), ragEvidence.stream()
-                                .map(RagEvidenceProvider.EvidenceItem::getChunkId)
+                                .map(RagEvidenceProvider.RagEvidenceItem::getChunkId)
                                 .filter(StringUtils::hasText)
                                 .distinct()
-                                .toList());
-                        fallbackChunkIdsMap.put(planItem.getModule(), ragEvidence.stream()
-                                .map(RagEvidenceProvider.EvidenceItem::getChunkId)
-                                .filter(StringUtils::hasText)
-                                .distinct()
-                                .limit(FALLBACK_SOURCE_CHUNK_COUNT)
                                 .toList());
                     } catch (Exception e) {
                         log.warn("【生成问答集】证据预搜失败: taskId={}, module={}", writeContext.getTaskId(), planItem.getModule(), e);
                         evidenceMap.put(planItem.getModule(), jsonUtil.toJsonString(List.of()));
                         chunkIdsMap.put(planItem.getModule(), List.of());
-                        fallbackChunkIdsMap.put(planItem.getModule(), List.of());
                     }
                 }, applicationTaskExecutor));
             }
@@ -405,7 +395,7 @@ public class GenerateAgent implements IGenerateAgent {
             }
         }
 
-        // 4. Phase 2: 并行出题，agentAction 内只做纯 LLM 调用，零 DB 访问
+        // Phase 2: 并发出题，纯 LLM 调用，零 DB 访问
         writeContext.getEventPublisher().publishProgress("️️✏️ 题目起草", "证据收集完毕，开始起草 " + planItems.size() + " 个模块的题目...");
         List<DraftResult> draftResults = Collections.synchronizedList(new ArrayList<>());
         List<Object> moduleAgents = new ArrayList<>();
@@ -413,7 +403,6 @@ public class GenerateAgent implements IGenerateAgent {
         for (PlanResult.PlanItem planItem : planItems) {
             String evidenceJson = evidenceMap.get(planItem.getModule());
             List<String> sourceChunkIds = chunkIdsMap.get(planItem.getModule());
-            List<String> fallbackSourceChunkIds = fallbackChunkIdsMap.get(planItem.getModule());
             AgenticServices.AgenticScopeAction agentAction = AgenticServices.agentAction(moduleScope -> {
                 try {
                     DraftContext draftContext = DraftContext.builder()
@@ -425,7 +414,6 @@ public class GenerateAgent implements IGenerateAgent {
                             .answerStyle(writeContext.getAnswerStyle())
                             .supervisor(writeContext.getSupervisor())
                             .allowedSourceChunkIds(sourceChunkIds)
-                            .fallbackSourceChunkIds(fallbackSourceChunkIds)
                             .build();
                     draftResults.addAll(doDraft(draftAgent, draftContext));
                 } catch (Exception exception) {
@@ -435,7 +423,6 @@ public class GenerateAgent implements IGenerateAgent {
             moduleAgents.add(agentAction);
         }
 
-        // 5. 组装为并发工作流
         UntypedAgent writer = AgenticServices.parallelBuilder()
                 .name(GeneratePhase.WRITE.getAgentName())
                 .description(GeneratePhase.WRITE.getAgentDesc())
@@ -444,7 +431,6 @@ public class GenerateAgent implements IGenerateAgent {
                 .output(moduleScope -> draftResults)
                 .build();
 
-        // 6. 调用智能体
         try {
             writer.invoke(Map.of());
         } catch (Exception exception) {
@@ -453,7 +439,6 @@ public class GenerateAgent implements IGenerateAgent {
             throw new GenerateException(AgentErrorType.fromException(exception), "题目起草失败，请稍后重试");
         }
 
-        // 7. 写入共享领域
         writeDraftResult(scope, draftResults);
     }
 
@@ -489,10 +474,19 @@ public class GenerateAgent implements IGenerateAgent {
                             retryHint
                     );
                     batchItems = jsonUtil.parseJsonArray(response, DraftResult.class);
+                    Set<String> allowedChunkIds = draftContext.getAllowedSourceChunkIds() == null
+                            ? Set.of() : new LinkedHashSet<>(draftContext.getAllowedSourceChunkIds());
                     for (DraftResult item : batchItems) {
-                        item.setSourceChunkIds(cleanSourceChunkIds(item.getSourceChunkIds(),
-                                draftContext.getAllowedSourceChunkIds(),
-                                draftContext.getFallbackSourceChunkIds()));
+                        List<String> cleaned = item.getSourceChunkIds() == null ? List.of() : item.getSourceChunkIds().stream()
+                                .filter(StringUtils::hasText)
+                                .filter(allowedChunkIds::contains)
+                                .distinct()
+                                .limit(MAX_SOURCE_CHUNK_COUNT)
+                                .toList();
+                        if (cleaned.isEmpty()) {
+                            cleaned = allowedChunkIds.stream().filter(StringUtils::hasText).limit(FALLBACK_SOURCE_CHUNK_COUNT).toList();
+                        }
+                        item.setSourceChunkIds(cleaned);
                     }
                     draftContext.getSupervisor().doSupervise(GeneratePhase.DRAFT, response);
                     break;
@@ -500,7 +494,7 @@ public class GenerateAgent implements IGenerateAgent {
                     retryHint = exception.getMessage();
                     if (attempt == MAX_RETRY) {
                         log.warn("【生成问答集】出题批次最终失败: maxRetries={}, taskId={}, module={}", MAX_RETRY, draftContext.getTaskId(), draftContext.getPlanItem().getModule(), exception);
-                        batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence(), draftContext.getFallbackSourceChunkIds());
+                        batchItems = fallbackDraft(draftContext.getPlanItem(), draftContext.getEvidence(), draftContext.getAllowedSourceChunkIds());
                     } else {
                         log.warn("【生成问答集】出题批次失败，重试: attempt={}, taskId={}, module={}", attempt + 1, draftContext.getTaskId(), draftContext.getPlanItem().getModule(), exception);
                     }
@@ -737,40 +731,6 @@ public class GenerateAgent implements IGenerateAgent {
 
     private DecideResult fallbackDecide() {
         return new DecideResult(false, "DecideAgent 执行出错，默认判定为不可继续执行");
-    }
-
-    private List<String> cleanSourceChunkIds(List<String> rawSourceChunkIds,
-                                             List<String> allowedChunkIds,
-                                             List<String> fallbackChunkIds) {
-        Set<String> allowed = allowedChunkIds == null ? Set.of() : new LinkedHashSet<>(allowedChunkIds);
-        List<String> cleaned = new ArrayList<>();
-        if (rawSourceChunkIds != null && !allowed.isEmpty()) {
-            for (String chunkId : rawSourceChunkIds) {
-                if (!StringUtils.hasText(chunkId) || !allowed.contains(chunkId) || cleaned.contains(chunkId)) {
-                    continue;
-                }
-                cleaned.add(chunkId);
-                if (cleaned.size() >= MAX_SOURCE_CHUNK_COUNT) {
-                    break;
-                }
-            }
-        }
-        if (!cleaned.isEmpty()) {
-            return cleaned;
-        }
-        if (fallbackChunkIds == null || fallbackChunkIds.isEmpty()) {
-            return List.of();
-        }
-        for (String chunkId : fallbackChunkIds) {
-            if (!StringUtils.hasText(chunkId) || (!allowed.isEmpty() && !allowed.contains(chunkId)) || cleaned.contains(chunkId)) {
-                continue;
-            }
-            cleaned.add(chunkId);
-            if (cleaned.size() >= FALLBACK_SOURCE_CHUNK_COUNT) {
-                break;
-            }
-        }
-        return cleaned;
     }
 
     private PlanResult fallbackPlan(CreateQaSetRequest request) {

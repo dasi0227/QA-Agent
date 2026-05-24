@@ -24,5 +24,4 @@ public class DraftContext {
     private String answerStyle;
     private GenerateSupervisor supervisor;
     private List<String> allowedSourceChunkIds;
-    private List<String> fallbackSourceChunkIds;
 }

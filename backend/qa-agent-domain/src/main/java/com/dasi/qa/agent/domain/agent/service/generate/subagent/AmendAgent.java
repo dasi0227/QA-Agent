@@ -5,6 +5,7 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+// TODO：新写题目时对 chunkId 的处理
 /**
  * AmendAgent：只针对"需要修订"的题目做最小改动，不重新发散生成整批题目。
  * - 输入：待修订题目，以及每道题对应的审校意见、用户补充要求、岗位描述和答案风格。

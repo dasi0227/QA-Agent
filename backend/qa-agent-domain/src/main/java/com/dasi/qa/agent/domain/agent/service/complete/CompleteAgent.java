@@ -75,10 +75,10 @@ public class CompleteAgent implements ICompleteAgent {
                 .build();
 
         // 3. 根据问题搜索相关资料。空引用题集不扩大到用户全部资料。
-        List<RagEvidenceProvider.EvidenceItem> evidenceItems = context.getDocumentIds() == null || context.getDocumentIds().isEmpty()
+        List<RagEvidenceProvider.RagEvidenceItem> ragEvidenceItems = context.getDocumentIds() == null || context.getDocumentIds().isEmpty()
                 ? List.of()
                 : ragEvidenceProvider.searchByQuestion(userId, context.getDocumentIds(), context.getQuestion());
-        String evidence = jsonUtil.toJsonString(evidenceItems);
+        String evidence = jsonUtil.toJsonString(ragEvidenceItems);
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {

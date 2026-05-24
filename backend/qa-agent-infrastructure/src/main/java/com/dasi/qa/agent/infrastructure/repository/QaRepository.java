@@ -18,7 +18,7 @@ import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
-import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetExportFile;
@@ -258,7 +258,7 @@ public class QaRepository implements IQaRepository {
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
     @CacheEvict(cacheNames = {RedisConstant.QA_ITEM_CACHE, RedisConstant.QA_SET_CACHE}, allEntries = true)
-    public QaItemResponse createQaItem(String id, CreateQaItemRequest request, String userId) {
+    public QaItemResponse createQaItem(String id, CreateQaItemSingleRequest request, String userId) {
         QaSet qaSet = qaSetMapper.selectById(request.getQaSetId());
         if (qaSet == null) {
             throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");

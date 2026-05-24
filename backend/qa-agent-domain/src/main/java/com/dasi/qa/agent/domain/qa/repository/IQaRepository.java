@@ -4,7 +4,7 @@ import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
-import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetExportFile;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
@@ -33,7 +33,7 @@ public interface IQaRepository {
 
     QaItemResponse createQaItem(QaItemRequest request, String userId);
 
-    QaItemResponse createQaItem(String id, CreateQaItemRequest request, String userId);
+    QaItemResponse createQaItem(String id, CreateQaItemSingleRequest request, String userId);
 
     List<QaItemResponse> createQaItems(List<String> ids, CreateQaItemBatchRequest request, String userId);
 

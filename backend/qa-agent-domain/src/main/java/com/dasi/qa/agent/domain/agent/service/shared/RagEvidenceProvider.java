@@ -25,7 +25,7 @@ public class RagEvidenceProvider {
         this.searchService = searchService;
     }
 
-    public List<EvidenceItem> searchByPlanItem(String userId, List<String> documentIds, PlanItem planItem) {
+    public List<RagEvidenceItem> searchByPlanItem(String userId, List<String> documentIds, PlanItem planItem) {
         List<String> topics = planItem.getRetrievalQueries() == null ? List.of() : planItem.getRetrievalQueries().stream()
                 .filter(StringUtils::hasText)
                 .map(topic -> planItem.getModule() + " " + topic.trim())
@@ -36,14 +36,14 @@ public class RagEvidenceProvider {
         return search(userId, documentIds, topics);
     }
 
-    public List<EvidenceItem> searchByQuestion(String userId, List<String> documentIds, String question) {
+    public List<RagEvidenceItem> searchByQuestion(String userId, List<String> documentIds, String question) {
         if (!StringUtils.hasText(question)) {
             return List.of();
         }
         return search(userId, documentIds, List.of(question));
     }
 
-    private List<EvidenceItem> search(String userId, List<String> documentIds, List<String> topics) {
+    private List<RagEvidenceItem> search(String userId, List<String> documentIds, List<String> topics) {
         List<SearchResult> results = new ArrayList<>();
         for (String topic : topics) {
             String queryText = topic == null ? "" : topic.trim();
@@ -67,7 +67,7 @@ public class RagEvidenceProvider {
                 ))
                 .values()
                 .stream()
-                .map(EvidenceItem::from)
+                .map(RagEvidenceItem::from)
                 .toList();
     }
 
@@ -75,14 +75,14 @@ public class RagEvidenceProvider {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class EvidenceItem {
+    public static class RagEvidenceItem {
         private String chunkId;
         private String content;
         private String summary;
         private String headingPath;
 
-        static EvidenceItem from(SearchResult result) {
-            return EvidenceItem.builder()
+        static RagEvidenceItem from(SearchResult result) {
+            return RagEvidenceItem.builder()
                     .chunkId(result.getChunkId())
                     .content(result.getContent())
                     .summary(result.getSummary())

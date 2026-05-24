@@ -7,7 +7,7 @@ import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
-import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.exception.ApiException;
@@ -22,6 +22,8 @@ import java.util.List;
 @Service
 @Slf4j
 public class QaItemService implements IQaItemService {
+
+    private final int MAX_CREATE_ITEM_NUM = 20;
 
     private final IQaRepository repository;
     private final IContextUtil contextUtil;
@@ -70,7 +72,7 @@ public class QaItemService implements IQaItemService {
     }
 
     @Override
-    public QaItemResponse createQaItem(CreateQaItemRequest request) {
+    public QaItemResponse createQaItem(CreateQaItemSingleRequest request) {
         String userId = contextUtil.getUserId();
         QaItemResponse response = repository.createQaItem(idUtil.nextId(), request, userId);
         applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));
@@ -86,8 +88,8 @@ public class QaItemService implements IQaItemService {
         if (questions.isEmpty()) {
             throw new ApiException(ResultCode.BAD_REQUEST, "请至少输入 1 道题目");
         }
-        if (questions.size() > 50) {
-            throw new ApiException(ResultCode.BAD_REQUEST, "单次最多新增 50 道题目");
+        if (questions.size() > MAX_CREATE_ITEM_NUM) {
+            throw new ApiException(ResultCode.BAD_REQUEST, "单次最多新增 20 道题目");
         }
         CreateQaItemBatchRequest normalizedRequest = CreateQaItemBatchRequest.builder()
                 .qaSetId(request.getQaSetId())
