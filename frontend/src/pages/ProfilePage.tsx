@@ -8,8 +8,16 @@ import { Field, TextInput } from "@/components/base/field";
 import { LoadingCard } from "@/components/base/loading-card";
 import type { CropArea } from "@/components/profile/ProfileAvatarCropper";
 import { clearAccessToken, useAuthState } from "@/lib/auth";
-import { useChangePasswordMutation, useProfileQuery, useSaveProfileMutation, useUploadAvatarMutation } from "@/lib/api/hooks";
-import type { AuthUser, Profile } from "@/lib/api/types";
+import {
+    useChangePasswordMutation,
+    useHideMemoryMutation,
+    useMemoryDetailQuery,
+    useMemoryListQuery,
+    useProfileQuery,
+    useSaveProfileMutation,
+    useUploadAvatarMutation,
+} from "@/lib/api/hooks";
+import type { AuthUser, Profile, UserMemory } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
@@ -79,6 +87,29 @@ const defaultPassword: PasswordForm = {
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
+};
+
+const memoryTypeLabels: Record<string, string> = {
+    EXPRESSION: "表达",
+    AWFUL: "严重薄弱",
+    UNCLEAR: "理解不稳",
+    MASTER: "稳定掌握",
+};
+
+const targetTypeLabels: Record<string, string> = {
+    MODULE: "模块",
+    BEHAVIOR: "行为",
+    GENERAL: "整体",
+};
+
+const behaviorLabels: Record<string, string> = {
+    MISSING_TRADEOFF: "缺少取舍边界",
+    DEFINITION_ONLY: "只背定义",
+    UNSTRUCTURED_ANSWER: "回答结构松散",
+    SCENARIO_WEAK: "场景迁移弱",
+    CAUSE_ANALYSIS_WEAK: "原因分析不足",
+    TERMINOLOGY_INACCURATE: "术语不准确",
+    GENERAL: "整体学习画像",
 };
 
 type ProfileSettingsContext = {
@@ -405,16 +436,142 @@ export function ProfileInfoPage() {
 }
 
 export function ProfileMemoryPage() {
+    const { data = [], isLoading, isError, error, refetch } = useMemoryListQuery();
+    const [selectedMemoryId, setSelectedMemoryId] = useState("");
+    const selectedMemory = data.find((item) => item.id === selectedMemoryId) ?? data[0];
+    const detailQuery = useMemoryDetailQuery(selectedMemory?.id ?? "", { enabled: Boolean(selectedMemory?.id) });
+    const hideMemoryMutation = useHideMemoryMutation();
+    const { showErrorDialog } = useGlobalErrorDialog();
+
+    useEffect(() => {
+        if (!data.length) {
+            setSelectedMemoryId("");
+            return;
+        }
+        if (!selectedMemoryId || !data.some((item) => item.id === selectedMemoryId)) {
+            setSelectedMemoryId(data[0].id);
+        }
+    }, [data, selectedMemoryId]);
+
+    const handleHideMemory = async (memory: UserMemory) => {
+        try {
+            await hideMemoryMutation.mutateAsync(memory.id);
+            if (selectedMemoryId === memory.id) {
+                setSelectedMemoryId("");
+            }
+        } catch (mutationError) {
+            showErrorDialog({
+                title: "隐藏记忆失败",
+                message: mutationError instanceof Error ? mutationError.message : "请稍后重试。",
+            });
+        }
+    };
+
+    if (isLoading) {
+        return <LoadingCard />;
+    }
+
     return (
-        <div className="profile-pane profile-pane--empty">
+        <div className="profile-pane profile-pane--memory">
             <div className="profile-pane__header">
                 <span>记忆</span>
                 <h1>长期记忆</h1>
             </div>
-            <div className="profile-empty-state">
-                <strong>记忆能力待接入</strong>
-                <p>这里会展示基于真实练习和评估沉淀的长期学习画像。当前先保留入口，等待 V6 Memory 字段确认后再接入数据。</p>
-            </div>
+            {isError ? (
+                <div className="status-card">
+                    <strong>记忆加载失败</strong>
+                    <div className="qa-text">{error instanceof Error ? error.message : "请重试后继续查看。"}</div>
+                    <div>
+                        <BaseButton variant="soft" type="button" onClick={() => refetch()}>
+                            重试
+                        </BaseButton>
+                    </div>
+                </div>
+            ) : data.length === 0 ? (
+                <div className="profile-empty-state">
+                    <strong>暂无长期记忆</strong>
+                    <p>完成练习评估后，系统会基于真实作答和评分沉淀学习画像。</p>
+                </div>
+            ) : (
+                <div className="profile-memory">
+                    <div className="profile-memory__list" aria-label="长期记忆列表">
+                        {data.map((memory) => (
+                            <button
+                                key={memory.id}
+                                type="button"
+                                className={cn("profile-memory-card", selectedMemory?.id === memory.id && "profile-memory-card--active")}
+                                onClick={() => setSelectedMemoryId(memory.id)}
+                            >
+                                <div className="profile-memory-card__meta">
+                                    <span>{memoryTypeLabel(memory.memoryType)}</span>
+                                    <span>{targetLabel(memory)}</span>
+                                </div>
+                                <strong>{memory.title}</strong>
+                                <p>{memory.summary}</p>
+                                <div className="profile-memory-card__stats">
+                                    <span>置信度 {memory.confidence}</span>
+                                    <span>证据 {memory.supportCount}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="profile-memory__detail">
+                        {detailQuery.isLoading ? (
+                            <LoadingCard />
+                        ) : detailQuery.data?.memory ? (
+                            <>
+                                <div className="profile-memory-detail__header">
+                                    <div>
+                                        <div className="profile-memory-card__meta">
+                                            <span>{targetTypeLabels[detailQuery.data.memory.targetType] ?? detailQuery.data.memory.targetType}</span>
+                                            <span>{targetLabel(detailQuery.data.memory)}</span>
+                                        </div>
+                                        <h2>{detailQuery.data.memory.title}</h2>
+                                    </div>
+                                    <BaseButton
+                                        variant="outline"
+                                        type="button"
+                                        disabled={hideMemoryMutation.isPending}
+                                        onClick={() => handleHideMemory(detailQuery.data.memory)}
+                                    >
+                                        隐藏这条记忆
+                                    </BaseButton>
+                                </div>
+                                <p className="profile-memory-detail__summary">{detailQuery.data.memory.detail || detailQuery.data.memory.summary}</p>
+                                <div className="profile-memory-detail__facts">
+                                    <span>类型：{memoryTypeLabel(detailQuery.data.memory.memoryType)}</span>
+                                    <span>置信度：{detailQuery.data.memory.confidence}</span>
+                                    <span>证据数：{detailQuery.data.memory.supportCount}</span>
+                                    <span>最近出现：{formatDateTime(detailQuery.data.memory.lastSeenAt)}</span>
+                                </div>
+                                <section className="profile-section">
+                                    <div className="profile-section__title">证据记录</div>
+                                    <div className="profile-memory-evidence">
+                                        {detailQuery.data.evidenceList.length === 0 ? (
+                                            <p>暂无证据记录。</p>
+                                        ) : detailQuery.data.evidenceList.map((evidence) => (
+                                            <div key={evidence.id} className="profile-memory-evidence__item">
+                                                <div className="profile-memory-card__meta">
+                                                    <span>{evidence.moduleTag || "未标记模块"}</span>
+                                                    <span>{evidence.result || "未评分"} · {evidence.score} 分</span>
+                                                </div>
+                                                <strong>{evidence.questionSnapshot || "题目快照缺失"}</strong>
+                                                <p>{evidence.evidenceSummary}</p>
+                                                <small>{formatDateTime(evidence.createdAt ?? "")}</small>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            </>
+                        ) : (
+                            <div className="profile-empty-state">
+                                <strong>请选择一条记忆</strong>
+                                <p>选择左侧画像后查看详情和证据记录。</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -548,4 +705,35 @@ function pickAgentDefaults(profile: Profile): AgentForm {
         llmApiKey: profile.llmApiKey,
         llmModelName: profile.llmModelName,
     };
+}
+
+function memoryTypeLabel(value: string) {
+    return memoryTypeLabels[value] ?? value;
+}
+
+function targetLabel(memory: UserMemory) {
+    if (memory.targetType === "BEHAVIOR") {
+        return behaviorLabels[memory.targetKey] ?? memory.targetKey;
+    }
+    if (memory.targetType === "GENERAL") {
+        return "整体学习画像";
+    }
+    return memory.targetKey;
+}
+
+function formatDateTime(value: string) {
+    if (!value) {
+        return "暂无";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value.replace("T", " ");
+    }
+    return date.toLocaleString("zh-CN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
 }

@@ -6,6 +6,8 @@ public class StringConstant {
 
     public static final String ASSIST_JOB_ID_PREFIX = "assist_";
 
+    public static final String MEMORY_JOB_ID_PREFIX = "memory_";
+
     public static final String DB_USER_ID = "user_id";
 
     public static final String DB_DELETED = "deleted";

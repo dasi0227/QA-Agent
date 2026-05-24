@@ -13,12 +13,14 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.result.RecordResult;
 import com.dasi.qa.agent.types.dto.response.practice.AssessDetail;
 import com.dasi.qa.agent.types.dto.response.practice.AssessPoint;
 import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
+import com.dasi.qa.agent.domain.util.IMqUtil;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 负责从 scope 读取整轮评估结果并落库，返回 AssessResponse。
@@ -28,9 +30,11 @@ import java.util.List;
 public class AssessSaver {
 
     private final IAgentRepository agentRepository;
+    private final IMqUtil mqUtil;
 
-    public AssessSaver(IAgentRepository agentRepository) {
+    public AssessSaver(IAgentRepository agentRepository, IMqUtil mqUtil) {
         this.agentRepository = agentRepository;
+        this.mqUtil = mqUtil;
     }
 
     public AssessResponse save(AgenticScope scope, SessionContext context, String userId) {
@@ -62,6 +66,7 @@ public class AssessSaver {
 
         // 3. 落库
         AssessResponse assessResponse = agentRepository.saveAssessResult(context.getSessionId(), userId, command);
+        mqUtil.sendMemoryMessage(context.getSessionId(), Map.of("sessionId", context.getSessionId(), "userId", userId));
         log.info("【整轮评估】保存完成: sessionId={}, score={}, accuracy={}", context.getSessionId(), assessResponse.getScore(), assessResponse.getAccuracy());
         return assessResponse;
     }

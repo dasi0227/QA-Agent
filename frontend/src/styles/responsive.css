@@ -123,6 +123,14 @@
     grid-template-columns: 1fr;
   }
 
+  .profile-memory {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-memory-detail__header {
+    display: grid;
+  }
+
   .profile-avatar-editor {
     width: 120px;
   }

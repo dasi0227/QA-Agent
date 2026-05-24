@@ -361,3 +361,45 @@
 练习题明细不再暴露独立 session item 查询接口。刷题页统一通过 `GET /practice/session/detail?sessionId=...` 获取 session、题目快照、作答状态、反馈和结果。
 
 练习题的草稿保存、不会标记和单题提交统一走 `/practice/item/*`。
+
+## 7. Memory
+
+Memory 是基于真实练习评估异步沉淀的用户学习画像。前端只展示 `ACTIVE` 记忆，用户可以隐藏，但不能编辑或物理删除。
+
+| 方法 | 路径 | 鉴权 | 请求 |
+| --- | --- | --- | --- |
+| GET | `/memory/list` | 是 | 无 |
+| GET | `/memory/detail?memoryId=...` | 是 | `memoryId` |
+| POST | `/memory/hide` | 是 | `memoryId` |
+
+`/memory/list` 返回 `UserMemoryResponse[]`：
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | Memory ID |
+| `memoryType` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
+| `targetType` | `MODULE` / `BEHAVIOR` / `GENERAL` |
+| `targetKey` | 模块 tag、行为枚举或 `GENERAL` |
+| `title` / `summary` / `detail` | 用户可读画像内容 |
+| `confidence` | 0-100 置信度 |
+| `supportCount` | 支撑证据数量 |
+| `status` | `ACTIVE` / `HIDDEN` |
+| `firstSeenAt` / `lastSeenAt` / `hiddenAt` | 形成、最近增强、隐藏时间 |
+| `latestSessionId` / `latestQaSetId` | 最近支撑该画像的练习和题集 |
+
+`/memory/detail` 返回：
+
+```json
+{
+  "memory": {},
+  "evidenceList": []
+}
+```
+
+`evidenceList` 中每条证据包含 `sessionId`、`sessionItemId`、`qaSetId`、`qaItemId`、`moduleTag`、`questionSnapshot`、`result`、`score`、`sourceChunkIdsJson`、`memoryClueJson`、`evidenceSummary`。
+
+说明：
+
+1. Memory 由 Assess 保存完成后通过 MQ 异步沉淀，Assess 接口本身不直接写 Memory。
+2. `HIDDEN` 记忆不返回列表，不参与后续 Agent 输入。
+3. 第一版 GenerateAgent 只预留 Memory 输入，`UserMemoryProvider` 固定返回空，不改变生成结果。

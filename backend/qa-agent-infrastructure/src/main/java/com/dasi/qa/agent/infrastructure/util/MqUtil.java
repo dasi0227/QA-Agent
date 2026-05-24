@@ -25,17 +25,20 @@ public class MqUtil implements IMqUtil {
     private final IIdUtil idUtil;
     private final String indexTopic;
     private final String assistTopic;
+    private final String memoryTopic;
 
     public MqUtil(KafkaTemplate<String, String> kafkaTemplate,
                   MessageJobMapper messageJobMapper,
                   IIdUtil idUtil,
                   @Value("${qa-agent.kafka.topic-document-index}") String indexTopic,
-                  @Value("${qa-agent.kafka.topic-qa-item-assist}") String assistTopic) {
+                  @Value("${qa-agent.kafka.topic-qa-item-assist}") String assistTopic,
+                  @Value("${qa-agent.kafka.topic-memory-ingest}") String memoryTopic) {
         this.kafkaTemplate = kafkaTemplate;
         this.messageJobMapper = messageJobMapper;
         this.idUtil = idUtil;
         this.indexTopic = indexTopic;
         this.assistTopic = assistTopic;
+        this.memoryTopic = memoryTopic;
     }
 
 
@@ -47,6 +50,11 @@ public class MqUtil implements IMqUtil {
     @Override
     public void sendAssistMessage(String id, Object content) {
         send(assistTopic, StringConstant.ASSIST_JOB_ID_PREFIX + id, JSON.toJSONString(content));
+    }
+
+    @Override
+    public void sendMemoryMessage(String id, Object content) {
+        send(memoryTopic, StringConstant.MEMORY_JOB_ID_PREFIX + id, JSON.toJSONString(content));
     }
 
     @Override

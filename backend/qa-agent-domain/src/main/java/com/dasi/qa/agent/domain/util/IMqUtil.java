@@ -15,4 +15,6 @@ public interface IMqUtil {
     void sendIndexMessage(String id, Object content);
 
     void sendAssistMessage(String id, Object content);
+
+    void sendMemoryMessage(String id, Object content);
 }

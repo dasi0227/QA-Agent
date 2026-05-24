@@ -37,6 +37,9 @@ import type {
     TaskListItem,
     TaskMessage,
     TaskStatus,
+    UserMemory,
+    UserMemoryDetail,
+    UserMemoryEvidence,
 } from "./types";
 import { setAuthSession } from "../auth";
 
@@ -104,6 +107,8 @@ export const apiKeys = {
     taskStatus: (taskId: string) => ["task-status", taskId] as const,
     taskMessages: (taskId: string) => ["task-messages", taskId] as const,
     taskList: ["task-list"] as const,
+    memories: ["memories"] as const,
+    memory: (memoryId: string) => ["memories", memoryId] as const,
     existingPractice: (qaSetId: string) => ["practice", "session", "exist", qaSetId] as const,
     practiceDetail: (sessionId: string) => ["practice", "session", "detail", sessionId] as const,
     practiceHistory: (qaSetId: string) => ["practice", "session", "history", qaSetId] as const,
@@ -140,6 +145,55 @@ export function normalizeProfile(raw: unknown): Profile {
         llmBaseUrl: toStringValue(pick(raw, "llmBaseUrl", "llm_base_url")),
         llmApiKey: toStringValue(pick(raw, "llmApiKey", "llm_api_key")),
         llmModelName: toStringValue(pick(raw, "llmModelName", "llm_model_name")),
+    };
+}
+
+export function normalizeUserMemory(raw: unknown): UserMemory {
+    return {
+        id: toStringValue(pick(raw, "id")),
+        memoryType: toStringValue(pick(raw, "memoryType", "memory_type")),
+        targetType: toStringValue(pick(raw, "targetType", "target_type")),
+        targetKey: toStringValue(pick(raw, "targetKey", "target_key")),
+        title: toStringValue(pick(raw, "title")),
+        summary: toStringValue(pick(raw, "summary")),
+        detail: toStringValue(pick(raw, "detail")),
+        confidence: toNumberValue(pick(raw, "confidence")),
+        supportCount: toNumberValue(pick(raw, "supportCount", "support_count")),
+        status: toStringValue(pick(raw, "status"), "ACTIVE"),
+        firstSeenAt: toStringValue(pick(raw, "firstSeenAt", "first_seen_at")),
+        lastSeenAt: toStringValue(pick(raw, "lastSeenAt", "last_seen_at")),
+        hiddenAt: toStringValue(pick(raw, "hiddenAt", "hidden_at")),
+        latestSessionId: toStringValue(pick(raw, "latestSessionId", "latest_session_id")),
+        latestQaSetId: toStringValue(pick(raw, "latestQaSetId", "latest_qa_set_id")),
+        createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
+        updatedAt: toStringValue(pick(raw, "updatedAt", "updated_at")),
+    };
+}
+
+export function normalizeUserMemoryEvidence(raw: unknown): UserMemoryEvidence {
+    return {
+        id: toStringValue(pick(raw, "id")),
+        memoryId: toStringValue(pick(raw, "memoryId", "memory_id")),
+        sessionId: toStringValue(pick(raw, "sessionId", "session_id")),
+        sessionItemId: toStringValue(pick(raw, "sessionItemId", "session_item_id")),
+        qaSetId: toStringValue(pick(raw, "qaSetId", "qa_set_id")),
+        qaItemId: toStringValue(pick(raw, "qaItemId", "qa_item_id")),
+        moduleTag: toStringValue(pick(raw, "moduleTag", "module_tag")),
+        questionSnapshot: toStringValue(pick(raw, "questionSnapshot", "question_snapshot")),
+        result: toStringValue(pick(raw, "result")),
+        score: toNumberValue(pick(raw, "score")),
+        sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
+        memoryClueJson: toStringValue(pick(raw, "memoryClueJson", "memory_clue_json")),
+        evidenceSummary: toStringValue(pick(raw, "evidenceSummary", "evidence_summary")),
+        createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
+    };
+}
+
+export function normalizeUserMemoryDetail(raw: unknown): UserMemoryDetail {
+    const evidenceList = pick(raw, "evidenceList", "evidence_list");
+    return {
+        memory: normalizeUserMemory(pick(raw, "memory")),
+        evidenceList: Array.isArray(evidenceList) ? evidenceList.map(normalizeUserMemoryEvidence) : [],
     };
 }
 
@@ -493,6 +547,36 @@ export function useChangePasswordMutation() {
             method: "POST",
             body: input,
         }),
+    });
+}
+
+export function useMemoryListQuery() {
+    return useQuery({
+        queryKey: apiKeys.memories,
+        queryFn: async () => (await apiRequest<unknown[]>("/memory/list")).map(normalizeUserMemory),
+    });
+}
+
+export function useMemoryDetailQuery(memoryId: string, options: QueryControlOptions = {}) {
+    return useQuery({
+        queryKey: apiKeys.memory(memoryId),
+        enabled: (options.enabled ?? true) && Boolean(memoryId),
+        queryFn: async () => normalizeUserMemoryDetail(await apiRequest<unknown>("/memory/detail", {
+            query: { memoryId },
+        })),
+    });
+}
+
+export function useHideMemoryMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (memoryId: string) => apiRequest<void>("/memory/hide", {
+            method: "POST",
+            body: { memoryId },
+        }),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.memories });
+        },
     });
 }
 

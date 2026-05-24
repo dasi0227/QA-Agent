@@ -368,3 +368,5 @@ prompt/assess/assess-record.txt
 1. 代码组织已经是 `SessionContext` / `AssessContext` / `AssessStatCalculator` / `AssessResultCleaner` / `AssessSaver`，不要再使用旧版 `AssessSessionContext`、`AssessmentMetricCalculator`、`AssessResultSanitizer` 名称。
 2. `memory_clue_json` 不返回前端，但会持久化供后续 V6 Memory 使用。
 3. 评估是同步接口，失败直接走全局异常，不存在任务表或阶段消息留档。
+4. V6 Memory 接入后，Assess 保存完成会发送 `qa.memory.ingest` MQ 消息；Assess 不直接写 `user_memory`。
+5. MemoryConsumer 异步读取已完成练习和 `memory_clue_json`，调用 Memory 领域服务沉淀用户画像。

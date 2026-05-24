@@ -63,6 +63,48 @@ export type ChangePasswordInput = {
     newPassword: string;
 };
 
+export type UserMemory = {
+    id: string;
+    memoryType: "EXPRESSION" | "AWFUL" | "UNCLEAR" | "MASTER" | string;
+    targetType: "MODULE" | "BEHAVIOR" | "GENERAL" | string;
+    targetKey: string;
+    title: string;
+    summary: string;
+    detail: string;
+    confidence: number;
+    supportCount: number;
+    status: "ACTIVE" | "HIDDEN" | string;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    hiddenAt: string;
+    latestSessionId: string;
+    latestQaSetId: string;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type UserMemoryEvidence = {
+    id: string;
+    memoryId: string;
+    sessionId: string;
+    sessionItemId: string;
+    qaSetId: string;
+    qaItemId: string;
+    moduleTag: string;
+    questionSnapshot: string;
+    result: string;
+    score: number;
+    sourceChunkIdsJson: string;
+    memoryClueJson: string;
+    evidenceSummary: string;
+    createdAt?: string;
+};
+
+export type UserMemoryDetail = {
+    memory: UserMemory;
+    evidenceList: UserMemoryEvidence[];
+};
+
 export type DocumentRecord = {
     id: string;
     fileName: string;

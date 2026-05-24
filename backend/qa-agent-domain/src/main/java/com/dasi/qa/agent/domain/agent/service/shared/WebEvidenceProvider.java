@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.agent.service.generate.support;
+package com.dasi.qa.agent.domain.agent.service.shared;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.InterviewInsights;
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult.PlanItem;
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 联网面经预搜器，在 DraftAgent 调用前一次性完成 Web 检索，不再作为 LLM tool 由 Agent 按需调用。
+ * 联网面经预搜器
  */
 @Component
 public class WebEvidenceProvider {

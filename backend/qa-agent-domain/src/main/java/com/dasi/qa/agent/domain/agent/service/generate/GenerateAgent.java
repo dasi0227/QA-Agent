@@ -15,10 +15,11 @@ import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateAgentFact
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSaver;
 import com.dasi.qa.agent.domain.agent.service.generate.support.GenerateSupervisor;
 import com.dasi.qa.agent.domain.agent.service.shared.RagEvidenceProvider;
-import com.dasi.qa.agent.domain.agent.service.generate.support.WebEvidenceProvider;
+import com.dasi.qa.agent.domain.agent.service.shared.WebEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.shared.EventPublisher;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.agent.service.shared.UserMemoryProvider;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
@@ -64,6 +65,7 @@ public class GenerateAgent implements IGenerateAgent {
     private final RagEvidenceProvider ragEvidenceProvider;
     private final WebEvidenceProvider webEvidenceProvider;
     private final UserLlmModelProvider userLlmModelProvider;
+    private final UserMemoryProvider userMemoryProvider;
     private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
     private final GenerateSaver generateSaver;
@@ -72,6 +74,7 @@ public class GenerateAgent implements IGenerateAgent {
                          IPromptUtil promptUtil,
                          IAgentRepository agentRepository,
                          UserLlmModelProvider userLlmModelProvider,
+                         UserMemoryProvider userMemoryProvider,
                          GenerateAgentFactory generateAgentFactory,
                          RagEvidenceProvider ragEvidenceProvider,
                          WebEvidenceProvider webEvidenceProvider,
@@ -82,6 +85,7 @@ public class GenerateAgent implements IGenerateAgent {
         this.promptUtil = promptUtil;
         this.agentRepository = agentRepository;
         this.userLlmModelProvider = userLlmModelProvider;
+        this.userMemoryProvider = userMemoryProvider;
         this.generateAgentFactory = generateAgentFactory;
         this.ragEvidenceProvider = ragEvidenceProvider;
         this.webEvidenceProvider = webEvidenceProvider;
@@ -110,6 +114,7 @@ public class GenerateAgent implements IGenerateAgent {
         UserProfileStyleVO style = agentRepository.getUserProfileStyle(userId);
         UserProfileAllowVO allow = agentRepository.getUserProfileAllow(userId);
         String userProfileJson = jsonUtil.toJsonString(info);
+        String memoryProfileJson = userMemoryProvider.getGenerationMemory(userId);
         String answerStyle = style.getAnswerStyle();
 
         // 跨阶段累计 token，用于并发场景下的线程安全统计
@@ -145,6 +150,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .userId(userId)
                     .request(request)
                     .userProfileJson(userProfileJson)
+                    .memoryProfileJson(memoryProfileJson)
                     .allow(allow)
                     .supervisor(supervisor)
                     .eventPublisher(eventPublisher)
@@ -308,6 +314,7 @@ public class GenerateAgent implements IGenerateAgent {
                         planContext.getTaskId(),
                         documentsSummary,
                         planContext.getUserProfileJson(),
+                        planContext.getMemoryProfileJson(),
                         planContext.getRequest().getUserPrompt(),
                         planContext.getRequest().getJobDescription(),
                         planContext.getRequest().getRequestedQuestionCount(),

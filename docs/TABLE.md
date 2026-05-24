@@ -332,6 +332,57 @@
 | `created_at` | `TIMESTAMP` | 创建时间 |
 | `updated_at` | `TIMESTAMP` | 更新时间 |
 
+### 3.13 `user_memory`
+
+用途：用户长期学习画像结论。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `CHAR(36)` | 主键 |
+| `user_id` | `CHAR(36)` | 用户隔离字段 |
+| `memory_type` | `VARCHAR(32)` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
+| `target_type` | `VARCHAR(32)` | `MODULE` / `BEHAVIOR` / `GENERAL` |
+| `target_key` | `VARCHAR(120)` | 模块 tag、行为枚举或 `GENERAL` |
+| `title` | `VARCHAR(160)` | 画像标题 |
+| `summary` | `VARCHAR(500)` | 画像摘要 |
+| `detail` | `TEXT` | 画像详情 |
+| `confidence` | `INT` | 0-100 置信度 |
+| `support_count` | `INT` | 支撑证据数量 |
+| `status` | `VARCHAR(32)` | `ACTIVE` / `HIDDEN` |
+| `first_seen_at` | `DATETIME` | 首次形成时间 |
+| `last_seen_at` | `DATETIME` | 最近被证据增强时间 |
+| `hidden_at` | `DATETIME` | 隐藏时间 |
+| `latest_session_id` | `CHAR(36)` | 最近支撑练习 |
+| `latest_qa_set_id` | `CHAR(36)` | 最近支撑题集 |
+| `created_at` | `DATETIME` | 创建时间 |
+| `updated_at` | `DATETIME` | 更新时间 |
+
+唯一约束：`user_id + memory_type + target_type + target_key`。
+
+### 3.14 `user_memory_evidence`
+
+用途：支撑长期画像的真实练习证据。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | `CHAR(36)` | 主键 |
+| `memory_id` | `CHAR(36)` | 对应 `user_memory.id` |
+| `user_id` | `CHAR(36)` | 用户隔离字段 |
+| `session_id` | `CHAR(36)` | 练习会话 |
+| `session_item_id` | `CHAR(36)` | 练习单题记录 |
+| `qa_set_id` | `CHAR(36)` | 题集 |
+| `qa_item_id` | `CHAR(36)` | 题目 |
+| `module_tag` | `VARCHAR(120)` | 模块快照 |
+| `question_snapshot` | `LONGTEXT` | 题干快照 |
+| `result` | `VARCHAR(32)` | 单题结果 |
+| `score` | `INT` | 单题分数 |
+| `source_chunk_ids_json` | `JSON` | 来源切片快照 |
+| `memory_clue_json` | `JSON` | 被使用的 Assess clue |
+| `evidence_summary` | `VARCHAR(500)` | 证据摘要 |
+| `created_at` | `DATETIME` | 创建时间 |
+
+唯一约束：`memory_id + session_item_id`。
+
 ## 4. PostgreSQL `chunk_search`
 
 用途：RAG 检索副本表。
@@ -364,3 +415,4 @@
 2. `user_profile.allow_fallback` 已入库，并通过 Profile API 开放读写。
 3. `practice_session.finished_at` 在 Assess 重复执行时不会刷新；只在首次完成时写入。
 4. 删除 `source_document` 时不仅软删主记录，还会同步移除切片和 PostgreSQL 检索副本。
+5. Memory 只允许 `ACTIVE` / `HIDDEN` 两个状态；隐藏不物理删除证据。

@@ -19,6 +19,7 @@ public class PlanContext {
     private String userId;
     private CreateQaSetRequest request;
     private String userProfileJson;
+    private String memoryProfileJson;
     private UserProfileAllowVO allow;
     private GenerateSupervisor supervisor;
     private EventPublisher eventPublisher;
