@@ -1,22 +1,34 @@
 package com.dasi.qa.agent.domain.qa.service.set;
 
+import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
+import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
+import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetConverter;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetExportFile;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetImportRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetExportResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskCreateResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.exception.ConvertException;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 @Service
 public class QaSetService implements IQaSetService {
@@ -25,15 +37,24 @@ public class QaSetService implements IQaSetService {
     private final IContextUtil contextUtil;
     private final QaSetConverter converter;
     private final IIdUtil idUtil;
+    private final IAgentRepository agentRepository;
+    private final IGenerateAgent generateAgent;
+    private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
     public QaSetService(IQaRepository repository,
                         IContextUtil contextUtil,
                         QaSetConverter converter,
-                        IIdUtil idUtil) {
+                        IIdUtil idUtil,
+                        IAgentRepository agentRepository,
+                        IGenerateAgent generateAgent,
+                        @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
         this.repository = repository;
         this.contextUtil = contextUtil;
         this.converter = converter;
         this.idUtil = idUtil;
+        this.agentRepository = agentRepository;
+        this.generateAgent = generateAgent;
+        this.applicationTaskExecutor = applicationTaskExecutor;
     }
 
     @Override
@@ -83,6 +104,38 @@ public class QaSetService implements IQaSetService {
         }
         QaSetExportFile exportFile = converter.importContent(request.getContent());
         return repository.importQaSet(exportFile, contextUtil.getUserId());
+    }
+
+    @Override
+    public TaskCreateResponse createTask(CreateQaSetRequest request) {
+        String userId = contextUtil.getUserId();
+        String taskId = idUtil.nextId();
+        agentRepository.createGenerationTask(taskId, userId, request, agentRepository.getUserProfileAllow(userId));
+        return TaskCreateResponse.builder().taskId(taskId).build();
+    }
+
+    @Override
+    public void createQaSet(CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler) {
+        if (!StringUtils.hasText(request.getTaskId())) {
+            throw new ApiException(ResultCode.BAD_REQUEST, "生成任务 ID 不能为空，请先创建生成任务");
+        }
+        String userId = contextUtil.getUserId();
+        applicationTaskExecutor.execute(() -> generateAgent.execute(userId, request, sseEventHandler));
+    }
+
+    @Override
+    public TaskStatusResponse getTaskStatus(String taskId) {
+        return agentRepository.getTaskStatus(taskId, contextUtil.getUserId());
+    }
+
+    @Override
+    public List<TaskMessageResponse> getTaskMessages(String taskId) {
+        return agentRepository.getTaskMessages(taskId, contextUtil.getUserId());
+    }
+
+    @Override
+    public List<TaskListItemResponse> getTaskList() {
+        return agentRepository.getTaskList(contextUtil.getUserId());
     }
 
 }

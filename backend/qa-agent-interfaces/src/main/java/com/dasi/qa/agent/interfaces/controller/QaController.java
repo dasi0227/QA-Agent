@@ -1,26 +1,17 @@
 package com.dasi.qa.agent.interfaces.controller;
 
-import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
-import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.qa.service.item.IQaItemService;
 import com.dasi.qa.agent.domain.qa.service.set.IQaSetService;
-import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
 import com.dasi.qa.agent.types.dto.request.qa.*;
 import com.dasi.qa.agent.types.dto.response.qa.*;
-import com.dasi.qa.agent.types.enumeration.ResultCode;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -37,26 +28,11 @@ public class QaController {
 
     private final IQaSetService qaSetService;
     private final IQaItemService qaItemService;
-    private final IGenerateAgent generationAgent;
-    private final IAgentRepository agentRepository;
-    private final IContextUtil contextUtil;
-    private final IIdUtil idUtil;
-    private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
     public QaController(IQaSetService qaSetService,
-                        IQaItemService qaItemService,
-                        IGenerateAgent generationAgent,
-                        IAgentRepository agentRepository,
-                        IContextUtil contextUtil,
-                        IIdUtil idUtil,
-                        @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
+                        IQaItemService qaItemService) {
         this.qaSetService = qaSetService;
         this.qaItemService = qaItemService;
-        this.generationAgent = generationAgent;
-        this.agentRepository = agentRepository;
-        this.contextUtil = contextUtil;
-        this.idUtil = idUtil;
-        this.applicationTaskExecutor = applicationTaskExecutor;
     }
 
     @GetMapping("/set/detail")
@@ -106,42 +82,34 @@ public class QaController {
 
     @PostMapping("/set/task")
     public Result<TaskCreateResponse> taskCreate(@RequestBody @Valid CreateQaSetRequest request) {
-        String userId = contextUtil.getUserId();
-        String taskId = idUtil.nextId();
-        agentRepository.createGenerationTask(taskId, userId, request, agentRepository.getUserProfileAllow(userId));
-        return Result.success(TaskCreateResponse.builder().taskId(taskId).build());
+        return Result.success(qaSetService.createTask(request));
     }
 
     @PostMapping("/set/create")
     public SseEmitter qaSetCreate(@RequestBody @Valid CreateQaSetRequest request) {
-        if (!StringUtils.hasText(request.getTaskId())) {
-            throw new ApiException(ResultCode.BAD_REQUEST, "生成任务 ID 不能为空，请先创建生成任务");
-        }
-
         SseEmitter emitter = new SseEmitter(600000L);
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);
 
         Consumer<SseEvent> sseEventHandler = new SseEventHandler(emitter);
-        String userId = contextUtil.getUserId();
-        applicationTaskExecutor.execute(() -> generationAgent.execute(userId, request, sseEventHandler));
+        qaSetService.createQaSet(request, sseEventHandler);
 
         return emitter;
     }
 
     @GetMapping("/set/task-status")
     public Result<TaskStatusResponse> taskStatus(@RequestParam("taskId") String taskId) {
-        return Result.success(agentRepository.getTaskStatus(taskId, contextUtil.getUserId()));
+        return Result.success(qaSetService.getTaskStatus(taskId));
     }
 
     @GetMapping("/set/task-messages")
     public Result<List<TaskMessageResponse>> taskMessages(@RequestParam("taskId") String taskId) {
-        return Result.success(agentRepository.getTaskMessages(taskId, contextUtil.getUserId()));
+        return Result.success(qaSetService.getTaskMessages(taskId));
     }
 
     @GetMapping("/set/task-list")
     public Result<List<TaskListItemResponse>> taskList() {
-        return Result.success(agentRepository.getTaskList(contextUtil.getUserId()));
+        return Result.success(qaSetService.getTaskList());
     }
 
     @GetMapping("/item/detail")

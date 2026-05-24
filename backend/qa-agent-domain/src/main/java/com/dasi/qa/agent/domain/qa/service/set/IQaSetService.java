@@ -1,12 +1,19 @@
 package com.dasi.qa.agent.domain.qa.service.set;
 
+import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
+import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetImportRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetExportResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskCreateResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
+import com.dasi.qa.agent.types.dto.response.qa.TaskStatusResponse;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface IQaSetService {
 
@@ -23,4 +30,14 @@ public interface IQaSetService {
     QaSetExportResponse exportQaSet(String id);
 
     QaSetResponse importQaSet(QaSetImportRequest request);
+
+    TaskCreateResponse createTask(CreateQaSetRequest request);
+
+    void createQaSet(CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler);
+
+    TaskStatusResponse getTaskStatus(String taskId);
+
+    List<TaskMessageResponse> getTaskMessages(String taskId);
+
+    List<TaskListItemResponse> getTaskList();
 }

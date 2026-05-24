@@ -21,10 +21,6 @@ public class PracticeCrudService implements IPracticeCrudService {
 
     @Override
     public List<PracticeSessionResponse> query(PracticeQueryRequest request) {
-        return repository.queryPracticeSession(request, currentUserId());
-    }
-
-    private String currentUserId() {
-        return contextUtil.getUserId();
+        return repository.queryPracticeSession(request, contextUtil.getUserId());
     }
 }

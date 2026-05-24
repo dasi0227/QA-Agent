@@ -4,6 +4,7 @@ import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
+import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.dto.request.document.DocumentChunkRequest;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.DocumentChunkResponse;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -23,57 +25,63 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     private final IContextUtil contextUtil;
     private final IIndexService indexService;
     private final IIdUtil idUtil;
+    private final IMqUtil mqUtil;
 
     public DocumentCrudCrudService(IDocumentRepository repository,
                                    IContextUtil contextUtil,
                                    IIndexService indexService,
-                                   IIdUtil idUtil) {
+                                   IIdUtil idUtil,
+                                   IMqUtil mqUtil) {
         this.repository = repository;
         this.contextUtil = contextUtil;
         this.indexService = indexService;
         this.idUtil = idUtil;
+        this.mqUtil = mqUtil;
     }
 
     @Override
     public SourceDocumentResponse detailSourceDocument(String id) {
-        return repository.detailSourceDocument(id, currentUserId());
+        return repository.detailSourceDocument(id, contextUtil.getUserId());
     }
 
     @Override
     public List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request) {
-        return repository.querySourceDocument(request, currentUserId());
+        return repository.querySourceDocument(request, contextUtil.getUserId());
     }
 
     @Override
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request) {
+        String userId = contextUtil.getUserId();
         if (!StringUtils.hasText(request.getId())) {
             request.setId(idUtil.nextId());
         }
         if (!isValidFileType(request.getFileType())) {
             throw new ApiException(ResultCode.FILE_INVALID, "暂不支持该资料类型，请上传 Markdown 资料");
         }
-        return repository.createSourceDocument(request, currentUserId());
+        SourceDocumentResponse response = repository.createSourceDocument(request, userId);
+        mqUtil.sendIndexMessage(response.getId(), Map.of("documentId", response.getId(), "userId", userId));
+        return response;
     }
 
     @Override
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request) {
-        return repository.updateSourceDocument(request, currentUserId());
+        return repository.updateSourceDocument(request, contextUtil.getUserId());
     }
 
     @Override
     public void deleteSourceDocument(String id) {
-        repository.deleteSourceDocument(id, currentUserId());
+        repository.deleteSourceDocument(id, contextUtil.getUserId());
         indexService.remove(id);
     }
 
     @Override
     public DocumentChunkResponse detailDocumentChunk(String id) {
-        return repository.detailDocumentChunk(id, currentUserId());
+        return repository.detailDocumentChunk(id, contextUtil.getUserId());
     }
 
     @Override
     public List<DocumentChunkResponse> queryDocumentChunk(DocumentChunkRequest request) {
-        return repository.queryDocumentChunk(request, currentUserId());
+        return repository.queryDocumentChunk(request, contextUtil.getUserId());
     }
 
     @Override
@@ -81,17 +89,17 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         if (!StringUtils.hasText(request.getId())) {
             request.setId(idUtil.nextId());
         }
-        return repository.createDocumentChunk(request, currentUserId());
+        return repository.createDocumentChunk(request, contextUtil.getUserId());
     }
 
     @Override
     public DocumentChunkResponse updateDocumentChunk(DocumentChunkRequest request) {
-        return repository.updateDocumentChunk(request, currentUserId());
+        return repository.updateDocumentChunk(request, contextUtil.getUserId());
     }
 
     @Override
     public void deleteDocumentChunk(String id) {
-        repository.deleteDocumentChunk(id, currentUserId());
+        repository.deleteDocumentChunk(id, contextUtil.getUserId());
     }
 
     @Override
@@ -100,10 +108,6 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     }
 
     private static final Set<String> VALID_FILE_TYPES = Set.of("MARKDOWN", "MD");
-
-    private String currentUserId() {
-        return contextUtil.getUserId();
-    }
 
     private boolean isValidFileType(String fileType) {
         return fileType != null && VALID_FILE_TYPES.contains(fileType.trim().toUpperCase());

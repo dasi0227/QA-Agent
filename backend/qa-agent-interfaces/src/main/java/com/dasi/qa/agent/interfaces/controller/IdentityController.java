@@ -1,21 +1,15 @@
 package com.dasi.qa.agent.interfaces.controller;
 
 import com.dasi.qa.agent.domain.identity.service.crud.IProfileCrudService;
-import com.dasi.qa.agent.domain.util.IIdUtil;
-import com.dasi.qa.agent.domain.util.IOssUtil;
-import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.dto.request.identity.ChangePasswordRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserAccountRequest;
 import com.dasi.qa.agent.types.dto.request.identity.UserProfileRequest;
 import com.dasi.qa.agent.types.dto.response.identity.UserAccountResponse;
 import com.dasi.qa.agent.types.dto.response.identity.UserProfileResponse;
 import com.dasi.qa.agent.types.result.Result;
-import com.dasi.qa.agent.types.enumeration.ResultCode;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 
@@ -23,19 +17,10 @@ import java.io.IOException;
 @RequestMapping("/identity")
 public class IdentityController {
 
-    private static final String AVATAR_ROOT_PATH = "avatar/";
-
     private final IProfileCrudService identityService;
-    private final IOssUtil aliOssUtil;
-    private final IContextUtil contextUtil;
-    private final IIdUtil idUtil;
 
-    public IdentityController(IProfileCrudService identityService, IOssUtil aliOssUtil, IContextUtil contextUtil,
-                               IIdUtil idUtil) {
+    public IdentityController(IProfileCrudService identityService) {
         this.identityService = identityService;
-        this.aliOssUtil = aliOssUtil;
-        this.contextUtil = contextUtil;
-        this.idUtil = idUtil;
     }
 
     @PostMapping("/account/update")
@@ -50,14 +35,14 @@ public class IdentityController {
     }
 
     @PostMapping("/account/delete")
-    public Result<Void> userAccountDelete(@RequestBody UserAccountRequest request) {
-        identityService.deleteUserAccount(request.getId());
+    public Result<Void> userAccountDelete() {
+        identityService.deleteUserAccount();
         return Result.success();
     }
 
     @GetMapping("/profile/me")
     public Result<UserProfileResponse> userProfileMe() {
-        return Result.success(identityService.detailUserProfile("self"));
+        return Result.success(identityService.detailUserProfile());
     }
 
     @PostMapping("/profile/create")
@@ -72,35 +57,6 @@ public class IdentityController {
 
     @PostMapping("/account/avatar")
     public Result<UserAccountResponse> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
-            throw new ApiException(ResultCode.BAD_REQUEST, "请选择要上传的头像图片");
-        }
-        String contentType = file.getContentType();
-        if (!StringUtils.hasText(contentType) || !contentType.startsWith("image/")) {
-            throw new ApiException(ResultCode.FILE_INVALID, "请上传图片格式的头像");
-        }
-        String userId = contextUtil.getUserId();
-        UserAccountResponse currentUser = identityService.detailUserAccount(userId);
-
-        aliOssUtil.delete(currentUser.getAvatar());
-
-        String originalFilename = file.getOriginalFilename();
-        String extension = "png";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
-        }
-
-        byte[] bytes = file.getBytes();
-        String objectKey = AVATAR_ROOT_PATH + idUtil.nextId() + "." + extension;
-        aliOssUtil.upload(bytes, objectKey);
-
-        UserAccountRequest updateRequest = new UserAccountRequest();
-        updateRequest.setId(userId);
-        updateRequest.setAvatar(objectKey);
-        identityService.updateUserAccount(updateRequest);
-
-        UserAccountResponse updated = identityService.detailUserAccount(userId);
-        updated.setAvatar(aliOssUtil.getPublicUrl(updated.getAvatar()));
-        return Result.success(updated);
+        return Result.success(identityService.updateAvatar(file.getOriginalFilename(), file.getContentType(), file.getBytes()));
     }
 }

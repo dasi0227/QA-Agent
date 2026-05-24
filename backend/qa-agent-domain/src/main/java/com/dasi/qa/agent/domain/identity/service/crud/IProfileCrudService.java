@@ -20,9 +20,11 @@ public interface IProfileCrudService {
 
     void changePassword(ChangePasswordRequest request);
 
-    void deleteUserAccount(String id);
+    UserAccountResponse updateAvatar(String originalFilename, String contentType, byte[] bytes);
 
-    UserProfileResponse detailUserProfile(String id);
+    void deleteUserAccount();
+
+    UserProfileResponse detailUserProfile();
 
     List<UserProfileResponse> queryUserProfile(UserProfileRequest request);
 
@@ -30,5 +32,5 @@ public interface IProfileCrudService {
 
     UserProfileResponse updateUserProfile(UserProfileRequest request);
 
-    void deleteUserProfile(String id);
+    void deleteUserProfile();
 }
