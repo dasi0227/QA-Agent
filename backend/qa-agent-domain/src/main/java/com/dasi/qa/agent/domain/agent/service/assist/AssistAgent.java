@@ -42,7 +42,7 @@ public class AssistAgent implements IAssistAgent {
             throw exception;
         } catch (Exception exception) {
             log.error("【题目辅助补全】补全失败: qaItemId={}", qaItemId, exception);
-            throw new AssistException(AgentErrorType.fromException(exception), "题目辅助补全失败: " + exception.getMessage());
+            throw new AssistException(AgentErrorType.fromException(exception), "题目辅助补全失败，请稍后重试");
         }
     }
 
@@ -65,12 +65,12 @@ public class AssistAgent implements IAssistAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    throw new AssistException(AgentErrorType.fromException(exception), "AssistAgent 返回格式异常: " + exception.getMessage());
+                    throw new AssistException(AgentErrorType.fromException(exception), "题目辅助补全返回格式异常，请重试");
                 }
                 log.warn("【题目辅助补全】AssistAgent 调用失败，重试: attempt={}, qaItemId={}", attempt + 1, context.getQaItemId(), exception);
             }
         }
-        throw new AssistException(AgentErrorType.INVALID_RESPONSE, "AssistAgent 未返回有效结果");
+        throw new AssistException(AgentErrorType.INVALID_RESPONSE, "题目辅助补全未返回有效结果，请重试");
     }
 
 }

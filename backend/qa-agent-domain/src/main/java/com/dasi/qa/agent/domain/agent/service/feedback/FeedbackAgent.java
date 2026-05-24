@@ -117,7 +117,7 @@ public class FeedbackAgent implements IFeedbackAgent {
             return feedbackSaver.save(result.agenticScope(), practice, unknown, userAnswer, userId);
         } catch (Exception exception) {
             log.error("【单题反馈】反馈 DAG 执行或保存失败: sessionItemId={}", sessionItemId, exception);
-            throw new FeedbackException(AgentErrorType.UNKNOWN, "反馈流程执行失败: " + exception.getMessage());
+            throw new FeedbackException(AgentErrorType.UNKNOWN, "反馈生成失败，请稍后重试");
         }
     }
 

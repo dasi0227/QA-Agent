@@ -11,12 +11,12 @@ public enum AgentType {
 
     public static AgentType fromValue(String value) {
         if (!StringUtils.hasText(value)) {
-            throw new ApiException(ResultCode.INVALID_PARAM);
+            throw new ApiException(ResultCode.INVALID_PARAM, "Agent 类型不能为空");
         }
         try {
             return AgentType.valueOf(value);
         } catch (IllegalArgumentException exception) {
-            throw new ApiException(ResultCode.INVALID_PARAM);
+            throw new ApiException(ResultCode.INVALID_PARAM, "Agent 类型不支持");
         }
     }
 }

@@ -73,11 +73,11 @@ public class IdentityController {
     @PostMapping("/account/avatar")
     public Result<UserAccountResponse> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "请选择要上传的头像图片");
         }
         String contentType = file.getContentType();
         if (!StringUtils.hasText(contentType) || !contentType.startsWith("image/")) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.FILE_INVALID, "请上传图片格式的头像");
         }
         String userId = contextUtil.getUserId();
         UserAccountResponse currentUser = identityService.detailUserAccount(userId);

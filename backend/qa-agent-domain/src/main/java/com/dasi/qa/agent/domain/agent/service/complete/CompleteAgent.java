@@ -61,7 +61,7 @@ public class CompleteAgent implements ICompleteAgent {
         } catch (Exception exception) {
             agentRepository.markQaItemCompleteFailed(qaItemId, userId);
             log.error("【题目创建补全】补全失败: qaItemId={}", qaItemId, exception);
-            throw new CompleteException(AgentErrorType.fromException(exception), "题目创建补全失败: " + exception.getMessage());
+            throw new CompleteException(AgentErrorType.fromException(exception), "题目创建补全失败，请稍后重试");
         }
     }
 
@@ -94,12 +94,12 @@ public class CompleteAgent implements ICompleteAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    throw new CompleteException(AgentErrorType.fromException(exception), "CompleteAgent 返回格式异常: " + exception.getMessage());
+                    throw new CompleteException(AgentErrorType.fromException(exception), "题目创建补全返回格式异常，请重试");
                 }
                 log.warn("【题目创建补全】CompleteAgent 调用失败，重试: attempt={}, qaItemId={}", attempt + 1, context.getQaItemId(), exception);
             }
         }
-        throw new CompleteException(AgentErrorType.INVALID_RESPONSE, "CompleteAgent 未返回有效结果");
+        throw new CompleteException(AgentErrorType.INVALID_RESPONSE, "题目创建补全未返回有效结果，请重试");
     }
 
 }

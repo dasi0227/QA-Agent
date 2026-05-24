@@ -1,8 +1,8 @@
 import { ApiError } from "@/lib/api/client";
 import type { ErrorClassification, ErrorContext } from "./types";
 
-const QUERY_INLINE_CODES = new Set(["40000", "40200", "40400"]);
-const GLOBAL_DIALOG_CODES = new Set(["40300", "50000", "50001", "50002"]);
+const QUERY_INLINE_CODES = new Set(["40000", "40010", "40011", "40020", "40200", "40400"]);
+const GLOBAL_DIALOG_CODES = new Set(["40030", "40300", "40301", "40910", "50000", "50001", "50002", "50300"]);
 
 function extractCode(error: unknown) {
     if (error instanceof ApiError && error.code) {

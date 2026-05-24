@@ -24,12 +24,12 @@ public class OssUtil implements IOssUtil {
     @Override
     public void upload(byte[] bytes, String objectKey) {
         if (bytes == null || bytes.length == 0) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "上传文件不能为空");
         }
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes)) {
             ossClient.putObject(aliOssProperties.getBucketName(), objectKey, inputStream);
         } catch (Exception e) {
-            throw new ApiException(ResultCode.INTERNAL_ERROR);
+            throw new ApiException(ResultCode.EXTERNAL_SERVICE_UNAVAILABLE, "文件上传失败，请稍后重试");
         }
     }
 

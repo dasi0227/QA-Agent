@@ -134,14 +134,14 @@ public class PracticeFlowService implements IPracticeFlowService {
         if (state.getFeedbackMode().isItemByItem()) {
             // 判断是否全部提交
             if (!practiceRepository.isPracticeSessionReadyForItemByItemAssess(request.getSessionId(), userId)) {
-                throw new ApiException(ResultCode.BAD_REQUEST);
+                throw new ApiException(ResultCode.PRACTICE_NOT_READY, "还有题目未提交，请完成逐题反馈后再结束本轮练习");
             }
         }
         // 整轮反馈
         else {
             // 判断是否全部做了
             if (!practiceRepository.isPracticeSessionReadyForAfterAllAssess(request.getSessionId(), userId)) {
-                throw new ApiException(ResultCode.BAD_REQUEST);
+                throw new ApiException(ResultCode.PRACTICE_NOT_READY, "还有题目未作答，请完成后再提交本轮练习");
             }
             List<PracticeItemResponse> items = practiceRepository.queryPracticeItemsForFeedback(request.getSessionId(), userId);
             log.info("【练习流程】生成整轮反馈: sessionId={}, total={}", request.getSessionId(), items.size());

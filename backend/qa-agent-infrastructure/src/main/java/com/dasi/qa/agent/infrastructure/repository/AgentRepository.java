@@ -396,11 +396,11 @@ public class AgentRepository implements IAgentRepository {
         PracticeSessionItem sessionItem = requirePracticeSessionItem(sessionItemId);
         PracticeSession session = requirePracticeSession(sessionItem.getSessionId());
         if (!userId.equals(session.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         QaItem qaItem = qaItemMapper.selectById(sessionItem.getQaItemId());
         if (qaItem == null || !userId.equals(qaItem.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         UserProfileStyleVO style = getUserProfileStyle(userId);
         List<ChunkVO> sourceChunks = feedbackSourceChunks(qaItem.getSourceChunkIdsJson(), userId);
@@ -425,7 +425,7 @@ public class AgentRepository implements IAgentRepository {
         PracticeSessionItem sessionItem = requirePracticeSessionItem(sessionItemId);
         PracticeSession session = requirePracticeSession(sessionItem.getSessionId());
         if (!userId.equals(session.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         LocalDateTime now = LocalDateTime.now();
         practiceSessionItemMapper.update(null,
@@ -456,11 +456,11 @@ public class AgentRepository implements IAgentRepository {
     public SessionContext getAssessContext(String sessionId, String userId) {
         PracticeSession session = requirePracticeSession(sessionId);
         if (!userId.equals(session.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         QaSet qaSet = qaSetMapper.selectById(session.getQaSetId());
         if (qaSet == null || !userId.equals(qaSet.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         List<PracticeSessionItem> sessionItems = practiceSessionItemMapper.selectList(
                 new LambdaQueryWrapper<PracticeSessionItem>()
@@ -470,7 +470,7 @@ public class AgentRepository implements IAgentRepository {
         for (PracticeSessionItem sessionItem : sessionItems) {
             QaItem qaItem = qaItemMapper.selectById(sessionItem.getQaItemId());
             if (qaItem == null || !userId.equals(qaItem.getUserId())) {
-                throw new ApiException(ResultCode.NOT_FOUND);
+                throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
             }
             JudgeDetail judgeDetail = judgeDetail(sessionItem.getFeedbackJudgeDetail());
             items.add(AssessItemDetail.builder()
@@ -503,7 +503,7 @@ public class AgentRepository implements IAgentRepository {
     public AssessResponse saveAssessResult(String sessionId, String userId, AssessSaveCommand command) {
         PracticeSession session = requirePracticeSession(sessionId);
         if (!userId.equals(session.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime finishedAt = session.getFinishedAt() == null ? now : session.getFinishedAt();
@@ -638,21 +638,21 @@ public class AgentRepository implements IAgentRepository {
     private QaGenerationTask requireTask(String taskId) {
         QaGenerationTask entity = taskMapper.selectById(taskId);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "生成任务不存在");
         }
         return entity;
     }
 
     private void checkUser(QaGenerationTask entity, String userId) {
         if (!userId.equals(entity.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "生成任务不存在");
         }
     }
 
     private PracticeSessionItem requirePracticeSessionItem(String sessionItemId) {
         PracticeSessionItem entity = practiceSessionItemMapper.selectById(sessionItemId);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习题目不存在");
         }
         return entity;
     }
@@ -660,7 +660,7 @@ public class AgentRepository implements IAgentRepository {
     private PracticeSession requirePracticeSession(String sessionId) {
         PracticeSession entity = practiceSessionMapper.selectById(sessionId);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         return entity;
     }
@@ -668,10 +668,10 @@ public class AgentRepository implements IAgentRepository {
     private QaItem requireQaItem(String qaItemId, String userId) {
         QaItem entity = qaItemMapper.selectById(qaItemId);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         if (!userId.equals(entity.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         return entity;
     }

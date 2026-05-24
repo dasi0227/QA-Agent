@@ -58,7 +58,7 @@ public class IndexService implements IIndexService {
     public void index(String documentId, String userId) {
         String ownerId = documentRepository.getDocumentUserId(documentId);
         if (!userId.equals(ownerId)) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
 
         SourceDocumentRequest query = new SourceDocumentRequest();

@@ -107,13 +107,13 @@ public class AuthService implements IAuthService {
     public AuthResponse login(LoginRequest request) {
         UserAccountResponse account = identityRepository.findUserAccountByUsername(request.getUsername());
         if (account == null) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
+            throw new ApiException(ResultCode.UNAUTHORIZED, "用户名或密码错误");
         }
         if (!AccountStatus.ACTIVE.name().equals(account.getStatus())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.ACCOUNT_DISABLED, "账号当前不可用，请联系管理员");
         }
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
+            throw new ApiException(ResultCode.UNAUTHORIZED, "用户名或密码错误");
         }
         return buildAuthResponse(account);
     }
@@ -121,12 +121,12 @@ public class AuthService implements IAuthService {
     @Override
     public AuthResponse refresh(RefreshRequest request) {
         if (!IJwtUtil.isRefreshTokenValid(request.getRefreshToken())) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
+            throw new ApiException(ResultCode.UNAUTHORIZED, "登录状态已失效，请重新登录");
         }
         String userId = IJwtUtil.parseUserId(request.getRefreshToken());
         UserAccountResponse account = identityRepository.detailUserAccount(userId, userId);
         if (!AccountStatus.ACTIVE.name().equals(account.getStatus())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.ACCOUNT_DISABLED, "账号当前不可用，请联系管理员");
         }
         return buildAuthResponse(account);
     }
@@ -136,7 +136,7 @@ public class AuthService implements IAuthService {
         String userId = contextUtil.getUserId();
         UserAccountResponse account = identityRepository.detailUserAccount(userId, userId);
         if (!AccountStatus.ACTIVE.name().equals(account.getStatus())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.ACCOUNT_DISABLED, "账号当前不可用，请联系管理员");
         }
         return buildAuthResponse(account, false);
     }

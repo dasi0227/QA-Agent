@@ -83,8 +83,11 @@ public class QaItemService implements IQaItemService {
                 .filter(StringUtils::hasText)
                 .map(String::trim)
                 .toList();
-        if (questions.isEmpty() || questions.size() > 50) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+        if (questions.isEmpty()) {
+            throw new ApiException(ResultCode.BAD_REQUEST, "请至少输入 1 道题目");
+        }
+        if (questions.size() > 50) {
+            throw new ApiException(ResultCode.BAD_REQUEST, "单次最多新增 50 道题目");
         }
         CreateQaItemBatchRequest normalizedRequest = CreateQaItemBatchRequest.builder()
                 .qaSetId(request.getQaSetId())

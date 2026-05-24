@@ -50,7 +50,7 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
             request.setId(idUtil.nextId());
         }
         if (!isValidFileType(request.getFileType())) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.FILE_INVALID, "暂不支持该资料类型，请上传 Markdown 资料");
         }
         return repository.createSourceDocument(request, currentUserId());
     }

@@ -47,7 +47,7 @@ public class QaSetConverter {
 
     public QaSetExportFile importContent(byte[] content) {
         if (content == null || content.length == 0) {
-            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID);
+            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID, "问答集文件内容不能为空");
         }
         try {
             QaSetExportFile exportFile = jsonUtil.parseJsonObject(new String(content, StandardCharsets.UTF_8), QaSetExportFile.class);
@@ -56,7 +56,7 @@ public class QaSetConverter {
         } catch (ConvertException e) {
             throw e;
         } catch (Exception e) {
-            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID);
+            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID, "问答集文件无法解析，请确认文件来自本系统导出");
         }
     }
 
@@ -103,7 +103,7 @@ public class QaSetConverter {
                 || exportFile.getQaQaSetMetaInfo().getTitle().length() > QA_SET_TITLE_MAX_LENGTH
                 || exportFile.getQaSetEntries() == null
                 || exportFile.getQaSetEntries().isEmpty()) {
-            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID);
+            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID, "问答集文件结构不正确或缺少题目");
         }
         for (QaSetExportFile.QaSetEntry qaSetEntry : exportFile.getQaSetEntries()) {
             validateEntry(qaSetEntry);
@@ -112,13 +112,13 @@ public class QaSetConverter {
 
     private void validateEntry(QaSetExportFile.QaSetEntry qaSetEntry) {
         if (qaSetEntry == null || !StringUtils.hasText(qaSetEntry.getQuestion())) {
-            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID);
+            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID, "问答集文件中存在空题目");
         }
         if (StringUtils.hasText(qaSetEntry.getDifficulty()) && !DIFFICULTIES.contains(qaSetEntry.getDifficulty())) {
-            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID);
+            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID, "问答集文件中存在不支持的难度值");
         }
         if (StringUtils.hasText(qaSetEntry.getModuleTag()) && qaSetEntry.getModuleTag().length() > QA_ITEM_MODULE_TAG_MAX_LENGTH) {
-            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID);
+            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID, "问答集文件中的模块标签过长");
         }
     }
 

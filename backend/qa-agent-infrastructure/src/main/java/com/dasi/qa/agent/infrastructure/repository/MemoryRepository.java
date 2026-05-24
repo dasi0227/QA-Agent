@@ -100,11 +100,11 @@ public class MemoryRepository implements IMemoryRepository {
     public MemoryIngestContext getIngestContext(String sessionId, String userId) {
         PracticeSession session = practiceSessionMapper.selectById(sessionId);
         if (session == null || !userId.equals(session.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         QaSet qaSet = qaSetMapper.selectById(session.getQaSetId());
         if (qaSet == null || !userId.equals(qaSet.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         List<PracticeSessionItem> sessionItems = practiceSessionItemMapper.selectList(
                 new LambdaQueryWrapper<PracticeSessionItem>()
@@ -192,7 +192,7 @@ public class MemoryRepository implements IMemoryRepository {
     private MemoryIngestItem toIngestItem(PracticeSessionItem item, String userId) {
         QaItem qaItem = qaItemMapper.selectById(item.getQaItemId());
         if (qaItem == null || !userId.equals(qaItem.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         JudgeDetail judgeDetail = judgeDetail(item.getFeedbackJudgeDetail());
         return MemoryIngestItem.builder()
@@ -229,7 +229,7 @@ public class MemoryRepository implements IMemoryRepository {
                         .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getId, memoryId)
                         .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUserId, userId));
         if (memory == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "记忆不存在");
         }
         return memory;
     }

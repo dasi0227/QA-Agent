@@ -66,7 +66,7 @@ public class PracticeRepository implements IPracticeRepository {
         QaSet qaSet = requireQaSet(request.getQaSetId(), userId);
         List<QaItem> qaItems = startPracticeItems(request, userId);
         if (qaItems.isEmpty()) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "当前题集中没有可练习的题目");
         }
         if ("RANDOM".equals(request.getMode())) {
             Collections.shuffle(qaItems);
@@ -414,10 +414,10 @@ public class PracticeRepository implements IPracticeRepository {
     private QaSet requireQaSet(String qaSetId, String userId) {
         QaSet qaSet = qaSetMapper.selectById(qaSetId);
         if (qaSet == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         if (!userId.equals(qaSet.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         return qaSet;
     }
@@ -425,10 +425,10 @@ public class PracticeRepository implements IPracticeRepository {
     private PracticeSession requirePracticeSession(String sessionId, String userId) {
         PracticeSession session = practiceSessionMapper.selectById(sessionId);
         if (session == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         if (!userId.equals(session.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
         }
         return session;
     }
@@ -436,7 +436,7 @@ public class PracticeRepository implements IPracticeRepository {
     private PracticeSessionItem requireSessionItem(String sessionItemId, String sessionId, String userId) {
         PracticeSessionItem item = requirePracticeSessionItem(sessionItemId);
         if (!userId.equals(item.getUserId()) || !sessionId.equals(item.getSessionId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习题目不存在");
         }
         return item;
     }
@@ -444,7 +444,7 @@ public class PracticeRepository implements IPracticeRepository {
     private PracticeSessionItem requirePracticeSessionItem(String sessionItemId) {
         PracticeSessionItem item = practiceSessionItemMapper.selectById(sessionItemId);
         if (item == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "练习题目不存在");
         }
         return item;
     }

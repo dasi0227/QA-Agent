@@ -46,7 +46,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     public UserAccountResponse createUserAccount(UserAccountRequest request) {
         if (!StringUtils.hasText(request.getUsername()) || !StringUtils.hasText(request.getPassword())) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "用户名和密码不能为空");
         }
         if (!StringUtils.hasText(request.getId())) {
             request.setId(idUtil.nextId());
@@ -61,7 +61,7 @@ public class ProfileCrudService implements IProfileCrudService {
     @Override
     public UserAccountResponse updateUserAccount(UserAccountRequest request) {
         if (!StringUtils.hasText(request.getId())) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "账号 ID 不能为空");
         }
         request.setPassword(null);
         return repository.updateUserAccount(request, request.getId());
@@ -72,7 +72,7 @@ public class ProfileCrudService implements IProfileCrudService {
         String userId = currentUserId();
         UserAccountResponse current = repository.detailUserAccount(userId, userId);
         if (request.getCurrentPassword().equals(request.getNewPassword())) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "新密码不能和当前密码相同");
         }
         if (!passwordEncoder.matches(request.getCurrentPassword(), current.getPassword())) {
             throw new ApiException(ResultCode.PASSWORD_INVALID);

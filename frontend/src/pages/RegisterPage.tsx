@@ -36,10 +36,13 @@ function mapVerifyErrorCode(code?: string, fallback?: string): string {
             return "验证码已过期，请重新发送";
         case "40002":
             return "验证码错误，请重新输入";
+        case "40003":
         case "42900":
             return "发送过于频繁，请稍后再试";
+        case "40004":
         case "40901":
             return "该邮箱已被注册";
+        case "40005":
         case "40900":
             return "用户名已被占用";
         default:

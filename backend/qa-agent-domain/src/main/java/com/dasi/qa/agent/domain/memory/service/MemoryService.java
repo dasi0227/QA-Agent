@@ -57,7 +57,7 @@ public class MemoryService implements IMemoryService {
     @Override
     public UserMemoryDetailResponse detail(String memoryId) {
         if (!StringUtils.hasText(memoryId)) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "记忆 ID 不能为空");
         }
         return memoryRepository.detailMemory(memoryId, contextUtil.getUserId());
     }
@@ -70,7 +70,7 @@ public class MemoryService implements IMemoryService {
     @Override
     public void ingestAssessSession(String sessionId, String userId) {
         if (!StringUtils.hasText(sessionId) || !StringUtils.hasText(userId)) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "记忆沉淀缺少练习或用户信息");
         }
         MemoryIngestContext ingestContext = memoryRepository.getIngestContext(sessionId, userId);
         if (ingestContext == null || ingestContext.getItems() == null || ingestContext.getItems().isEmpty()) {

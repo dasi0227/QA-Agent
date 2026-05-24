@@ -98,10 +98,10 @@ public class DocumentRepository implements IDocumentRepository {
     public SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request, String userId) {
         SourceDocument entity = sourceDocumentMapper.selectById(request.getId());
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
         if (!userId.equals(entity.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
         entity.setFileName(request.getFileName());
         sourceDocumentMapper.updateById(entity);
@@ -113,10 +113,10 @@ public class DocumentRepository implements IDocumentRepository {
     public void deleteSourceDocument(String id, String userId) {
         SourceDocument entity = sourceDocumentMapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
         if (!userId.equals(entity.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
         if (entity.getReferenceCount() != null && entity.getReferenceCount() > 0) {
             List<String> qaSetIds = qaSetDocumentRefMapper.selectList(
@@ -125,7 +125,7 @@ public class DocumentRepository implements IDocumentRepository {
             String titles = qaSetMapper.selectBatchIds(qaSetIds).stream()
                     .map(QaSet::getTitle).filter(StringUtils::hasText)
                     .reduce((a, b) -> a + "、 " + b).orElse("");
-            throw new ApiException(ResultCode.DOCUMENT_REFERENCED,
+            throw new ApiException(ResultCode.RESOURCE_IN_USE,
                     "当前资料仍被以下问答集引用，无法删除：" + titles);
         }
         entity.setDeleted(true);
@@ -222,7 +222,7 @@ public class DocumentRepository implements IDocumentRepository {
     public String getDocumentUserId(String documentId) {
         SourceDocument entity = sourceDocumentMapper.selectById(documentId);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
         return entity.getUserId();
     }
@@ -358,12 +358,12 @@ public class DocumentRepository implements IDocumentRepository {
                                                   Class<R> responseType, String id, String userId) {
         E entity = mapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
         if (ReflectUtil.getField(entityType, "userId") != null) {
             Object entityUserId = BeanUtil.getProperty(entity, "userId");
             if (entityUserId != null && !userId.equals(String.valueOf(entityUserId))) {
-                throw new ApiException(ResultCode.FORBIDDEN);
+                throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
             }
         }
         return toResponse(entity, responseType);

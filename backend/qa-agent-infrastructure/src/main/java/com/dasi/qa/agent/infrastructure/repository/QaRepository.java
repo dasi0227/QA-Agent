@@ -261,10 +261,10 @@ public class QaRepository implements IQaRepository {
     public QaItemResponse createQaItem(String id, CreateQaItemRequest request, String userId) {
         QaSet qaSet = qaSetMapper.selectById(request.getQaSetId());
         if (qaSet == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         if (!userId.equals(qaSet.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         Integer maxSortOrder = qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
                         .eq(QaItem::getQaSetId, request.getQaSetId())
@@ -306,13 +306,13 @@ public class QaRepository implements IQaRepository {
     public List<QaItemResponse> createQaItems(List<String> ids, CreateQaItemBatchRequest request, String userId) {
         QaSet qaSet = qaSetMapper.selectById(request.getQaSetId());
         if (qaSet == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         if (!userId.equals(qaSet.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         if (ids == null || ids.size() != request.getQuestions().size()) {
-            throw new ApiException(ResultCode.BAD_REQUEST);
+            throw new ApiException(ResultCode.BAD_REQUEST, "批量创建题目的 ID 数量与题目数量不一致");
         }
         Integer maxSortOrder = qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
                         .eq(QaItem::getQaSetId, request.getQaSetId())
@@ -371,10 +371,10 @@ public class QaRepository implements IQaRepository {
     public QaItemResponse markQaItemCompleteProcessing(String id, String userId) {
         QaItem item = qaItemMapper.selectById(id);
         if (item == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         if (!userId.equals(item.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         qaItemMapper.update(null,
                 new LambdaUpdateWrapper<QaItem>()
@@ -404,10 +404,10 @@ public class QaRepository implements IQaRepository {
     private QaSet requireQaSet(String id, String userId) {
         QaSet entity = qaSetMapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         if (!userId.equals(entity.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
         return entity;
     }
@@ -415,10 +415,10 @@ public class QaRepository implements IQaRepository {
     private QaItem requireQaItem(String id, String userId) {
         QaItem entity = qaItemMapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         if (!userId.equals(entity.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         return entity;
     }
@@ -426,12 +426,12 @@ public class QaRepository implements IQaRepository {
     private <E, R extends BaseResponse> R detail(BaseMapper<E> mapper, Class<E> entityType, Class<R> responseType, String id, String userId) {
         E entity = mapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "问答资源不存在");
         }
         if (ReflectUtil.getField(entityType, "userId") != null) {
             Object entityUserId = BeanUtil.getProperty(entity, "userId");
             if (entityUserId != null && !userId.equals(String.valueOf(entityUserId))) {
-                throw new ApiException(ResultCode.FORBIDDEN);
+                throw new ApiException(ResultCode.NOT_FOUND, "问答资源不存在");
             }
         }
         return toResponse(entity, responseType);

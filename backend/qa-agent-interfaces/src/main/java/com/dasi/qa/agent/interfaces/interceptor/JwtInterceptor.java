@@ -34,17 +34,17 @@ public class JwtInterceptor implements HandlerInterceptor {
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authorization == null || !authorization.startsWith(AUTH_BEARER_PREFIX)) {
             log.error("【鉴权】请求缺少令牌: uri={}", request.getRequestURI());
-            throw new ApiException(ResultCode.UNAUTHORIZED);
+            throw new ApiException(ResultCode.UNAUTHORIZED, "请先登录后继续操作");
         }
         String token = authorization.substring(7);
         if (!IJwtUtil.isAccessTokenValid(token)) {
             log.error("【鉴权】令牌校验失败: uri={}", request.getRequestURI());
-            throw new ApiException(ResultCode.UNAUTHORIZED);
+            throw new ApiException(ResultCode.UNAUTHORIZED, "登录状态已失效，请重新登录");
         }
         String userId = IJwtUtil.parseUserId(token);
         if (!StringUtils.hasText(userId)) {
             log.error("【鉴权】令牌缺少用户标识: uri={}", request.getRequestURI());
-            throw new ApiException(ResultCode.UNAUTHORIZED);
+            throw new ApiException(ResultCode.UNAUTHORIZED, "登录状态异常，请重新登录");
         }
         contextUtil.setUserId(userId);
         return true;

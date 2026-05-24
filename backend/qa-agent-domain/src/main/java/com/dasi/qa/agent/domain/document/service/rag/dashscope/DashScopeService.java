@@ -67,7 +67,7 @@ public class DashScopeService implements IDashScopeService {
                 TextEmbeddingResult result = new TextEmbedding().call(param);
                 TextEmbeddingOutput output = result.getOutput();
                 if (output == null || output.getEmbeddings() == null) {
-                    throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding returned empty output");
+                    throw new ApiException(ResultCode.EXTERNAL_SERVICE_UNAVAILABLE, "资料向量化服务返回为空，请稍后重试");
                 }
                 List<float[]> vectors = new ArrayList<>();
                 for (TextEmbeddingResultItem item : output.getEmbeddings()) {
@@ -89,15 +89,15 @@ public class DashScopeService implements IDashScopeService {
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding interrupted");
+                        throw new ApiException(ResultCode.EXTERNAL_SERVICE_UNAVAILABLE, "资料向量化任务已中断，请稍后重试");
                     }
                 } else {
                     log.error("【文本嵌入】嵌入请求最终失败: maxRetries={}", MAX_RETRIES, e);
-                    throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding failed: " + e.getMessage());
+                    throw new ApiException(ResultCode.EXTERNAL_SERVICE_UNAVAILABLE, "资料向量化服务暂时不可用，请稍后重试");
                 }
             }
         }
-        throw new ApiException(ResultCode.INTERNAL_ERROR, "Embedding failed");
+        throw new ApiException(ResultCode.EXTERNAL_SERVICE_UNAVAILABLE, "资料向量化失败，请稍后重试");
     }
 
     // ======================== rerank ========================

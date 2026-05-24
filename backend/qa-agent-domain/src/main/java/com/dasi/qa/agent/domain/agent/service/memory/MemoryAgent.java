@@ -55,7 +55,7 @@ public class MemoryAgent implements IMemoryAgent {
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
-                    throw new AgentException(AgentErrorType.fromException(exception), "MemoryAgent 返回格式异常: " + exception.getMessage());
+                    throw new AgentException(AgentErrorType.fromException(exception), "记忆画像生成返回格式异常，请稍后重试");
                 }
                 log.warn("【记忆画像】MemoryAgent 调用失败，重试: attempt={}, sessionId={}", attempt + 1, context.getSessionId(), exception);
             }

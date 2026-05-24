@@ -450,7 +450,7 @@ public class GenerateAgent implements IGenerateAgent {
         } catch (Exception exception) {
             log.warn("【生成问答集】出题阶段整体异常: taskId={}", writeContext.getTaskId(), exception);
             writeDraftResult(scope, draftResults);
-            throw new GenerateException(AgentErrorType.fromException(exception), "WriteAgent 调用失败: " + exception.getMessage());
+            throw new GenerateException(AgentErrorType.fromException(exception), "题目起草失败，请稍后重试");
         }
 
         // 7. 写入共享领域

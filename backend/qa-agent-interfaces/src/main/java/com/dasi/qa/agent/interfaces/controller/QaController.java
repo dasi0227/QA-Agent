@@ -119,7 +119,9 @@ public class QaController {
     @PostMapping("/set/create")
     public SseEmitter qaSetCreate(@RequestBody @Valid CreateQaSetRequest request) {
         if (!org.springframework.util.StringUtils.hasText(request.getTaskId())) {
-            throw new com.dasi.qa.agent.types.exception.ApiException(com.dasi.qa.agent.types.enumeration.ResultCode.BAD_REQUEST);
+            throw new com.dasi.qa.agent.types.exception.ApiException(
+                    com.dasi.qa.agent.types.enumeration.ResultCode.BAD_REQUEST,
+                    "生成任务 ID 不能为空，请先创建生成任务");
         }
         SseEmitter emitter = new SseEmitter(600000L);
         emitter.onTimeout(emitter::complete);

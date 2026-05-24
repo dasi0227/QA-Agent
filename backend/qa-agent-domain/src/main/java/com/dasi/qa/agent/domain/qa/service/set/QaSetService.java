@@ -79,7 +79,7 @@ public class QaSetService implements IQaSetService {
                 || !request.getFileName().toLowerCase().endsWith(".dasi")
                 || request.getContent() == null
                 || request.getContent().length == 0) {
-            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID);
+            throw new ConvertException(ResultCode.QA_SET_FILE_INVALID, "请上传有效的 .dasi 问答集文件");
         }
         QaSetExportFile exportFile = converter.importContent(request.getContent());
         return repository.importQaSet(exportFile, contextUtil.getUserId());

@@ -19,7 +19,7 @@ public enum PracticeFeedbackMode {
         try {
             return PracticeFeedbackMode.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException exception) {
-            throw new ApiException(ResultCode.INVALID_PARAM);
+            throw new ApiException(ResultCode.INVALID_PARAM, "反馈模式不支持，请选择 ITEM_BY_ITEM 或 AFTER_ALL");
         }
     }
 

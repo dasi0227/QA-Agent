@@ -47,7 +47,7 @@ public class IdentityRepository implements IIdentityRepository {
     public UserAccountResponse detailUserAccount(String id, String userId) {
         UserAccount entity = userAccountMapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "账号不存在");
         }
         return toUserAccountResponse(entity);
     }
@@ -101,7 +101,7 @@ public class IdentityRepository implements IIdentityRepository {
     public void deleteUserAccount(String id, String userId) {
         UserAccount entity = userAccountMapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "账号不存在");
         }
         entity.setStatus(AccountStatus.DISABLED.name());
         userAccountMapper.updateById(entity);
@@ -125,10 +125,10 @@ public class IdentityRepository implements IIdentityRepository {
     public UserProfileResponse detailUserProfile(String id, String userId) {
         UserProfile entity = userProfileMapper.selectById(id);
         if (entity == null) {
-            throw new ApiException(ResultCode.NOT_FOUND);
+            throw new ApiException(ResultCode.NOT_FOUND, "个人资料不存在");
         }
         if (!userId.equals(entity.getUserId())) {
-            throw new ApiException(ResultCode.FORBIDDEN);
+            throw new ApiException(ResultCode.NOT_FOUND, "个人资料不存在");
         }
         return toUserProfileResponse(entity);
     }
