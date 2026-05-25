@@ -27,7 +27,6 @@ public class UserMemory {
     private String title;
     private String summary;
     private String detail;
-    private Integer confidence;
     private Integer supportCount;
     private String status;
     private LocalDateTime firstSeenAt;

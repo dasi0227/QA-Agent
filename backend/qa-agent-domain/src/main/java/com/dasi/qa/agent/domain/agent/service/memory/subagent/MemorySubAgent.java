@@ -8,8 +8,6 @@ public interface MemorySubAgent {
 
     @SystemMessage(fromResource = "prompt/memory/memory-extract.txt")
     @UserMessage("""
-            题集标题：{{qaSetTitle}}
-            本轮统计：{{statsJson}}
             单题作答证据：{{itemsJson}}
             已有 ACTIVE 记忆：{{existingMemoriesJson}}
 
@@ -23,9 +21,7 @@ public interface MemorySubAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    String extract(@V("qaSetTitle") String qaSetTitle,
-                   @V("statsJson") String statsJson,
-                   @V("itemsJson") String itemsJson,
+    String extract(@V("itemsJson") String itemsJson,
                    @V("existingMemoriesJson") String existingMemoriesJson,
                    @V("retryHint") String retryHint);
 }

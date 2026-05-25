@@ -3,7 +3,7 @@ package com.dasi.qa.agent.domain.agent.service.memory.support;
 import com.dasi.qa.agent.domain.agent.service.memory.model.result.MemoryCandidateResult;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryBehaviorKey;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryTargetType;
-import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryType;
+import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryProficientType;
 import com.dasi.qa.agent.types.constant.ModuleTag;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -42,9 +42,9 @@ public class MemoryResultCleaner {
         if (value == null || !StringUtils.hasText(value.getTitle()) || !StringUtils.hasText(value.getSummary())) {
             return null;
         }
-        MemoryType memoryType = MemoryType.fromValue(value.getMemoryType());
+        MemoryProficientType memoryProficientType = MemoryProficientType.fromValue(value.getMemoryType());
         MemoryTargetType targetType = MemoryTargetType.fromValue(value.getTargetType());
-        if (memoryType == null || targetType == null) {
+        if (memoryProficientType == null || targetType == null) {
             return null;
         }
         String targetKey = cleanTargetKey(targetType, value.getTargetKey());
@@ -56,7 +56,7 @@ public class MemoryResultCleaner {
             return null;
         }
         return MemoryCandidateResult.builder()
-                .memoryType(memoryType.name())
+                .memoryType(memoryProficientType.name())
                 .targetType(targetType.name())
                 .targetKey(targetKey)
                 .title(limit(value.getTitle(), MAX_TITLE_LENGTH))
@@ -64,7 +64,6 @@ public class MemoryResultCleaner {
                 .detail(limit(value.getDetail(), MAX_DETAIL_LENGTH))
                 .evidenceRefs(evidenceRefs)
                 .relatedMemoryId(StringUtils.hasText(value.getRelatedMemoryId()) ? value.getRelatedMemoryId().trim() : "")
-                .confidenceHint(StringUtils.hasText(value.getConfidenceHint()) ? value.getConfidenceHint().trim().toUpperCase() : "MEDIUM")
                 .build();
     }
 

@@ -43,8 +43,6 @@ public class MemoryAgent implements IMemoryAgent {
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
                 String response = memoryAgent.extract(
-                        context.getQaSetTitle(),
-                        context.getStatsJson(),
                         context.getItemsJson(),
                         context.getExistingMemoriesJson(),
                         retryHint

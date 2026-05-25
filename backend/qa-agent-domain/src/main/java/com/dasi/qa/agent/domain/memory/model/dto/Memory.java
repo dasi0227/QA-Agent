@@ -21,7 +21,6 @@ public class Memory {
     private String title;
     private String summary;
     private String detail;
-    private Integer confidence;
     private Integer supportCount;
     private String status;
     private LocalDateTime firstSeenAt;

@@ -158,7 +158,6 @@ export function normalizeUserMemory(raw: unknown): UserMemory {
         title: toStringValue(pick(raw, "title")),
         summary: toStringValue(pick(raw, "summary")),
         detail: toStringValue(pick(raw, "detail")),
-        confidence: toNumberValue(pick(raw, "confidence")),
         supportCount: toNumberValue(pick(raw, "supportCount", "support_count")),
         status: toStringValue(pick(raw, "status"), "ACTIVE"),
         firstSeenAt: toStringValue(pick(raw, "firstSeenAt", "first_seen_at")),

@@ -65,13 +65,12 @@ export type ChangePasswordInput = {
 
 export type UserMemory = {
     id: string;
-    memoryType: "EXPRESSION" | "AWFUL" | "UNCLEAR" | "MASTER" | string;
+    memoryType: "AWFUL" | "UNCLEAR" | "MASTER" | string;
     targetType: "MODULE" | "BEHAVIOR" | "GENERAL" | string;
     targetKey: string;
     title: string;
     summary: string;
     detail: string;
-    confidence: number;
     supportCount: number;
     status: "ACTIVE" | "HIDDEN" | string;
     firstSeenAt: string;

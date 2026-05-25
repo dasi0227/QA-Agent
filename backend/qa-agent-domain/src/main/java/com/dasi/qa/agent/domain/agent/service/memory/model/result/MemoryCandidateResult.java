@@ -21,5 +21,4 @@ public class MemoryCandidateResult {
     private String detail;
     private List<String> evidenceRefs;
     private String relatedMemoryId;
-    private String confidenceHint;
 }

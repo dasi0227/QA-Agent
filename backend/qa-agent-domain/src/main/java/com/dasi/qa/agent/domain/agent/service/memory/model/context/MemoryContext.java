@@ -12,8 +12,6 @@ import lombok.NoArgsConstructor;
 public class MemoryContext {
 
     private String sessionId;
-    private String qaSetTitle;
-    private String statsJson;
     private String itemsJson;
     private String existingMemoriesJson;
 }

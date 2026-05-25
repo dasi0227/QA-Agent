@@ -90,7 +90,6 @@ const defaultPassword: PasswordForm = {
 };
 
 const memoryTypeLabels: Record<string, string> = {
-    EXPRESSION: "表达",
     AWFUL: "严重薄弱",
     UNCLEAR: "理解不稳",
     MASTER: "稳定掌握",
@@ -532,7 +531,6 @@ export function ProfileMemoryPage() {
                                 <strong>{memory.title}</strong>
                                 <p>{memory.summary}</p>
                                 <div className="profile-memory-card__stats">
-                                    <span>置信度 {memory.confidence}</span>
                                     <span>证据 {memory.supportCount}</span>
                                 </div>
                             </button>
@@ -563,7 +561,6 @@ export function ProfileMemoryPage() {
                                 <p className="profile-memory-detail__summary">{detailQuery.data.memory.detail || detailQuery.data.memory.summary}</p>
                                 <div className="profile-memory-detail__facts">
                                     <span>类型：{memoryTypeLabel(detailQuery.data.memory.memoryType)}</span>
-                                    <span>置信度：{detailQuery.data.memory.confidence}</span>
                                     <span>证据数：{detailQuery.data.memory.supportCount}</span>
                                     <span>最近出现：{formatDateTime(detailQuery.data.memory.lastSeenAt)}</span>
                                 </div>

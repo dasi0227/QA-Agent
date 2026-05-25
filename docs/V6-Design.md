@@ -81,7 +81,7 @@
 
 - `MemoryAgent`：调用 `MemorySubAgent`，最多重试 2 次，输出经 `MemoryResultCleaner` 清洗
 - `MemorySubAgent`：LangChain4j AI Service，prompt 定义在 `prompt/memory/memory-extract.txt`（56 行），输入含题集标题、本轮统计、单题作答证据、Assess 记忆线索、已有 ACTIVE 记忆，输出最多 5 条候选画像
-- `MemoryResultCleaner`：校验 memoryType/targetType/targetKey 合法性（含模块白名单校验）、裁剪文本长度、去重 evidenceRefs、最多 5 条
+- `MemoryResultCleaner`：校验 memoryProficientType/targetType/targetKey 合法性（含模块白名单校验）、裁剪文本长度、去重 evidenceRefs、最多 5 条
 
 **置信度计算规则**
 

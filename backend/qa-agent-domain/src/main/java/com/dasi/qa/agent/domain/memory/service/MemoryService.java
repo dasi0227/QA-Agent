@@ -2,10 +2,9 @@ package com.dasi.qa.agent.domain.memory.service;
 
 import com.dasi.qa.agent.domain.agent.service.memory.IMemoryAgent;
 import com.dasi.qa.agent.domain.agent.service.memory.model.context.MemoryContext;
-import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.MemoryConfidenceHint;
 import com.dasi.qa.agent.domain.agent.service.memory.model.result.MemoryCandidateResult;
 import com.dasi.qa.agent.domain.memory.model.vo.IngestContext;
-import com.dasi.qa.agent.domain.memory.model.vo.IngestItem;
+import com.dasi.qa.agent.domain.memory.model.vo.IngestContext.IngestItem;
 import com.dasi.qa.agent.domain.memory.model.dto.Memory;
 import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryStatus;
@@ -92,17 +91,6 @@ public class MemoryService implements IMemoryService {
     private MemoryContext buildMemoryContext(IngestContext context) {
         return MemoryContext.builder()
                 .sessionId(context.getSessionId())
-                .qaSetTitle(context.getQaSetTitle())
-                .statsJson(jsonUtil.toJsonString(Map.of(
-                        "totalQuestions", value(context.getTotalQuestions()),
-                        "score", value(context.getScore()),
-                        "accuracy", context.getAccuracy() == null ? "" : context.getAccuracy(),
-                        "perfectCount", value(context.getPerfectCount()),
-                        "correctCount", value(context.getCorrectCount()),
-                        "deficientCount", value(context.getDeficientCount()),
-                        "wrongCount", value(context.getWrongCount()),
-                        "unknownCount", value(context.getUnknownCount())
-                )))
                 .itemsJson(jsonUtil.toJsonString(context.getItems()))
                 .existingMemoriesJson(jsonUtil.toJsonString(context.getExistingMemories() == null ? List.of() : context.getExistingMemories()))
                 .build();
@@ -191,7 +179,6 @@ public class MemoryService implements IMemoryService {
                 .title(candidate.getTitle())
                 .summary(candidate.getSummary())
                 .detail(candidate.getDetail())
-                .confidence(confidence(candidate, evidenceCount, 0))
                 .supportCount(evidenceCount)
                 .status(MemoryStatus.ACTIVE.name())
                 .firstSeenAt(now)
@@ -209,21 +196,10 @@ public class MemoryService implements IMemoryService {
         existing.setSummary(candidate.getSummary());
         existing.setDetail(candidate.getDetail());
         existing.setSupportCount(currentSupport + evidenceCount);
-        existing.setConfidence(confidence(candidate, evidenceCount, currentSupport));
         existing.setLastSeenAt(now);
         existing.setLatestSessionId(context.getSessionId());
         existing.setLatestQaSetId(context.getQaSetId());
         existing.setUpdatedAt(now);
         return existing;
-    }
-
-    private int confidence(MemoryCandidateResult candidate, int newEvidenceCount, int currentSupport) {
-        int base = MemoryConfidenceHint.fromValue(candidate.getConfidenceHint()).getBaseConfidence();
-        int score = base + newEvidenceCount * 5 + Math.min(currentSupport, 4) * 3;
-        return Math.min(95, Math.max(0, score));
-    }
-
-    private int value(Integer value) {
-        return value == null ? 0 : value;
     }
 }

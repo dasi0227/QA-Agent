@@ -17,15 +17,27 @@ public class IngestContext {
     private String sessionId;
     private String userId;
     private String qaSetId;
-    private String qaSetTitle;
-    private Integer totalQuestions;
-    private Integer score;
-    private String accuracy;
-    private Integer perfectCount;
-    private Integer correctCount;
-    private Integer deficientCount;
-    private Integer wrongCount;
-    private Integer unknownCount;
     private List<IngestItem> items;
     private List<Memory> existingMemories;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class IngestItem {
+
+        private String sessionItemId;
+        private String qaItemId;
+        private String question;
+        private String moduleTag;
+        private String difficulty;
+        private String standardAnswer;
+        private String userAnswer;
+        private String result;
+        private Integer score;
+        private String feedbackSummary;
+        private String missingPointsJson;
+        private String wrongPointsJson;
+        private String sourceChunkIdsJson;
+    }
 }

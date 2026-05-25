@@ -377,7 +377,7 @@ Memory 是基于真实练习评估异步沉淀的用户学习画像。前端只�
 | 字段 | 说明 |
 | --- | --- |
 | `id` | Memory ID |
-| `memoryType` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
+| `memoryProficientType` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
 | `targetType` | `MODULE` / `BEHAVIOR` / `GENERAL` |
 | `targetKey` | 模块 tag、行为枚举或 `GENERAL` |
 | `title` / `summary` / `detail` | 用户可读画像内容 |

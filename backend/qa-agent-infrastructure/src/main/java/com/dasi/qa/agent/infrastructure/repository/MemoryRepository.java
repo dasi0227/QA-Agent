@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.dasi.qa.agent.domain.memory.model.vo.IngestContext;
-import com.dasi.qa.agent.domain.memory.model.vo.IngestItem;
+import com.dasi.qa.agent.domain.memory.model.vo.IngestContext.IngestItem;
 import com.dasi.qa.agent.domain.memory.model.dto.Memory;
 import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryStatus;
@@ -119,15 +119,6 @@ public class MemoryRepository implements IMemoryRepository {
                 .sessionId(session.getId())
                 .userId(session.getUserId())
                 .qaSetId(session.getQaSetId())
-                .qaSetTitle(qaSet.getTitle())
-                .totalQuestions(session.getTotalQuestions())
-                .score(session.getScore())
-                .accuracy(session.getAccuracy() == null ? "" : session.getAccuracy().toPlainString())
-                .perfectCount(session.getPerfectCount())
-                .correctCount(session.getCorrectCount())
-                .deficientCount(session.getDeficientCount())
-                .wrongCount(session.getWrongCount())
-                .unknownCount(session.getUnknownCount())
                 .items(items)
                 .existingMemories(existing)
                 .build();
@@ -236,7 +227,6 @@ public class MemoryRepository implements IMemoryRepository {
         response.setTitle(entity.getTitle());
         response.setSummary(entity.getSummary());
         response.setDetail(entity.getDetail());
-        response.setConfidence(entity.getConfidence());
         response.setSupportCount(entity.getSupportCount());
         response.setStatus(entity.getStatus());
         response.setFirstSeenAt(time(entity.getFirstSeenAt()));
@@ -275,7 +265,6 @@ public class MemoryRepository implements IMemoryRepository {
                 .title(entity.getTitle())
                 .summary(entity.getSummary())
                 .detail(entity.getDetail())
-                .confidence(entity.getConfidence())
                 .supportCount(entity.getSupportCount())
                 .status(entity.getStatus())
                 .firstSeenAt(entity.getFirstSeenAt())
@@ -298,7 +287,6 @@ public class MemoryRepository implements IMemoryRepository {
                 .title(memory.getTitle())
                 .summary(memory.getSummary())
                 .detail(memory.getDetail())
-                .confidence(memory.getConfidence())
                 .supportCount(memory.getSupportCount())
                 .status(memory.getStatus())
                 .firstSeenAt(memory.getFirstSeenAt())

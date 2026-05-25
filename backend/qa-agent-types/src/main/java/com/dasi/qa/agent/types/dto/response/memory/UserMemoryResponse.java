@@ -20,7 +20,6 @@ public class UserMemoryResponse extends BaseResponse {
     private String title;
     private String summary;
     private String detail;
-    private Integer confidence;
     private Integer supportCount;
     private String status;
     private String firstSeenAt;
