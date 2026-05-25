@@ -95,7 +95,6 @@ export type UserMemoryEvidence = {
     result: string;
     score: number;
     sourceChunkIdsJson: string;
-    memoryClueJson: string;
     evidenceSummary: string;
     createdAt?: string;
 };

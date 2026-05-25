@@ -32,7 +32,7 @@ public class MemoryConsumer {
             jobId = StringConstant.MEMORY_JOB_ID_PREFIX + sessionId;
 
             log.info("【消息队列消费者】收到记忆画像沉淀任务: sessionId={}, jobId={}", sessionId, jobId);
-            memoryService.ingestAssessSession(sessionId, userId);
+            memoryService.ingest(sessionId, userId);
             mqUtil.markSuccess(jobId);
         } catch (Exception exception) {
             log.error("【消息队列消费者】记忆画像沉淀失败: sessionId={}, jobId={}", sessionId, jobId, exception);

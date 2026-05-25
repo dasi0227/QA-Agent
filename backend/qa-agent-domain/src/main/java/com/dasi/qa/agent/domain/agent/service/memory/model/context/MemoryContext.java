@@ -15,6 +15,5 @@ public class MemoryContext {
     private String qaSetTitle;
     private String statsJson;
     private String itemsJson;
-    private String memoryCluesJson;
     private String existingMemoriesJson;
 }

@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.memory.repository;
 
-import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestContext;
+import com.dasi.qa.agent.domain.memory.model.vo.IngestContext;
 import com.dasi.qa.agent.domain.memory.model.dto.Memory;
 import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryDetailResponse;
@@ -16,7 +16,7 @@ public interface IMemoryRepository {
 
     void hideMemory(String memoryId, String userId);
 
-    MemoryIngestContext getIngestContext(String sessionId, String userId);
+    IngestContext getIngestContext(String sessionId, String userId);
 
     Memory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey);
 

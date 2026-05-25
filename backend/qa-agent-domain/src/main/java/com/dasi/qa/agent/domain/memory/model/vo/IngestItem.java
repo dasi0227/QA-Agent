@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MemoryIngestItem {
+public class IngestItem {
 
     private String sessionItemId;
     private String qaItemId;

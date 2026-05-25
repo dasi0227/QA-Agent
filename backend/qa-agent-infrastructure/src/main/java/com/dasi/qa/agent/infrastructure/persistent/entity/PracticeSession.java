@@ -59,8 +59,6 @@ public class PracticeSession {
 
     private String assessmentDetailJson;
 
-    private String memoryClueJson;
-    
     private LocalDateTime startedAt;
     
     private LocalDateTime finishedAt;

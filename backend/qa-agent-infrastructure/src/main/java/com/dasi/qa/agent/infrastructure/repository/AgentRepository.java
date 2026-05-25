@@ -506,9 +506,6 @@ public class AgentRepository implements IAgentRepository {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime finishedAt = session.getFinishedAt() == null ? now : session.getFinishedAt();
         String assessmentDetailJson = JSON.toJSONString(command.getAssessDetail());
-        String memoryClueJson = JSON.toJSONString(command.getMemoryClues() == null
-                ? List.of()
-                : command.getMemoryClues());
 
         practiceSessionMapper.update(null,
                 new LambdaUpdateWrapper<PracticeSession>()
@@ -522,7 +519,6 @@ public class AgentRepository implements IAgentRepository {
                         .set(PracticeSession::getUnknownCount, command.getUnknownCount())
                         .set(PracticeSession::getSummary, command.getAssessDetail().getOverallComment())
                         .set(PracticeSession::getAssessmentDetailJson, assessmentDetailJson)
-                        .set(PracticeSession::getMemoryClueJson, memoryClueJson)
                         .set(PracticeSession::getFinishedAt, finishedAt)
                         .set(PracticeSession::getUpdatedAt, now)
                         .eq(PracticeSession::getId, sessionId)

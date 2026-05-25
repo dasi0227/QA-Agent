@@ -1,12 +1,8 @@
 package com.dasi.qa.agent.domain.agent.service.assess.support;
 
-import com.dasi.qa.agent.domain.agent.service.assess.model.enumeration.MemoryClueImportance;
-import com.dasi.qa.agent.domain.agent.service.assess.model.enumeration.MemoryClueType;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.AdviseResult;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.DiagnoseResult;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.DiagnoseResult.DiagnoseItem;
-import com.dasi.qa.agent.domain.agent.service.assess.model.result.MemoryClueResult;
-import com.dasi.qa.agent.domain.agent.service.assess.model.result.RecordResult;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -59,31 +55,6 @@ public class AssessResultCleaner {
                 .overallComment(result.getOverallComment().trim())
                 .reviewGuidance(result.getReviewGuidance().trim())
                 .build();
-    }
-
-    public RecordResult cleanRecord(RecordResult result) {
-        if (result == null || result.getClues() == null) {
-            return null;
-        }
-        List<MemoryClueResult> clues = new ArrayList<>();
-        for (MemoryClueResult clue : result.getClues()) {
-            if (clue == null || !StringUtils.hasText(clue.getObservation())) {
-                continue;
-            }
-            MemoryClueType type = MemoryClueType.fromValue(clue.getType());
-            if (type == null) {
-                continue;
-            }
-            clues.add(MemoryClueResult.builder()
-                    .type(type.name())
-                    .observation(clue.getObservation().trim())
-                    .importance(MemoryClueImportance.normalize(clue.getImportance()).name())
-                    .build());
-            if (clues.size() == MAX_POINTS) {
-                break;
-            }
-        }
-        return RecordResult.builder().clues(clues).build();
     }
 
 }

@@ -3,8 +3,8 @@ package com.dasi.qa.agent.infrastructure.repository;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestContext;
-import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestItem;
+import com.dasi.qa.agent.domain.memory.model.vo.IngestContext;
+import com.dasi.qa.agent.domain.memory.model.vo.IngestItem;
 import com.dasi.qa.agent.domain.memory.model.dto.Memory;
 import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryStatus;
@@ -89,7 +89,7 @@ public class MemoryRepository implements IMemoryRepository {
     }
 
     @Override
-    public MemoryIngestContext getIngestContext(String sessionId, String userId) {
+    public IngestContext getIngestContext(String sessionId, String userId) {
         PracticeSession session = practiceSessionMapper.selectById(sessionId);
         if (session == null || !userId.equals(session.getUserId())) {
             throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
@@ -103,7 +103,7 @@ public class MemoryRepository implements IMemoryRepository {
                         .eq(PracticeSessionItem::getSessionId, sessionId)
                         .eq(PracticeSessionItem::getUserId, userId)
                         .orderByAsc(PracticeSessionItem::getSortOrder));
-        List<MemoryIngestItem> items = sessionItems.stream()
+        List<IngestItem> items = sessionItems.stream()
                 .map(item -> toIngestItem(item, userId))
                 .toList();
         List<Memory> existing = userMemoryMapper.selectList(
@@ -115,7 +115,7 @@ public class MemoryRepository implements IMemoryRepository {
                 .stream()
                 .map(this::toDomainMemory)
                 .toList();
-        return MemoryIngestContext.builder()
+        return IngestContext.builder()
                 .sessionId(session.getId())
                 .userId(session.getUserId())
                 .qaSetId(session.getQaSetId())
@@ -128,7 +128,6 @@ public class MemoryRepository implements IMemoryRepository {
                 .deficientCount(session.getDeficientCount())
                 .wrongCount(session.getWrongCount())
                 .unknownCount(session.getUnknownCount())
-                .memoryClueJson(StringUtils.hasText(session.getMemoryClueJson()) ? session.getMemoryClueJson() : "[]")
                 .items(items)
                 .existingMemories(existing)
                 .build();
@@ -181,13 +180,13 @@ public class MemoryRepository implements IMemoryRepository {
         userMemoryEvidenceMapper.insert(toEntityEvidence(evidence));
     }
 
-    private MemoryIngestItem toIngestItem(PracticeSessionItem item, String userId) {
+    private IngestItem toIngestItem(PracticeSessionItem item, String userId) {
         QaItem qaItem = qaItemMapper.selectById(item.getQaItemId());
         if (qaItem == null || !userId.equals(qaItem.getUserId())) {
             throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         JudgeDetail judgeDetail = judgeDetail(item.getFeedbackJudgeDetail());
-        return MemoryIngestItem.builder()
+        return IngestItem.builder()
                 .sessionItemId(item.getId())
                 .qaItemId(item.getQaItemId())
                 .question(StringUtils.hasText(item.getQuestionSnapshot()) ? item.getQuestionSnapshot() : qaItem.getQuestion())
@@ -262,7 +261,6 @@ public class MemoryRepository implements IMemoryRepository {
         response.setResult(entity.getResult());
         response.setScore(entity.getScore());
         response.setSourceChunkIdsJson(entity.getSourceChunkIdsJson());
-        response.setMemoryClueJson(entity.getMemoryClueJson());
         response.setEvidenceSummary(entity.getEvidenceSummary());
         return response;
     }
@@ -327,7 +325,6 @@ public class MemoryRepository implements IMemoryRepository {
                 .result(evidence.getResult())
                 .score(evidence.getScore())
                 .sourceChunkIdsJson(evidence.getSourceChunkIdsJson())
-                .memoryClueJson(evidence.getMemoryClueJson())
                 .evidenceSummary(evidence.getEvidenceSummary())
                 .createdAt(evidence.getCreatedAt())
                 .build();

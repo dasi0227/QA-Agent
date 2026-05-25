@@ -46,7 +46,6 @@ public class MemoryAgent implements IMemoryAgent {
                         context.getQaSetTitle(),
                         context.getStatsJson(),
                         context.getItemsJson(),
-                        context.getMemoryCluesJson(),
                         context.getExistingMemoriesJson(),
                         retryHint
                 );

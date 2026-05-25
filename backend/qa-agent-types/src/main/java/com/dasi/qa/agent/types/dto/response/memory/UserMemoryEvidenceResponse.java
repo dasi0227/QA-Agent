@@ -24,6 +24,5 @@ public class UserMemoryEvidenceResponse extends BaseResponse {
     private String result;
     private Integer score;
     private String sourceChunkIdsJson;
-    private String memoryClueJson;
     private String evidenceSummary;
 }

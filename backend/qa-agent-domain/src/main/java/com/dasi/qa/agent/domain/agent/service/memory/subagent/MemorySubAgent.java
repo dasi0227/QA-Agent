@@ -11,7 +11,6 @@ public interface MemorySubAgent {
             题集标题：{{qaSetTitle}}
             本轮统计：{{statsJson}}
             单题作答证据：{{itemsJson}}
-            Assess 记忆线索：{{memoryCluesJson}}
             已有 ACTIVE 记忆：{{existingMemoriesJson}}
 
             输出要求：
@@ -27,7 +26,6 @@ public interface MemorySubAgent {
     String extract(@V("qaSetTitle") String qaSetTitle,
                    @V("statsJson") String statsJson,
                    @V("itemsJson") String itemsJson,
-                   @V("memoryCluesJson") String memoryCluesJson,
                    @V("existingMemoriesJson") String existingMemoriesJson,
                    @V("retryHint") String retryHint);
 }

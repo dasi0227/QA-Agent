@@ -7,16 +7,12 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItemDet
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessItemBrief;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.AssessStats;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.DiagnoseContext;
-import com.dasi.qa.agent.domain.agent.service.assess.model.context.RecordContext;
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.SessionContext;
 import com.dasi.qa.agent.domain.agent.service.assess.model.enumeration.AssessPhase;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.AdviseResult;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.DiagnoseResult;
-import com.dasi.qa.agent.domain.agent.service.assess.model.result.MemoryClueResult;
-import com.dasi.qa.agent.domain.agent.service.assess.model.result.RecordResult;
 import com.dasi.qa.agent.domain.agent.service.assess.subagent.AdviseAgent;
 import com.dasi.qa.agent.domain.agent.service.assess.subagent.DiagnoseAgent;
-import com.dasi.qa.agent.domain.agent.service.assess.subagent.RecordAgent;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessAgentFactory;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessResultCleaner;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessSaver;
@@ -24,6 +20,7 @@ import com.dasi.qa.agent.domain.agent.service.assess.support.AssessStatCalculato
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
+import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.dto.request.practice.AssessRequest;
 import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
 import dev.langchain4j.agentic.UntypedAgent;
@@ -54,6 +51,7 @@ public class AssessAgent implements IAssessAgent {
     private final AssessStatCalculator assessStatCalculator;
     private final AssessResultCleaner assessResultCleaner;
     private final AssessSaver assessSaver;
+    private final IMqUtil mqUtil;
 
     public AssessAgent(IContextUtil contextUtil,
                        IJsonUtil jsonUtil,
@@ -62,7 +60,8 @@ public class AssessAgent implements IAssessAgent {
                        UserLlmModelProvider userLlmModelProvider,
                        AssessStatCalculator assessStatCalculator,
                        AssessResultCleaner assessResultCleaner,
-                       AssessSaver assessSaver) {
+                       AssessSaver assessSaver,
+                       IMqUtil mqUtil) {
         this.contextUtil = contextUtil;
         this.jsonUtil = jsonUtil;
         this.agentRepository = agentRepository;
@@ -71,6 +70,7 @@ public class AssessAgent implements IAssessAgent {
         this.assessStatCalculator = assessStatCalculator;
         this.assessResultCleaner = assessResultCleaner;
         this.assessSaver = assessSaver;
+        this.mqUtil = mqUtil;
     }
 
     @Override
@@ -102,28 +102,26 @@ public class AssessAgent implements IAssessAgent {
                 .itemBriefsJson(itemBriefsJson)
                 .stats(sessionContext.getStats())
                 .build();
-        RecordContext recordContext = RecordContext.builder()
-                .sessionId(sessionContext.getSessionId())
-                .qaSetTitle(qaSetTitle)
-                .statsJson(statsJson)
-                .itemsJson(itemsJson)
-                .build();
 
         // 4. 构建 DAG 运行上下文
         AssessContext assessContext = AssessContext.builder()
                 .userModel(userModel)
                 .diagnoseStep((scope, agent) -> doDiagnose(scope, agent, diagnoseContext))
                 .adviseStep((scope, agent) -> doAdvise(scope, agent, adviseContext))
-                .recordStep((scope, agent) -> doRecord(scope, agent, recordContext))
                 .build();
 
         // 5. 构建并执行智能体
         UntypedAgent assessAgent = assessAgentFactory.build(assessContext);
         ResultWithAgenticScope<String> result = assessAgent.invokeWithAgenticScope(Map.of());
 
-        // 6. 保存并返回结果
-        log.info("【整轮评估】DAG 执行完成: sessionId={}", sessionContext.getSessionId());
-        return assessSaver.save(result.agenticScope(), sessionContext, userId);
+        // 6. 保存结果
+        String sessionId = sessionContext.getSessionId();
+        log.info("【整轮评估】DAG 执行完成: sessionId={}", sessionId);
+        AssessResponse assessResponse = assessSaver.save(result.agenticScope(), sessionContext, userId);
+
+        // 7. 触发异步记忆沉淀
+        mqUtil.sendMemoryMessage(sessionId, Map.of("sessionId", sessionId, "userId", userId));
+        return assessResponse;
     }
 
     /**
@@ -185,35 +183,6 @@ public class AssessAgent implements IAssessAgent {
         writeAdviceResult(scope, adviseResult, adviseContext.getStats());
     }
 
-    /**
-     * RecordAgent 负责并发提炼供 V6 Memory 使用的内部线索。
-     */
-    private void doRecord(AgenticScope scope, RecordAgent recordAgent, RecordContext recordContext) {
-        RecordResult result = null;
-        String retryHint = "";
-        for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
-            try {
-                String response = recordAgent.record(
-                        recordContext.getQaSetTitle(),
-                        recordContext.getStatsJson(),
-                        recordContext.getItemsJson(),
-                        retryHint
-                );
-                List<MemoryClueResult> clues = jsonUtil.parseJsonArray(response, MemoryClueResult.class);
-                result = assessResultCleaner.cleanRecord(RecordResult.builder().clues(clues).build());
-                break;
-            } catch (Exception exception) {
-                retryHint = exception.getMessage();
-                if (attempt == MAX_RETRY) {
-                    log.warn("【整轮评估】RecordAgent 最终失败: maxRetries={}, sessionId={}", MAX_RETRY, recordContext.getSessionId(), exception);
-                } else {
-                    log.warn("【整轮评估】RecordAgent 调用失败，重试: attempt={}, sessionId={}", attempt + 1, recordContext.getSessionId(), exception);
-                }
-            }
-        }
-        writeRecordResult(scope, result);
-    }
-
     private List<AssessItemBrief> itemBriefs(List<AssessItemDetail> items) {
         if (items == null) {
             return List.of();
@@ -244,13 +213,6 @@ public class AssessAgent implements IAssessAgent {
         scope.writeState(AssessPhase.ADVISE.getScopeKey(), result != null ? result : fallbackAdvice(stats));
     }
 
-    private void writeRecordResult(AgenticScope scope, RecordResult result) {
-        if (result == null) {
-            log.warn("【整轮评估】RecordAgent LLM 输出无效，启用兜底");
-        }
-        scope.writeState(AssessPhase.RECORD.getScopeKey(), result != null ? result : fallbackRecord());
-    }
-
     private DiagnoseResult fallbackDiagnosis() {
         return DiagnoseResult.builder()
                 .strengths(List.of())
@@ -265,10 +227,6 @@ public class AssessAgent implements IAssessAgent {
                 .overallComment("本轮练习已完成，系统根据单题结果计算出总分 " + score + "，达标率 " + accuracy + "%。")
                 .reviewGuidance("下一轮建议先复盘 WRONG 和 UNKNOWN 题，再回到 DEFICIENT 题补充关键点和表达结构，最后用 PERFECT 和 CORRECT 题保持熟练度。")
                 .build();
-    }
-
-    private RecordResult fallbackRecord() {
-        return RecordResult.builder().clues(List.of()).build();
     }
 
 }

@@ -184,7 +184,6 @@ export function normalizeUserMemoryEvidence(raw: unknown): UserMemoryEvidence {
         result: toStringValue(pick(raw, "result")),
         score: toNumberValue(pick(raw, "score")),
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
-        memoryClueJson: toStringValue(pick(raw, "memoryClueJson", "memory_clue_json")),
         evidenceSummary: toStringValue(pick(raw, "evidenceSummary", "evidence_summary")),
         createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
     };

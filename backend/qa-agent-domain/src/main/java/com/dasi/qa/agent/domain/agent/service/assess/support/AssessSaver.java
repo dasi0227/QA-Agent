@@ -8,19 +8,15 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.enumeration.AssessPha
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.AdviseResult;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.DiagnoseResult;
 import com.dasi.qa.agent.domain.agent.service.assess.model.result.DiagnoseResult.DiagnoseItem;
-import com.dasi.qa.agent.domain.agent.service.assess.model.result.MemoryClueResult;
-import com.dasi.qa.agent.domain.agent.service.assess.model.result.RecordResult;
 import com.dasi.qa.agent.types.dto.response.practice.AssessDetail;
 import com.dasi.qa.agent.types.dto.response.practice.AssessPoint;
 import com.dasi.qa.agent.types.dto.response.practice.AssessResponse;
-import com.dasi.qa.agent.domain.util.IMqUtil;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 负责从 scope 读取整轮评估结果并落库，返回 AssessResponse。
@@ -30,20 +26,15 @@ import java.util.Map;
 public class AssessSaver {
 
     private final IAgentRepository agentRepository;
-    private final IMqUtil mqUtil;
 
-    public AssessSaver(IAgentRepository agentRepository, IMqUtil mqUtil) {
+    public AssessSaver(IAgentRepository agentRepository) {
         this.agentRepository = agentRepository;
-        this.mqUtil = mqUtil;
     }
 
     public AssessResponse save(AgenticScope scope, SessionContext context, String userId) {
-        // 1. 拿到智能体结果
         DiagnoseResult diagnoseResult = (DiagnoseResult) scope.readState(AssessPhase.DIAGNOSE.getScopeKey());
         AdviseResult adviseResult = (AdviseResult) scope.readState(AssessPhase.ADVISE.getScopeKey());
-        RecordResult recordResult = (RecordResult) scope.readState(AssessPhase.RECORD.getScopeKey());
 
-        // 2. 组装上下文
         AssessDetail assessDetail = AssessDetail.builder()
                 .overallComment(adviseResult == null || !StringUtils.hasText(adviseResult.getOverallComment()) ? "" : adviseResult.getOverallComment().trim())
                 .reviewGuidance(adviseResult == null || !StringUtils.hasText(adviseResult.getReviewGuidance()) ? "" : adviseResult.getReviewGuidance().trim())
@@ -51,7 +42,6 @@ public class AssessSaver {
                 .weaknesses(toAssessmentPoints(diagnoseResult == null ? null : diagnoseResult.getWeaknesses()))
                 .build();
         AssessStats stats = context.getStats();
-        List<MemoryClueResult> memoryClues = recordResult == null || recordResult.getClues() == null ? List.of() : recordResult.getClues();
         AssessSaveCommand command = AssessSaveCommand.builder()
                 .score(stats.getScore())
                 .accuracy(stats.getAccuracy())
@@ -61,13 +51,9 @@ public class AssessSaver {
                 .wrongCount(stats.getWrongCount())
                 .unknownCount(stats.getUnknownCount())
                 .assessDetail(assessDetail)
-                .memoryClues(memoryClues)
                 .build();
 
-        // 3. 落库
         AssessResponse assessResponse = agentRepository.saveAssessResult(context.getSessionId(), userId, command);
-        // TODO Memory 代码完成审查后再启用异步画像沉淀。
-        // mqUtil.sendMemoryMessage(context.getSessionId(), Map.of("sessionId", context.getSessionId(), "userId", userId));
         log.info("【整轮评估】保存完成: sessionId={}, score={}, accuracy={}", context.getSessionId(), assessResponse.getScore(), assessResponse.getAccuracy());
         return assessResponse;
     }

@@ -2,7 +2,6 @@ package com.dasi.qa.agent.domain.agent.service.assess.model.context;
 
 import com.dasi.qa.agent.domain.agent.service.assess.subagent.AdviseAgent;
 import com.dasi.qa.agent.domain.agent.service.assess.subagent.DiagnoseAgent;
-import com.dasi.qa.agent.domain.agent.service.assess.subagent.RecordAgent;
 import dev.langchain4j.agentic.scope.AgenticScope;
 import dev.langchain4j.model.chat.ChatModel;
 import lombok.AllArgsConstructor;
@@ -20,7 +19,6 @@ public class AssessContext {
     private final ChatModel userModel;
     private final DiagnoseStep diagnoseStep;
     private final AdviseStep adviseStep;
-    private final RecordStep recordStep;
 
     @FunctionalInterface
     public interface DiagnoseStep {
@@ -30,10 +28,5 @@ public class AssessContext {
     @FunctionalInterface
     public interface AdviseStep {
         void run(AgenticScope scope, AdviseAgent adviseAgent);
-    }
-
-    @FunctionalInterface
-    public interface RecordStep {
-        void run(AgenticScope scope, RecordAgent recordAgent);
     }
 }

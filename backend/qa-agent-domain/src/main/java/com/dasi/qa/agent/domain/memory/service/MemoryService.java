@@ -4,8 +4,8 @@ import com.dasi.qa.agent.domain.agent.service.memory.IMemoryAgent;
 import com.dasi.qa.agent.domain.agent.service.memory.model.context.MemoryContext;
 import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.MemoryConfidenceHint;
 import com.dasi.qa.agent.domain.agent.service.memory.model.result.MemoryCandidateResult;
-import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestContext;
-import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestItem;
+import com.dasi.qa.agent.domain.memory.model.vo.IngestContext;
+import com.dasi.qa.agent.domain.memory.model.vo.IngestItem;
 import com.dasi.qa.agent.domain.memory.model.dto.Memory;
 import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryStatus;
@@ -68,11 +68,11 @@ public class MemoryService implements IMemoryService {
     }
 
     @Override
-    public void ingestAssessSession(String sessionId, String userId) {
+    public void ingest(String sessionId, String userId) {
         if (!StringUtils.hasText(sessionId) || !StringUtils.hasText(userId)) {
             throw new ApiException(ResultCode.BAD_REQUEST, "记忆沉淀缺少练习或用户信息");
         }
-        MemoryIngestContext ingestContext = memoryRepository.getIngestContext(sessionId, userId);
+        IngestContext ingestContext = memoryRepository.getIngestContext(sessionId, userId);
         if (ingestContext == null || ingestContext.getItems() == null || ingestContext.getItems().isEmpty()) {
             log.info("【记忆画像】练习上下文为空，跳过沉淀: sessionId={}", sessionId);
             return;
@@ -83,13 +83,13 @@ public class MemoryService implements IMemoryService {
             log.info("【记忆画像】无候选画像，跳过沉淀: sessionId={}", sessionId);
             return;
         }
-        Map<String, MemoryIngestItem> itemMap = itemMap(ingestContext.getItems());
+        Map<String, IngestItem> itemMap = itemMap(ingestContext.getItems());
         for (MemoryCandidateResult candidate : candidates) {
             persistCandidate(candidate, ingestContext, itemMap);
         }
     }
 
-    private MemoryContext buildMemoryContext(MemoryIngestContext context) {
+    private MemoryContext buildMemoryContext(IngestContext context) {
         return MemoryContext.builder()
                 .sessionId(context.getSessionId())
                 .qaSetTitle(context.getQaSetTitle())
@@ -104,14 +104,13 @@ public class MemoryService implements IMemoryService {
                         "unknownCount", value(context.getUnknownCount())
                 )))
                 .itemsJson(jsonUtil.toJsonString(context.getItems()))
-                .memoryCluesJson(StringUtils.hasText(context.getMemoryClueJson()) ? context.getMemoryClueJson() : "[]")
                 .existingMemoriesJson(jsonUtil.toJsonString(context.getExistingMemories() == null ? List.of() : context.getExistingMemories()))
                 .build();
     }
 
-    private Map<String, MemoryIngestItem> itemMap(List<MemoryIngestItem> items) {
-        Map<String, MemoryIngestItem> results = new LinkedHashMap<>();
-        for (MemoryIngestItem item : items) {
+    private Map<String, IngestItem> itemMap(List<IngestItem> items) {
+        Map<String, IngestItem> results = new LinkedHashMap<>();
+        for (IngestItem item : items) {
             if (item != null && StringUtils.hasText(item.getSessionItemId())) {
                 results.put(item.getSessionItemId(), item);
             }
@@ -119,8 +118,8 @@ public class MemoryService implements IMemoryService {
         return results;
     }
 
-    private void persistCandidate(MemoryCandidateResult candidate, MemoryIngestContext context, Map<String, MemoryIngestItem> itemMap) {
-        List<MemoryIngestItem> evidenceItems = candidate.getEvidenceRefs().stream()
+    private void persistCandidate(MemoryCandidateResult candidate, IngestContext context, Map<String, IngestItem> itemMap) {
+        List<IngestItem> evidenceItems = candidate.getEvidenceRefs().stream()
                 .map(itemMap::get)
                 .filter(item -> item != null)
                 .toList();
@@ -146,7 +145,7 @@ public class MemoryService implements IMemoryService {
         } else {
             memoryRepository.updateMemory(memory);
         }
-        for (MemoryIngestItem item : evidenceItems) {
+        for (IngestItem item : evidenceItems) {
             if (memoryRepository.existsEvidence(memory.getId(), item.getSessionItemId())) {
                 continue;
             }
@@ -163,7 +162,6 @@ public class MemoryService implements IMemoryService {
                     .result(item.getResult())
                     .score(item.getScore())
                     .sourceChunkIdsJson(item.getSourceChunkIdsJson())
-                    .memoryClueJson(StringUtils.hasText(context.getMemoryClueJson()) ? context.getMemoryClueJson() : "[]")
                     .evidenceSummary(candidate.getSummary())
                     .createdAt(now)
                     .build());
@@ -183,7 +181,7 @@ public class MemoryService implements IMemoryService {
         return memoryRepository.findMemoryByKey(userId, candidate.getMemoryType(), candidate.getTargetType(), candidate.getTargetKey());
     }
 
-    private Memory newMemory(MemoryCandidateResult candidate, MemoryIngestContext context, int evidenceCount, LocalDateTime now) {
+    private Memory newMemory(MemoryCandidateResult candidate, IngestContext context, int evidenceCount, LocalDateTime now) {
         return Memory.builder()
                 .id(idUtil.nextId())
                 .userId(context.getUserId())
@@ -205,7 +203,7 @@ public class MemoryService implements IMemoryService {
                 .build();
     }
 
-    private Memory updateMemory(Memory existing, MemoryCandidateResult candidate, MemoryIngestContext context, int evidenceCount, LocalDateTime now) {
+    private Memory updateMemory(Memory existing, MemoryCandidateResult candidate, IngestContext context, int evidenceCount, LocalDateTime now) {
         int currentSupport = existing.getSupportCount() == null ? 0 : existing.getSupportCount();
         existing.setTitle(candidate.getTitle());
         existing.setSummary(candidate.getSummary());

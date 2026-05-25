@@ -12,7 +12,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MemoryIngestContext {
+public class IngestContext {
 
     private String sessionId;
     private String userId;
@@ -26,7 +26,6 @@ public class MemoryIngestContext {
     private Integer deficientCount;
     private Integer wrongCount;
     private Integer unknownCount;
-    private String memoryClueJson;
-    private List<MemoryIngestItem> items;
+    private List<IngestItem> items;
     private List<Memory> existingMemories;
 }
