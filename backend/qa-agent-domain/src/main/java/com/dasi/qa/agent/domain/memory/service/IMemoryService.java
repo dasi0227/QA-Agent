@@ -13,6 +13,4 @@ public interface IMemoryService {
     UserMemoryDetailResponse detail(String memoryId);
 
     void hide(MemoryHideRequest request);
-
-    void ingest(String sessionId, String userId);
 }

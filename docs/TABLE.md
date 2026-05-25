@@ -340,13 +340,10 @@
 | --- | --- | --- |
 | `id` | `CHAR(36)` | 主键 |
 | `user_id` | `CHAR(36)` | 用户隔离字段 |
-| `memory_type` | `VARCHAR(32)` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
+| `memory_type` | `VARCHAR(32)` | `AWFUL` / `UNCLEAR` / `MASTER` |
 | `target_type` | `VARCHAR(32)` | `MODULE` / `BEHAVIOR` / `GENERAL` |
 | `target_key` | `VARCHAR(120)` | 模块 tag、行为枚举或 `GENERAL` |
-| `title` | `VARCHAR(160)` | 画像标题 |
-| `summary` | `VARCHAR(500)` | 画像摘要 |
-| `detail` | `TEXT` | 画像详情 |
-| `confidence` | `INT` | 0-100 置信度 |
+| `content` | `TEXT` | 客观画像内容 |
 | `support_count` | `INT` | 支撑证据数量 |
 | `status` | `VARCHAR(32)` | `ACTIVE` / `HIDDEN` |
 | `first_seen_at` | `DATETIME` | 首次形成时间 |
@@ -377,8 +374,7 @@
 | `result` | `VARCHAR(32)` | 单题结果 |
 | `score` | `INT` | 单题分数 |
 | `source_chunk_ids_json` | `JSON` | 来源切片快照 |
-| `memory_clue_json` | `JSON` | 被使用的 Assess clue |
-| `evidence_summary` | `VARCHAR(500)` | 证据摘要 |
+| `evidence_summary` | `TEXT` | 证据摘要 |
 | `created_at` | `DATETIME` | 创建时间 |
 
 唯一约束：`memory_id + session_item_id`。

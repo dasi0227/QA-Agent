@@ -1,8 +1,5 @@
 package com.dasi.qa.agent.domain.memory.repository;
 
-import com.dasi.qa.agent.domain.memory.model.vo.IngestContext;
-import com.dasi.qa.agent.domain.memory.model.dto.Memory;
-import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryDetailResponse;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryResponse;
 
@@ -15,18 +12,4 @@ public interface IMemoryRepository {
     UserMemoryDetailResponse detailMemory(String memoryId, String userId);
 
     void hideMemory(String memoryId, String userId);
-
-    IngestContext getIngestContext(String sessionId, String userId);
-
-    Memory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey);
-
-    Memory findActiveMemoryById(String memoryId, String userId);
-
-    void createMemory(Memory memory);
-
-    void updateMemory(Memory memory);
-
-    boolean existsEvidence(String memoryId, String sessionItemId);
-
-    void createEvidence(MemoryEvidence evidence);
 }

@@ -2,7 +2,7 @@ package com.dasi.qa.agent.interfaces.consumer;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.dasi.qa.agent.domain.memory.service.IMemoryService;
+import com.dasi.qa.agent.domain.agent.service.memory.IMemoryAgent;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.constant.StringConstant;
 import lombok.extern.slf4j.Slf4j;
@@ -13,11 +13,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class MemoryConsumer {
 
-    private final IMemoryService memoryService;
+    private final IMemoryAgent memoryAgent;
     private final IMqUtil mqUtil;
 
-    public MemoryConsumer(IMemoryService memoryService, IMqUtil mqUtil) {
-        this.memoryService = memoryService;
+    public MemoryConsumer(IMemoryAgent memoryAgent, IMqUtil mqUtil) {
+        this.memoryAgent = memoryAgent;
         this.mqUtil = mqUtil;
     }
 
@@ -32,7 +32,7 @@ public class MemoryConsumer {
             jobId = StringConstant.MEMORY_JOB_ID_PREFIX + sessionId;
 
             log.info("【消息队列消费者】收到记忆画像沉淀任务: sessionId={}, jobId={}", sessionId, jobId);
-            memoryService.ingest(sessionId, userId);
+            memoryAgent.execute(sessionId, userId);
             mqUtil.markSuccess(jobId);
         } catch (Exception exception) {
             log.error("【消息队列消费者】记忆画像沉淀失败: sessionId={}, jobId={}", sessionId, jobId, exception);

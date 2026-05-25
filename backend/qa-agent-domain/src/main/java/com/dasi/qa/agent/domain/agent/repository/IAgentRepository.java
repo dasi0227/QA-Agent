@@ -7,6 +7,9 @@ import com.dasi.qa.agent.domain.agent.service.assist.model.context.AssistContext
 import com.dasi.qa.agent.domain.agent.service.assist.model.result.AssistResult;
 import com.dasi.qa.agent.domain.agent.service.complete.model.context.CompleteContext;
 import com.dasi.qa.agent.domain.agent.service.complete.model.result.CompleteResult;
+import com.dasi.qa.agent.domain.agent.service.memory.model.vo.SessionSource;
+import com.dasi.qa.agent.domain.agent.service.memory.model.dto.Memory;
+import com.dasi.qa.agent.domain.agent.service.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
@@ -80,5 +83,17 @@ public interface IAgentRepository {
     void saveCompleteResult(String qaItemId, String userId, CompleteResult result);
 
     void markQaItemCompleteFailed(String qaItemId, String userId);
+
+    SessionSource getInvestContext(String sessionId, String userId);
+
+    Memory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey);
+
+    void createMemory(Memory memory);
+
+    void updateMemory(Memory memory);
+
+    boolean existsMemoryEvidence(String memoryId, String sessionItemId);
+
+    void createMemoryEvidence(MemoryEvidence evidence);
 
 }

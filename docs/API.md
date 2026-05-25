@@ -377,11 +377,13 @@ Memory 是基于真实练习评估异步沉淀的用户学习画像。前端只�
 | 字段 | 说明 |
 | --- | --- |
 | `id` | Memory ID |
-| `memoryProficientType` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
+| `memoryType` | `AWFUL` / `UNCLEAR` / `MASTER` |
+| `memoryTypeText` | Memory 类型中文展示值 |
 | `targetType` | `MODULE` / `BEHAVIOR` / `GENERAL` |
+| `targetTypeText` | 目标类型中文展示值 |
 | `targetKey` | 模块 tag、行为枚举或 `GENERAL` |
-| `title` / `summary` / `detail` | 用户可读画像内容 |
-| `confidence` | 0-100 置信度 |
+| `targetKeyText` | 目标对象中文展示值 |
+| `content` | 用户可读画像内容 |
 | `supportCount` | 支撑证据数量 |
 | `status` | `ACTIVE` / `HIDDEN` |
 | `firstSeenAt` / `lastSeenAt` / `hiddenAt` | 形成、最近增强、隐藏时间 |
@@ -396,7 +398,7 @@ Memory 是基于真实练习评估异步沉淀的用户学习画像。前端只�
 }
 ```
 
-`evidenceList` 中每条证据包含 `sessionId`、`sessionItemId`、`qaSetId`、`qaItemId`、`moduleTag`、`questionSnapshot`、`result`、`score`、`sourceChunkIdsJson`、`memoryClueJson`、`evidenceSummary`。
+`evidenceList` 中每条证据包含 `sessionId`、`sessionItemId`、`qaSetId`、`qaItemId`、`moduleTag`、`questionSnapshot`、`result`、`score`、`sourceChunkIdsJson`、`evidenceSummary`。
 
 说明：
 

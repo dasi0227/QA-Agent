@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.memory.model.dto;
+package com.dasi.qa.agent.domain.agent.service.memory.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

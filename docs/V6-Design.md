@@ -67,29 +67,26 @@
 
 **新增两张业务表**
 
-- `user_memory`：按 `(user_id, memory_type, target_type, target_key)` 唯一约束。字段包括 `confidence`（置信度 0-95）、`support_count`（支撑次数）、`status`（ACTIVE/HIDDEN）、`first_seen_at`/`last_seen_at`/`hidden_at`、关联的 `latest_session_id`/`latest_qa_set_id`
-- `user_memory_evidence`：记录每条记忆的每次支撑证据，关联 `practice_session_item`，保存 `questionSnapshot`、`result`、`score`、`sourceChunkIdsJson`、`memoryClueJson`、`evidenceSummary`
+- `user_memory`：按 `(user_id, memory_type, target_type, target_key)` 唯一约束。字段包括 `content`（客观画像正文）、`support_count`（支撑次数）、`status`（ACTIVE/HIDDEN）、`first_seen_at`/`last_seen_at`/`hidden_at`、关联的 `latest_session_id`/`latest_qa_set_id`
+- `user_memory_evidence`：记录每条记忆的每次支撑证据，关联 `practice_session_item`，保存 `questionSnapshot`、`result`、`score`、`sourceChunkIdsJson`、`evidenceSummary`
 
 **新增 Memory 领域模块（domain/memory/）**
 
-- 领域模型：`UserMemory`、`UserMemoryEvidence`、`MemoryIngestContext`、`MemoryIngestItem`
-- 枚举：`MemoryType`（EXPRESSION/AWFUL/UNCLEAR/MASTER）、`MemoryTargetType`（MODULE/BEHAVIOR/GENERAL）、`MemoryBehaviorKey`（6 种行为画像）、`MemoryModuleTag`（固定模块池白名单 40 个）、`MemoryStatus`（ACTIVE/HIDDEN）
-- 仓储接口：`IMemoryRepository`（list/detail/hide/getIngestContext/findByKey/create/update/existsEvidence/createEvidence）
-- 领域服务：`MemoryService.ingestAssessSession()`——从 DB 组装上下文 → 调 MemoryAgent 提取候选画像 → 逐条持久化（含新增/更新合并、证据去重、置信度计算）
+- 领域模型：`Memory`、`MemoryEvidence`、`IngestContext`
+- 枚举：`MemoryProficientType`（AWFUL/UNCLEAR/MASTER）、`MemoryTargetType`（MODULE/BEHAVIOR/GENERAL）、`MemoryBehaviorKey`（6 种行为画像）、`ModuleTag`（固定模块池白名单）、`MemoryStatus`（ACTIVE/HIDDEN）
+- 仓储接口：`IAgentRepository` 承载 MemoryAgent 沉淀所需的上下文读取、按 key 查询、写 Memory 和 evidence；`IMemoryRepository` 只保留 list/detail/hide
+- 领域服务：`MemoryService` 只负责前端列表、详情和隐藏，不再承载异步沉淀入口
 
 **新增 MemoryAgent（Agent 层）**
 
-- `MemoryAgent`：调用 `MemorySubAgent`，最多重试 2 次，输出经 `MemoryResultCleaner` 清洗
-- `MemorySubAgent`：LangChain4j AI Service，prompt 定义在 `prompt/memory/memory-extract.txt`（56 行），输入含题集标题、本轮统计、单题作答证据、Assess 记忆线索、已有 ACTIVE 记忆，输出最多 5 条候选画像
-- `MemoryResultCleaner`：校验 memoryProficientType/targetType/targetKey 合法性（含模块白名单校验）、裁剪文本长度、去重 evidenceRefs、最多 5 条
-
-**置信度计算规则**
-
-`confidence = baseConfidence(confidenceHint) + newEvidenceCount × 5 + min(currentSupport, 4) × 3`，上限 95。`LOW=45, MEDIUM=60, HIGH=75`
+- `MemoryAgent`：完整执行入口，读取本轮评估上下文，调用 `InvestAgent` 提取候选画像，必要时调用 `MergeAgent` 合并正文，并负责写入 Memory 与 evidence
+- `InvestAgent`：LangChain4j AI Service，prompt 定义在 `prompt/memory/memory-extract.txt`，输入本轮单题作答证据，输出最多 5 条最能体现用户发挥、最值得用户注意的候选画像
+- `MergeAgent`：LangChain4j AI Service，prompt 定义在 `prompt/memory/memory-merge.txt`，输入旧 content 与新 content，输出 1-3 段合并后的客观画像
+- `MemoryResultCleaner`：校验 memoryType/targetType/targetKey 合法性（含模块白名单校验）、content 非空、去重 evidenceRefs、最多 5 条
 
 **记忆触发链路**
 
-`AssessSaver.save()` → `mqUtil.sendMemoryMessage()` → Kafka topic `qa.memory.ingest` → `MemoryConsumer.onMemoryIngest()` → `MemoryService.ingestAssessSession()` → `MemoryAgent.extract()` → 逐条 `persistCandidate()`
+`AssessSaver.save()` → `mqUtil.sendMemoryMessage()` → Kafka topic `qa.memory.ingest` → `MemoryConsumer.onMemoryIngest()` → `MemoryAgent.execute(sessionId, userId)` → `InvestAgent` / `MergeAgent` → 写入 `user_memory` 和 `user_memory_evidence`
 
 **对外接口**
 
@@ -116,9 +113,9 @@
 - `backend/qa-agent-domain/.../memory/repository/IMemoryRepository.java`
 - `backend/qa-agent-domain/.../memory/model/`（全部枚举和模型）
 - `backend/qa-agent-domain/.../agent/service/memory/MemoryAgent.java`
-- `backend/qa-agent-domain/.../agent/service/memory/subagent/MemorySubAgent.java`
+- `backend/qa-agent-domain/.../agent/service/memory/subagent/InvestAgent.java`
+- `backend/qa-agent-domain/.../agent/service/memory/subagent/MergeAgent.java`
 - `backend/qa-agent-domain/.../agent/service/memory/support/MemoryResultCleaner.java`
-- `backend/qa-agent-domain/.../agent/service/memory/model/enumeration/MemoryConfidenceHint.java`
 - `backend/qa-agent-infrastructure/.../repository/MemoryRepository.java`
 - `backend/qa-agent-infrastructure/.../persistent/entity/UserMemory.java`
 - `backend/qa-agent-infrastructure/.../persistent/entity/UserMemoryEvidence.java`
@@ -128,6 +125,7 @@
 - `backend/qa-agent-domain/.../agent/service/generate/GenerateAgent.java`
 - `backend/qa-agent-domain/.../agent/service/shared/UserMemoryProvider.java`
 - `backend/qa-agent-application/.../prompt/memory/memory-extract.txt`
+- `backend/qa-agent-application/.../prompt/memory/memory-merge.txt`
 - `backend/qa-agent-application/.../resources/sql/table.sql`
 
 ---

@@ -435,7 +435,7 @@ retryHint
 [
   {
     "memoryId": "xxx",
-    "memoryProficientType": "UNCLEAR",
+    "proficientType": "UNCLEAR",
     "targetType": "MODULE",
     "targetKey": "Redis",
     "title": "Redis 持久化取舍不稳定",
@@ -455,7 +455,7 @@ HIDDEN Memory 不传给 LLM。
 ```json
 [
   {
-    "memoryProficientType": "UNCLEAR",
+    "proficientType": "UNCLEAR",
     "targetType": "MODULE",
     "targetKey": "Redis",
     "title": "Redis 持久化取舍不稳定",
@@ -472,7 +472,7 @@ HIDDEN Memory 不传给 LLM。
 
 | 字段 | 说明 |
 | --- | --- |
-| `memoryProficientType` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
+| `proficientType` | `EXPRESSION` / `AWFUL` / `UNCLEAR` / `MASTER` |
 | `targetType` | `MODULE` / `BEHAVIOR` / `GENERAL` |
 | `targetKey` | 模块 tag、行为枚举或 `GENERAL` |
 | `title` | 候选画像标题 |
@@ -502,7 +502,7 @@ MemoryAgent prompt 必须明确：
 
 `MemoryResultCleaner` 和 `MemoryService` 必须做以下控制：
 
-1. 过滤非法 `memoryProficientType`。
+1. 过滤非法 `proficientType`。
 2. 过滤非法 `targetType`。
 3. `MODULE` 的 `targetKey` 必须命中模块池。
 4. `BEHAVIOR` 的 `targetKey` 必须命中行为枚举。
@@ -747,7 +747,7 @@ Memory 页面在 Profile 下：
 
 ```text
 长期画像列表
-按 memoryProficientType 或 targetType 分组
+按 proficientType 或 targetType 分组
 显示 title / summary / targetKey / confidence / supportCount / lastSeenAt
 支持查看详情
 支持隐藏
@@ -759,7 +759,7 @@ Memory 页面在 Profile 下：
 title
 summary
 detail
-memoryProficientType
+proficientType
 targetType
 targetKey
 confidence

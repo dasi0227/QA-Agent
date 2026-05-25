@@ -4,12 +4,11 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
-public interface MemorySubAgent {
+public interface InvestAgent {
 
     @SystemMessage(fromResource = "prompt/memory/memory-extract.txt")
     @UserMessage("""
             单题作答证据：{{itemsJson}}
-            已有 ACTIVE 记忆：{{existingMemoriesJson}}
 
             输出要求：
             1. 只输出一个合法 JSON 数组，以 [ 开头，以 ] 结尾。
@@ -22,6 +21,5 @@ public interface MemorySubAgent {
             重试提示（首次为空）：{{retryHint}}
             """)
     String extract(@V("itemsJson") String itemsJson,
-                   @V("existingMemoriesJson") String existingMemoriesJson,
                    @V("retryHint") String retryHint);
 }

@@ -89,28 +89,6 @@ const defaultPassword: PasswordForm = {
     confirmPassword: "",
 };
 
-const memoryTypeLabels: Record<string, string> = {
-    AWFUL: "严重薄弱",
-    UNCLEAR: "理解不稳",
-    MASTER: "稳定掌握",
-};
-
-const targetTypeLabels: Record<string, string> = {
-    MODULE: "模块",
-    BEHAVIOR: "行为",
-    GENERAL: "整体",
-};
-
-const behaviorLabels: Record<string, string> = {
-    MISSING_TRADEOFF: "缺少取舍边界",
-    DEFINITION_ONLY: "只背定义",
-    UNSTRUCTURED_ANSWER: "回答结构松散",
-    SCENARIO_WEAK: "场景迁移弱",
-    CAUSE_ANALYSIS_WEAK: "原因分析不足",
-    TERMINOLOGY_INACCURATE: "术语不准确",
-    GENERAL: "整体学习画像",
-};
-
 type ProfileSettingsContext = {
     profile: Profile;
     currentUser?: AuthUser;
@@ -525,11 +503,11 @@ export function ProfileMemoryPage() {
                                 onClick={() => setSelectedMemoryId(memory.id)}
                             >
                                 <div className="profile-memory-card__meta">
-                                    <span>{memoryTypeLabel(memory.memoryType)}</span>
-                                    <span>{targetLabel(memory)}</span>
+                                    <span>{memory.memoryTypeText || memory.memoryType}</span>
+                                    <span>{memory.targetKeyText || memory.targetKey}</span>
                                 </div>
-                                <strong>{memory.title}</strong>
-                                <p>{memory.summary}</p>
+                                <strong>{memoryTitle(memory)}</strong>
+                                <p>{memory.content}</p>
                                 <div className="profile-memory-card__stats">
                                     <span>证据 {memory.supportCount}</span>
                                 </div>
@@ -544,10 +522,10 @@ export function ProfileMemoryPage() {
                                 <div className="profile-memory-detail__header">
                                     <div>
                                         <div className="profile-memory-card__meta">
-                                            <span>{targetTypeLabels[detailQuery.data.memory.targetType] ?? detailQuery.data.memory.targetType}</span>
-                                            <span>{targetLabel(detailQuery.data.memory)}</span>
+                                            <span>{detailQuery.data.memory.targetTypeText || detailQuery.data.memory.targetType}</span>
+                                            <span>{detailQuery.data.memory.targetKeyText || detailQuery.data.memory.targetKey}</span>
                                         </div>
-                                        <h2>{detailQuery.data.memory.title}</h2>
+                                        <h2>{memoryTitle(detailQuery.data.memory)}</h2>
                                     </div>
                                     <BaseButton
                                         variant="outline"
@@ -558,9 +536,9 @@ export function ProfileMemoryPage() {
                                         隐藏这条记忆
                                     </BaseButton>
                                 </div>
-                                <p className="profile-memory-detail__summary">{detailQuery.data.memory.detail || detailQuery.data.memory.summary}</p>
+                                <p className="profile-memory-detail__summary">{detailQuery.data.memory.content}</p>
                                 <div className="profile-memory-detail__facts">
-                                    <span>类型：{memoryTypeLabel(detailQuery.data.memory.memoryType)}</span>
+                                    <span>类型：{detailQuery.data.memory.memoryTypeText || detailQuery.data.memory.memoryType}</span>
                                     <span>证据数：{detailQuery.data.memory.supportCount}</span>
                                     <span>最近出现：{formatDateTime(detailQuery.data.memory.lastSeenAt)}</span>
                                 </div>
@@ -722,18 +700,10 @@ function pickAgentDefaults(profile: Profile): AgentForm {
     };
 }
 
-function memoryTypeLabel(value: string) {
-    return memoryTypeLabels[value] ?? value;
-}
-
-function targetLabel(memory: UserMemory) {
-    if (memory.targetType === "BEHAVIOR") {
-        return behaviorLabels[memory.targetKey] ?? memory.targetKey;
-    }
-    if (memory.targetType === "GENERAL") {
-        return "整体学习画像";
-    }
-    return memory.targetKey;
+function memoryTitle(memory: UserMemory) {
+    const target = memory.targetKeyText || memory.targetKey || "未命名对象";
+    const type = memory.memoryTypeText || memory.memoryType || "未命名画像";
+    return `${target} · ${type}`;
 }
 
 function formatDateTime(value: string) {

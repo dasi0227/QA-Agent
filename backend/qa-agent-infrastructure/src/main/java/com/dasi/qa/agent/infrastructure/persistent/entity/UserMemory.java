@@ -24,9 +24,7 @@ public class UserMemory {
     private String memoryType;
     private String targetType;
     private String targetKey;
-    private String title;
-    private String summary;
-    private String detail;
+    private String content;
     private Integer supportCount;
     private String status;
     private LocalDateTime firstSeenAt;

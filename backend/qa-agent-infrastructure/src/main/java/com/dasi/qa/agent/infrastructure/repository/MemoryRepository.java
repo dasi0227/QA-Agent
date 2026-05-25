@@ -1,25 +1,22 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
-import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.dasi.qa.agent.domain.memory.model.vo.IngestContext;
-import com.dasi.qa.agent.domain.memory.model.vo.IngestContext.IngestItem;
-import com.dasi.qa.agent.domain.memory.model.dto.Memory;
-import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
-import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryStatus;
+import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.BehaviorKey;
+import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.ProficientType;
+import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.MemoryStatus;
+import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.TargetType;
 import com.dasi.qa.agent.domain.memory.repository.IMemoryRepository;
-import com.dasi.qa.agent.infrastructure.persistent.entity.*;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
+import com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory;
+import com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserMemoryEvidenceMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserMemoryMapper;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryDetailResponse;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryEvidenceResponse;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryResponse;
-import com.dasi.qa.agent.types.dto.response.practice.JudgeDetail;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.exception.ApiException;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,23 +26,11 @@ public class MemoryRepository implements IMemoryRepository {
 
     private final UserMemoryMapper userMemoryMapper;
     private final UserMemoryEvidenceMapper userMemoryEvidenceMapper;
-    private final PracticeSessionMapper practiceSessionMapper;
-    private final PracticeSessionItemMapper practiceSessionItemMapper;
-    private final QaSetMapper qaSetMapper;
-    private final QaItemMapper qaItemMapper;
 
     public MemoryRepository(UserMemoryMapper userMemoryMapper,
-                            UserMemoryEvidenceMapper userMemoryEvidenceMapper,
-                            PracticeSessionMapper practiceSessionMapper,
-                            PracticeSessionItemMapper practiceSessionItemMapper,
-                            QaSetMapper qaSetMapper,
-                            QaItemMapper qaItemMapper) {
+                            UserMemoryEvidenceMapper userMemoryEvidenceMapper) {
         this.userMemoryMapper = userMemoryMapper;
         this.userMemoryEvidenceMapper = userMemoryEvidenceMapper;
-        this.practiceSessionMapper = practiceSessionMapper;
-        this.practiceSessionItemMapper = practiceSessionItemMapper;
-        this.qaSetMapper = qaSetMapper;
-        this.qaItemMapper = qaItemMapper;
     }
 
     @Override
@@ -88,123 +73,6 @@ public class MemoryRepository implements IMemoryRepository {
                 .set(UserMemory::getUpdatedAt, LocalDateTime.now()));
     }
 
-    @Override
-    public IngestContext getIngestContext(String sessionId, String userId) {
-        PracticeSession session = practiceSessionMapper.selectById(sessionId);
-        if (session == null || !userId.equals(session.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
-        }
-        QaSet qaSet = qaSetMapper.selectById(session.getQaSetId());
-        if (qaSet == null || !userId.equals(qaSet.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
-        }
-        List<PracticeSessionItem> sessionItems = practiceSessionItemMapper.selectList(
-                new LambdaQueryWrapper<PracticeSessionItem>()
-                        .eq(PracticeSessionItem::getSessionId, sessionId)
-                        .eq(PracticeSessionItem::getUserId, userId)
-                        .orderByAsc(PracticeSessionItem::getSortOrder));
-        List<IngestItem> items = sessionItems.stream()
-                .map(item -> toIngestItem(item, userId))
-                .toList();
-        List<Memory> existing = userMemoryMapper.selectList(
-                        new LambdaQueryWrapper<UserMemory>()
-                                .eq(UserMemory::getUserId, userId)
-                                .eq(UserMemory::getStatus, MemoryStatus.ACTIVE.name())
-                                .orderByDesc(UserMemory::getLastSeenAt)
-                                .last("LIMIT 20"))
-                .stream()
-                .map(this::toDomainMemory)
-                .toList();
-        return IngestContext.builder()
-                .sessionId(session.getId())
-                .userId(session.getUserId())
-                .qaSetId(session.getQaSetId())
-                .items(items)
-                .existingMemories(existing)
-                .build();
-    }
-
-    @Override
-    public Memory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey) {
-        UserMemory entity = userMemoryMapper.selectOne(
-                new LambdaQueryWrapper<UserMemory>()
-                        .eq(UserMemory::getUserId, userId)
-                        .eq(UserMemory::getMemoryType, memoryType)
-                        .eq(UserMemory::getTargetType, targetType)
-                        .eq(UserMemory::getTargetKey, targetKey));
-        return entity == null ? null : toDomainMemory(entity);
-    }
-
-    @Override
-    public Memory findActiveMemoryById(String memoryId, String userId) {
-        UserMemory entity = userMemoryMapper.selectOne(
-                new LambdaQueryWrapper<UserMemory>()
-                        .eq(UserMemory::getId, memoryId)
-                        .eq(UserMemory::getUserId, userId)
-                        .eq(UserMemory::getStatus, MemoryStatus.ACTIVE.name()));
-        return entity == null ? null : toDomainMemory(entity);
-    }
-
-    @Override
-    @Transactional(transactionManager = "mysqlTransactionManager")
-    public void createMemory(Memory memory) {
-        userMemoryMapper.insert(toEntityMemory(memory));
-    }
-
-    @Override
-    @Transactional(transactionManager = "mysqlTransactionManager")
-    public void updateMemory(Memory memory) {
-        userMemoryMapper.updateById(toEntityMemory(memory));
-    }
-
-    @Override
-    public boolean existsEvidence(String memoryId, String sessionItemId) {
-        return userMemoryEvidenceMapper.selectCount(
-                new LambdaQueryWrapper<UserMemoryEvidence>()
-                        .eq(UserMemoryEvidence::getMemoryId, memoryId)
-                        .eq(UserMemoryEvidence::getSessionItemId, sessionItemId)) > 0;
-    }
-
-    @Override
-    @Transactional(transactionManager = "mysqlTransactionManager")
-    public void createEvidence(MemoryEvidence evidence) {
-        userMemoryEvidenceMapper.insert(toEntityEvidence(evidence));
-    }
-
-    private IngestItem toIngestItem(PracticeSessionItem item, String userId) {
-        QaItem qaItem = qaItemMapper.selectById(item.getQaItemId());
-        if (qaItem == null || !userId.equals(qaItem.getUserId())) {
-            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
-        }
-        JudgeDetail judgeDetail = judgeDetail(item.getFeedbackJudgeDetail());
-        return IngestItem.builder()
-                .sessionItemId(item.getId())
-                .qaItemId(item.getQaItemId())
-                .question(StringUtils.hasText(item.getQuestionSnapshot()) ? item.getQuestionSnapshot() : qaItem.getQuestion())
-                .moduleTag(StringUtils.hasText(item.getModuleTagSnapshot()) ? item.getModuleTagSnapshot() : qaItem.getModuleTag())
-                .difficulty(StringUtils.hasText(item.getDifficultySnapshot()) ? item.getDifficultySnapshot() : qaItem.getDifficulty())
-                .standardAnswer(StringUtils.hasText(item.getStandardAnswerSnapshot()) ? item.getStandardAnswerSnapshot() : qaItem.getAnswer())
-                .userAnswer(item.getUserAnswer())
-                .result(item.getResult())
-                .score(item.getScore())
-                .feedbackSummary(item.getFeedbackSummary())
-                .missingPointsJson(judgeDetail == null || judgeDetail.getMissingPoints() == null ? "[]" : JSON.toJSONString(judgeDetail.getMissingPoints()))
-                .wrongPointsJson(judgeDetail == null || judgeDetail.getWrongPoints() == null ? "[]" : JSON.toJSONString(judgeDetail.getWrongPoints()))
-                .sourceChunkIdsJson(StringUtils.hasText(item.getSourceChunkIdsSnapshotJson()) ? item.getSourceChunkIdsSnapshotJson() : "[]")
-                .build();
-    }
-
-    private JudgeDetail judgeDetail(String json) {
-        if (!StringUtils.hasText(json)) {
-            return null;
-        }
-        try {
-            return JSON.parseObject(json, JudgeDetail.class);
-        } catch (Exception exception) {
-            return null;
-        }
-    }
-
     private UserMemory requireMemory(String memoryId, String userId) {
         UserMemory memory = userMemoryMapper.selectOne(
                 new LambdaQueryWrapper<UserMemory>()
@@ -222,11 +90,12 @@ public class MemoryRepository implements IMemoryRepository {
         response.setCreatedAt(time(entity.getCreatedAt()));
         response.setUpdatedAt(time(entity.getUpdatedAt()));
         response.setMemoryType(entity.getMemoryType());
+        response.setMemoryTypeText(memoryTypeText(entity.getMemoryType()));
         response.setTargetType(entity.getTargetType());
+        response.setTargetTypeText(targetTypeText(entity.getTargetType()));
         response.setTargetKey(entity.getTargetKey());
-        response.setTitle(entity.getTitle());
-        response.setSummary(entity.getSummary());
-        response.setDetail(entity.getDetail());
+        response.setTargetKeyText(targetKeyText(entity.getTargetType(), entity.getTargetKey()));
+        response.setContent(entity.getContent());
         response.setSupportCount(entity.getSupportCount());
         response.setStatus(entity.getStatus());
         response.setFirstSeenAt(time(entity.getFirstSeenAt()));
@@ -255,70 +124,32 @@ public class MemoryRepository implements IMemoryRepository {
         return response;
     }
 
-    private Memory toDomainMemory(UserMemory entity) {
-        return Memory.builder()
-                .id(entity.getId())
-                .userId(entity.getUserId())
-                .memoryType(entity.getMemoryType())
-                .targetType(entity.getTargetType())
-                .targetKey(entity.getTargetKey())
-                .title(entity.getTitle())
-                .summary(entity.getSummary())
-                .detail(entity.getDetail())
-                .supportCount(entity.getSupportCount())
-                .status(entity.getStatus())
-                .firstSeenAt(entity.getFirstSeenAt())
-                .lastSeenAt(entity.getLastSeenAt())
-                .hiddenAt(entity.getHiddenAt())
-                .latestSessionId(entity.getLatestSessionId())
-                .latestQaSetId(entity.getLatestQaSetId())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
-    }
-
-    private UserMemory toEntityMemory(Memory memory) {
-        return UserMemory.builder()
-                .id(memory.getId())
-                .userId(memory.getUserId())
-                .memoryType(memory.getMemoryType())
-                .targetType(memory.getTargetType())
-                .targetKey(memory.getTargetKey())
-                .title(memory.getTitle())
-                .summary(memory.getSummary())
-                .detail(memory.getDetail())
-                .supportCount(memory.getSupportCount())
-                .status(memory.getStatus())
-                .firstSeenAt(memory.getFirstSeenAt())
-                .lastSeenAt(memory.getLastSeenAt())
-                .hiddenAt(memory.getHiddenAt())
-                .latestSessionId(memory.getLatestSessionId())
-                .latestQaSetId(memory.getLatestQaSetId())
-                .createdAt(memory.getCreatedAt())
-                .updatedAt(memory.getUpdatedAt())
-                .build();
-    }
-
-    private UserMemoryEvidence toEntityEvidence(MemoryEvidence evidence) {
-        return UserMemoryEvidence.builder()
-                .id(evidence.getId())
-                .memoryId(evidence.getMemoryId())
-                .userId(evidence.getUserId())
-                .sessionId(evidence.getSessionId())
-                .sessionItemId(evidence.getSessionItemId())
-                .qaSetId(evidence.getQaSetId())
-                .qaItemId(evidence.getQaItemId())
-                .moduleTag(evidence.getModuleTag())
-                .questionSnapshot(evidence.getQuestionSnapshot())
-                .result(evidence.getResult())
-                .score(evidence.getScore())
-                .sourceChunkIdsJson(evidence.getSourceChunkIdsJson())
-                .evidenceSummary(evidence.getEvidenceSummary())
-                .createdAt(evidence.getCreatedAt())
-                .build();
-    }
-
     private String time(LocalDateTime value) {
         return value == null ? null : value.toString();
+    }
+
+    private String memoryTypeText(String value) {
+        ProficientType type = ProficientType.fromValue(value);
+        return type == null ? value : type.getLabel();
+    }
+
+    private String targetTypeText(String value) {
+        TargetType type = TargetType.fromValue(value);
+        return type == null ? value : type.getLabel();
+    }
+
+    private String targetKeyText(String targetTypeValue, String targetKey) {
+        TargetType targetType = TargetType.fromValue(targetTypeValue);
+        if (targetType == null) {
+            return targetKey;
+        }
+        return switch (targetType) {
+            case MODULE -> targetKey;
+            case BEHAVIOR -> {
+                BehaviorKey behaviorKey = BehaviorKey.fromValue(targetKey);
+                yield behaviorKey == null ? targetKey : behaviorKey.getLabel();
+            }
+            case GENERAL -> "整体";
+        };
     }
 }

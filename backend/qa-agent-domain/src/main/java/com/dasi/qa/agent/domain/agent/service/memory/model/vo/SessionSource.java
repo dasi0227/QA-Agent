@@ -1,6 +1,5 @@
-package com.dasi.qa.agent.domain.memory.model.vo;
+package com.dasi.qa.agent.domain.agent.service.memory.model.vo;
 
-import com.dasi.qa.agent.domain.memory.model.dto.Memory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,19 +11,18 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class IngestContext {
+public class SessionSource {
 
     private String sessionId;
     private String userId;
     private String qaSetId;
-    private List<IngestItem> items;
-    private List<Memory> existingMemories;
+    private List<SessionSourceItem> items;
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class IngestItem {
+    public static class SessionSourceItem {
 
         private String sessionItemId;
         private String qaItemId;

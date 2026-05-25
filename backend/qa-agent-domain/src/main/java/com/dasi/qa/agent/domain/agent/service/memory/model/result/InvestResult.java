@@ -11,14 +11,11 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MemoryCandidateResult {
+public class InvestResult {
 
     private String memoryType;
     private String targetType;
     private String targetKey;
-    private String title;
-    private String summary;
-    private String detail;
+    private String content;
     private List<String> evidenceRefs;
-    private String relatedMemoryId;
 }

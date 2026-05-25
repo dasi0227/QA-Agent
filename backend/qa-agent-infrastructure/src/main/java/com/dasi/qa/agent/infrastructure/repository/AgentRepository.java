@@ -17,6 +17,10 @@ import com.dasi.qa.agent.domain.qa.model.enumeration.CompleteStatus;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.command.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.model.vo.PracticeVO;
+import com.dasi.qa.agent.domain.agent.service.memory.model.vo.SessionSource;
+import com.dasi.qa.agent.domain.agent.service.memory.model.vo.SessionSource.SessionSourceItem;
+import com.dasi.qa.agent.domain.agent.service.memory.model.dto.Memory;
+import com.dasi.qa.agent.domain.agent.service.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
 import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
@@ -34,6 +38,8 @@ import com.dasi.qa.agent.infrastructure.persistent.entity.QaItem;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaSetDocumentRef;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaSet;
 import com.dasi.qa.agent.infrastructure.persistent.entity.SourceDocument;
+import com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory;
+import com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfile;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.DocumentChunkMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
@@ -44,6 +50,8 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetDocumentRefMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.SourceDocumentMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserMemoryEvidenceMapper;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserMemoryMapper;
 import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserProfileMapper;
 import com.dasi.qa.agent.types.constant.RedisConstant;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
@@ -82,6 +90,8 @@ public class AgentRepository implements IAgentRepository {
     private final DocumentChunkMapper documentChunkMapper;
     private final PracticeSessionMapper practiceSessionMapper;
     private final PracticeSessionItemMapper practiceSessionItemMapper;
+    private final UserMemoryMapper userMemoryMapper;
+    private final UserMemoryEvidenceMapper userMemoryEvidenceMapper;
     private final IIdUtil idUtil;
 
     public AgentRepository(QaGenerationTaskMapper taskMapper,
@@ -94,6 +104,8 @@ public class AgentRepository implements IAgentRepository {
                            DocumentChunkMapper documentChunkMapper,
                            PracticeSessionMapper practiceSessionMapper,
                            PracticeSessionItemMapper practiceSessionItemMapper,
+                           UserMemoryMapper userMemoryMapper,
+                           UserMemoryEvidenceMapper userMemoryEvidenceMapper,
                            IIdUtil idUtil) {
         this.taskMapper = taskMapper;
         this.taskMessageMapper = taskMessageMapper;
@@ -105,6 +117,8 @@ public class AgentRepository implements IAgentRepository {
         this.documentChunkMapper = documentChunkMapper;
         this.practiceSessionMapper = practiceSessionMapper;
         this.practiceSessionItemMapper = practiceSessionItemMapper;
+        this.userMemoryMapper = userMemoryMapper;
+        this.userMemoryEvidenceMapper = userMemoryEvidenceMapper;
         this.idUtil = idUtil;
     }
 
@@ -618,6 +632,83 @@ public class AgentRepository implements IAgentRepository {
                         .eq(QaItem::getUserId, userId));
     }
 
+    @Override
+    public SessionSource getInvestContext(String sessionId, String userId) {
+        PracticeSession session = requirePracticeSession(sessionId);
+        if (!userId.equals(session.getUserId())) {
+            throw new ApiException(ResultCode.NOT_FOUND, "练习记录不存在");
+        }
+        QaSet qaSet = qaSetMapper.selectById(session.getQaSetId());
+        if (qaSet == null || !userId.equals(qaSet.getUserId())) {
+            throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
+        }
+        List<PracticeSessionItem> sessionItems = practiceSessionItemMapper.selectList(
+                new LambdaQueryWrapper<PracticeSessionItem>()
+                        .eq(PracticeSessionItem::getSessionId, sessionId)
+                        .eq(PracticeSessionItem::getUserId, userId)
+                        .orderByAsc(PracticeSessionItem::getSortOrder));
+        List<SessionSourceItem> items = sessionItems.stream()
+                .map(item -> toMemoryIngestItem(item, userId))
+                .toList();
+        return SessionSource.builder()
+                .sessionId(session.getId())
+                .userId(session.getUserId())
+                .qaSetId(session.getQaSetId())
+                .items(items)
+                .build();
+    }
+
+    @Override
+    public Memory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey) {
+        UserMemory entity = userMemoryMapper.selectOne(
+                new LambdaQueryWrapper<UserMemory>()
+                        .eq(UserMemory::getUserId, userId)
+                        .eq(UserMemory::getMemoryType, memoryType)
+                        .eq(UserMemory::getTargetType, targetType)
+                        .eq(UserMemory::getTargetKey, targetKey));
+        return entity == null ? null : toAgentMemory(entity);
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    public void createMemory(Memory memory) {
+        userMemoryMapper.insert(toUserMemoryEntity(memory));
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    public void updateMemory(Memory memory) {
+        userMemoryMapper.updateById(toUserMemoryEntity(memory));
+    }
+
+    @Override
+    public boolean existsMemoryEvidence(String memoryId, String sessionItemId) {
+        return userMemoryEvidenceMapper.selectCount(
+                new LambdaQueryWrapper<UserMemoryEvidence>()
+                        .eq(UserMemoryEvidence::getMemoryId, memoryId)
+                        .eq(UserMemoryEvidence::getSessionItemId, sessionItemId)) > 0;
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    public void createMemoryEvidence(MemoryEvidence evidence) {
+        userMemoryEvidenceMapper.insert(UserMemoryEvidence.builder()
+                .id(evidence.getId())
+                .memoryId(evidence.getMemoryId())
+                .userId(evidence.getUserId())
+                .sessionId(evidence.getSessionId())
+                .sessionItemId(evidence.getSessionItemId())
+                .qaSetId(evidence.getQaSetId())
+                .qaItemId(evidence.getQaItemId())
+                .moduleTag(evidence.getModuleTag())
+                .questionSnapshot(evidence.getQuestionSnapshot())
+                .result(evidence.getResult())
+                .score(evidence.getScore())
+                .sourceChunkIdsJson(evidence.getSourceChunkIdsJson())
+                .evidenceSummary(evidence.getEvidenceSummary())
+                .build());
+    }
+
     private QaGenerationTask requireTask(String taskId) {
         QaGenerationTask entity = taskMapper.selectById(taskId);
         if (entity == null) {
@@ -676,6 +767,69 @@ public class AgentRepository implements IAgentRepository {
         } catch (Exception exception) {
             return null;
         }
+    }
+
+    private SessionSourceItem toMemoryIngestItem(PracticeSessionItem item, String userId) {
+        QaItem qaItem = qaItemMapper.selectById(item.getQaItemId());
+        if (qaItem == null || !userId.equals(qaItem.getUserId())) {
+            throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
+        }
+        JudgeDetail detail = judgeDetail(item.getFeedbackJudgeDetail());
+        return SessionSourceItem.builder()
+                .sessionItemId(item.getId())
+                .qaItemId(item.getQaItemId())
+                .question(StringUtils.hasText(item.getQuestionSnapshot()) ? item.getQuestionSnapshot() : qaItem.getQuestion())
+                .moduleTag(StringUtils.hasText(item.getModuleTagSnapshot()) ? item.getModuleTagSnapshot() : qaItem.getModuleTag())
+                .difficulty(StringUtils.hasText(item.getDifficultySnapshot()) ? item.getDifficultySnapshot() : qaItem.getDifficulty())
+                .standardAnswer(StringUtils.hasText(item.getStandardAnswerSnapshot()) ? item.getStandardAnswerSnapshot() : qaItem.getAnswer())
+                .userAnswer(item.getUserAnswer())
+                .result(item.getResult())
+                .score(item.getScore())
+                .feedbackSummary(item.getFeedbackSummary())
+                .missingPointsJson(detail == null || detail.getMissingPoints() == null ? "[]" : JSON.toJSONString(detail.getMissingPoints()))
+                .wrongPointsJson(detail == null || detail.getWrongPoints() == null ? "[]" : JSON.toJSONString(detail.getWrongPoints()))
+                .sourceChunkIdsJson(StringUtils.hasText(item.getSourceChunkIdsSnapshotJson()) ? item.getSourceChunkIdsSnapshotJson() : "[]")
+                .build();
+    }
+
+    private Memory toAgentMemory(UserMemory entity) {
+        return Memory.builder()
+                .id(entity.getId())
+                .userId(entity.getUserId())
+                .memoryType(entity.getMemoryType())
+                .targetType(entity.getTargetType())
+                .targetKey(entity.getTargetKey())
+                .content(entity.getContent())
+                .supportCount(entity.getSupportCount())
+                .status(entity.getStatus())
+                .firstSeenAt(entity.getFirstSeenAt())
+                .lastSeenAt(entity.getLastSeenAt())
+                .hiddenAt(entity.getHiddenAt())
+                .latestSessionId(entity.getLatestSessionId())
+                .latestQaSetId(entity.getLatestQaSetId())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
+    }
+
+    private UserMemory toUserMemoryEntity(Memory memory) {
+        return UserMemory.builder()
+                .id(memory.getId())
+                .userId(memory.getUserId())
+                .memoryType(memory.getMemoryType())
+                .targetType(memory.getTargetType())
+                .targetKey(memory.getTargetKey())
+                .content(memory.getContent())
+                .supportCount(memory.getSupportCount())
+                .status(memory.getStatus())
+                .firstSeenAt(memory.getFirstSeenAt())
+                .lastSeenAt(memory.getLastSeenAt())
+                .hiddenAt(memory.getHiddenAt())
+                .latestSessionId(memory.getLatestSessionId())
+                .latestQaSetId(memory.getLatestQaSetId())
+                .createdAt(memory.getCreatedAt())
+                .updatedAt(memory.getUpdatedAt())
+                .build();
     }
 
     private void refreshQaSetPracticeStats(String qaSetId, LocalDateTime now) {
