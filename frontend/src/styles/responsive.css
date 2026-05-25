@@ -121,6 +121,8 @@
 
   .profile-account {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 16px;
   }
 
   .profile-memory {
@@ -133,6 +135,12 @@
 
   .profile-avatar-editor {
     width: 120px;
+    height: 120px;
+  }
+
+  .profile-account__fields {
+    display: grid;
+    gap: 14px;
   }
 
   .feature-grid {

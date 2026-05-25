@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { AlertTriangle, ListPlus, Plus, X } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
 import { BaseButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
-import { Field, Select, TextArea } from "@/components/base/field";
+import { Field, Select, TextArea, TextInput } from "@/components/base/field";
 import {
     parseDelimitedValues,
     useCreateSmartQuestionItemMutation,
@@ -26,6 +26,7 @@ const MODULE_OPTIONS = [
 ] as const;
 
 const BATCH_POLL_LIMIT = 30;
+const MAX_BATCH_QUESTIONS = 20;
 
 const emptyItemDraft: QuestionItemDraft = {
     question: "",
@@ -51,6 +52,15 @@ function toQuestionItemDraft(qaSetEntry: QuestionItem): QuestionItemDraft {
         sourceReliable: qaSetEntry.sourceReliable,
         sourceChunkIdsJson: qaSetEntry.sourceChunkIdsJson || "",
     };
+}
+
+function sanitizeBatchQuestionDrafts(drafts: string[]) {
+    const normalized = drafts.map((question) => question.trim());
+    const nonEmpty = normalized.filter(Boolean);
+    if (nonEmpty.length === 0) {
+        return [""];
+    }
+    return normalized;
 }
 
 export function QuestionPage() {
@@ -79,7 +89,7 @@ export function QuestionPage() {
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [createMode, setCreateMode] = useState<"single" | "batch">("single");
     const [smartQuestionDraft, setSmartQuestionDraft] = useState("");
-    const [batchQuestionDraft, setBatchQuestionDraft] = useState("");
+    const [batchQuestionDrafts, setBatchQuestionDrafts] = useState<string[]>([""]);
     const [batchTrackingIds, setBatchTrackingIds] = useState<string[]>([]);
     const [batchPollCount, setBatchPollCount] = useState(0);
     const [selectedModuleDraft, setSelectedModuleDraft] = useState<string[]>([]);
@@ -104,8 +114,8 @@ export function QuestionPage() {
         [selectedModuleDraft],
     );
     const batchQuestionList = useMemo(
-        () => batchQuestionDraft.split(/\r?\n/).map((question) => question.trim()).filter(Boolean),
-        [batchQuestionDraft],
+        () => batchQuestionDrafts.map((question) => question.trim()).filter(Boolean),
+        [batchQuestionDrafts],
     );
     const trackedBatchItems = useMemo(
         () => itemList.filter((item) => batchTrackingIds.includes(item.id)),
@@ -190,7 +200,7 @@ export function QuestionPage() {
     const closeCreateDialog = () => {
         if (createSmartQuestionItemMutation.isPending || createSmartQuestionItemsBatchMutation.isPending) return;
         setSmartQuestionDraft("");
-        setBatchQuestionDraft("");
+        setBatchQuestionDrafts([""]);
         setCreateMode("single");
         setCreateDialogOpen(false);
     };
@@ -205,12 +215,12 @@ export function QuestionPage() {
     };
 
     const createBatchItems = async () => {
-        if (!batchQuestionList.length || batchQuestionList.length > 50) return;
+        if (!batchQuestionList.length || batchQuestionList.length > MAX_BATCH_QUESTIONS) return;
         const qaSetEntries = await createSmartQuestionItemsBatchMutation.mutateAsync({
             qaSetId,
             questions: batchQuestionList,
         });
-        setBatchQuestionDraft("");
+        setBatchQuestionDrafts([""]);
         setCreateDialogOpen(false);
         setCreateMode("single");
         setBatchTrackingIds(qaSetEntries.map((item) => item.id));
@@ -246,6 +256,30 @@ export function QuestionPage() {
             keywords: selectedKeywordsDraft.join(","),
         });
         setEditDialogOpen(false);
+    };
+
+    const updateBatchQuestionDraft = (index: number, value: string) => {
+        setBatchQuestionDrafts((current) => current.map((question, questionIndex) => (
+            questionIndex === index ? value : question
+        )));
+    };
+
+    const appendBatchQuestionDraft = () => {
+        setBatchQuestionDrafts((current) => {
+            if (current.length >= MAX_BATCH_QUESTIONS) {
+                return current;
+            }
+            return [...current, ""];
+        });
+    };
+
+    const removeBatchQuestionDraft = (index: number) => {
+        setBatchQuestionDrafts((current) => {
+            if (current.length === 1) {
+                return [""];
+            }
+            return sanitizeBatchQuestionDrafts(current.filter((_, questionIndex) => questionIndex !== index));
+        });
     };
 
     if (!qaSetId) {
@@ -540,20 +574,40 @@ export function QuestionPage() {
                                         value={smartQuestionDraft}
                                         onChange={(event) => setSmartQuestionDraft(event.target.value)}
                                         rows={5}
-                                        placeholder="输入一个技术面试问题"
+                                        placeholder="输入题目"
                                     />
                                 </Field>
                             ) : (
-                                <Field label={`问题列表（${batchQuestionList.length}/50）`}>
-                                    <TextArea
-                                        className="question-edit-dialog__textarea question-create-dialog__textarea question-create-dialog__textarea--batch"
-                                        value={batchQuestionDraft}
-                                        onChange={(event) => setBatchQuestionDraft(event.target.value)}
-                                        rows={10}
-                                        placeholder={"每行一道题，例如：\nRedis AOF 和 RDB 有什么区别？\nJVM 类加载过程是什么？"}
-                                    />
-                                    <div className={cn("question-create-dialog__hint", batchQuestionList.length > 50 && "question-create-dialog__hint--danger")}>
-                                        空行会自动忽略，单批最多 50 道题。
+                                <Field label={`问题列表（${batchQuestionList.length}/${MAX_BATCH_QUESTIONS}）`}>
+                                    <div className="question-create-dialog__batch-list">
+                                        {batchQuestionDrafts.map((question, index) => (
+                                            <div key={`batch-question-${index}`} className="question-create-dialog__batch-row">
+                                                <TextInput
+                                                    className="question-create-dialog__input"
+                                                    value={question}
+                                                    onChange={(event) => updateBatchQuestionDraft(index, event.target.value)}
+                                                    placeholder={index === 0 ? "输入题目" : ""}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="question-create-dialog__row-action"
+                                                    onClick={() => removeBatchQuestionDraft(index)}
+                                                    aria-label={`删除第 ${index + 1} 道题`}
+                                                    disabled={batchQuestionDrafts.length === 1}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            className="question-create-dialog__append"
+                                            onClick={appendBatchQuestionDraft}
+                                            disabled={batchQuestionDrafts.length >= MAX_BATCH_QUESTIONS}
+                                            aria-label="新增一行题目"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
                                     </div>
                                 </Field>
                             )}
@@ -568,21 +622,20 @@ export function QuestionPage() {
                                         disabled={createSmartQuestionItemMutation.isPending || !smartQuestionDraft.trim()}
                                         onClick={createSmartItem}
                                     >
-                                        {createSmartQuestionItemMutation.isPending ? "创建中" : "创建并智能补全"}
+                                        {createSmartQuestionItemMutation.isPending ? "创建中" : "创建"}
                                     </BaseButton>
                                 ) : (
                                     <BaseButton
                                         variant="primary"
                                         type="button"
-                                        leadingIcon={<ListPlus size={14} />}
                                         disabled={
                                             createSmartQuestionItemsBatchMutation.isPending
                                             || batchQuestionList.length === 0
-                                            || batchQuestionList.length > 50
+                                            || batchQuestionList.length > MAX_BATCH_QUESTIONS
                                         }
                                         onClick={createBatchItems}
                                     >
-                                        {createSmartQuestionItemsBatchMutation.isPending ? "创建中" : `批量创建 ${batchQuestionList.length} 题`}
+                                        {createSmartQuestionItemsBatchMutation.isPending ? "创建中" : "创建"}
                                     </BaseButton>
                                 )}
                                 <BaseButton variant="ghost" type="button" onClick={closeCreateDialog}>

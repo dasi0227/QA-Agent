@@ -135,20 +135,6 @@
 }
 
 
-.repository-inline-success {
-  width: fit-content;
-  margin: -12px 0 22px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(96, 132, 102, 0.18);
-  background: rgba(226, 239, 224, 0.78);
-  color: #4d7353;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-
 .practice-history-page__head {
   display: flex;
   align-items: flex-end;

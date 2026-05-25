@@ -58,7 +58,6 @@ export function QASetPage() {
     const [emptySetTitleDraft, setEmptySetTitleDraft] = useState("");
     const [emptySetDescriptionDraft, setEmptySetDescriptionDraft] = useState("");
     const [importError, setImportError] = useState("");
-    const [importSuccess, setImportSuccess] = useState("");
     const [selectedTagsDraft, setSelectedTagsDraft] = useState<string[]>([]);
     const importFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -83,11 +82,12 @@ export function QASetPage() {
             return;
         }
         setSetTitleDraft(selectedSetQuery.data.title);
-        setSetDescriptionDraft(selectedSetQuery.data.description);
+        setSetDescriptionDraft(selectedSetQuery.data.description || "");
         setSelectedTagsDraft(parseModuleTags(selectedSetQuery.data.moduleTagsJson));
     }, [selectedSetQuery.data]);
 
-    const selectedSetDescription = selectedSetQuery.data?.description?.trim();
+    const selectedSetDescription = selectedSetQuery.data?.description?.trim() || "";
+    const selectedSetDescriptionText = selectedSetDescription || "当前暂无描述";
     const selectedSetPracticeTotal = selectedSetQuery.data
         ? selectedSetQuery.data.questionCount * selectedSetQuery.data.practiceCount
         : 0;
@@ -103,7 +103,7 @@ export function QASetPage() {
     const openEditDialog = () => {
         if (!selectedSetQuery.data) return;
         setSetTitleDraft(selectedSetQuery.data.title);
-        setSetDescriptionDraft(selectedSetQuery.data.description);
+        setSetDescriptionDraft(selectedSetQuery.data.description || "");
         setSelectedTagsDraft(parseModuleTags(selectedSetQuery.data.moduleTagsJson));
         setEditDialogOpen(true);
     };
@@ -111,7 +111,7 @@ export function QASetPage() {
     const closeEditDialog = () => {
         if (selectedSetQuery.data) {
             setSetTitleDraft(selectedSetQuery.data.title);
-            setSetDescriptionDraft(selectedSetQuery.data.description);
+            setSetDescriptionDraft(selectedSetQuery.data.description || "");
             setSelectedTagsDraft(parseModuleTags(selectedSetQuery.data.moduleTagsJson));
         }
         setEditDialogOpen(false);
@@ -144,7 +144,6 @@ export function QASetPage() {
             return;
         }
         setImportError("");
-        setImportSuccess("");
         try {
             const createdSet = await createEmptyQuestionSetMutation.mutateAsync({
                 title,
@@ -154,7 +153,6 @@ export function QASetPage() {
             setEmptySetFormOpen(false);
             setEmptySetTitleDraft("");
             setEmptySetDescriptionDraft("");
-            setImportSuccess("空题集创建成功");
             navigate(`/repository/qa-set/${createdSet.id}`, { replace: true });
         } catch (error) {
             setImportError(error instanceof Error ? error.message : "空题集创建失败，请稍后重试。");
@@ -164,7 +162,6 @@ export function QASetPage() {
     const handleImportFile = async (file?: File) => {
         if (!file) return;
         setImportError("");
-        setImportSuccess("");
         if (!file.name.toLowerCase().endsWith(".dasi")) {
             setImportError("请选择 .dasi 问答集文件。");
             return;
@@ -172,7 +169,6 @@ export function QASetPage() {
         try {
             const importedSet = await importQuestionSetMutation.mutateAsync({ file });
             setCreateSetDialogOpen(false);
-            setImportSuccess(`导入成功，共 ${importedSet.questionCount} 道题`);
             navigate(`/repository/qa-set/${importedSet.id}`, { replace: true });
         } catch (error) {
             setImportError(error instanceof Error ? error.message : "导入失败，请检查文件格式。");
@@ -287,7 +283,7 @@ export function QASetPage() {
                                             {selectedSetQuery.data.title}
                                         </h1>
                                         <p className="page-copy" style={{ margin: "12px 0 0" }}>
-                                            {selectedSetDescription || "本问答集用于维护训练资产，支持逐题打磨问题、知识笔记和标准答案。"}
+                                            {selectedSetDescriptionText}
                                         </p>
                                         <div className="repository-header__tags" style={{ marginTop: 12 }}>
                                             {selectedTags.map((tag) => (
@@ -332,9 +328,11 @@ export function QASetPage() {
                                         练习历史
                                     </LinkButton>
                                     <LinkButton
-                                        to={firstItemId ? `/repository/question?qaSetId=${selectedSetQuery.data.id}&itemId=${firstItemId}` : "#"}
+                                        to={firstItemId
+                                            ? `/repository/question?qaSetId=${selectedSetQuery.data.id}&itemId=${firstItemId}`
+                                            : `/repository/question?qaSetId=${selectedSetQuery.data.id}`}
                                         variant="soft"
-                                        className={cn("repository-detail-btn", !firstItemId && "repository-detail-btn--disabled")}
+                                        className="repository-detail-btn"
                                     >
                                         题目详情
                                     </LinkButton>
@@ -358,10 +356,6 @@ export function QASetPage() {
                                         {exportQuestionSetMutation.isPending ? "导出中" : "导出问答集"}
                                     </BaseButton>
                                 </div>
-                                {importSuccess ? (
-                                    <div className="repository-inline-success">{importSuccess}</div>
-                                ) : null}
-
                                 <div className="repository-workspace">
                                     <section className="repository-items-panel">
                                         <div className="repository-panel__header">

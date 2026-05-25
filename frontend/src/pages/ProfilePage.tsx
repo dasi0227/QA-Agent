@@ -180,7 +180,6 @@ export function ProfilePage() {
             <div className="profile-settings">
                 <aside className="profile-settings__rail" aria-label="Profile 设置目录">
                     <div className="profile-settings__brand">
-                        <span>Profile</span>
                         <strong>个人设置</strong>
                     </div>
                     <nav className="profile-settings__nav" aria-label="个人设置">
@@ -244,12 +243,39 @@ export function ProfileInfoPage() {
     }, [personalForm, profile]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const accountFieldsRef = useRef<HTMLDivElement>(null);
     const [avatarPreview, setAvatarPreview] = useState("");
     const avatarUrl = avatarPreview || currentUser?.avatar?.trim() || "";
+    const [avatarSize, setAvatarSize] = useState<number | null>(null);
     const [cropSrc, setCropSrc] = useState("");
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedArea, setCroppedArea] = useState<CropArea | null>(null);
+
+    useEffect(() => {
+        const fieldsNode = accountFieldsRef.current;
+        if (!fieldsNode) return;
+
+        const syncAvatarSize = () => {
+            const nextSize = Math.round(fieldsNode.getBoundingClientRect().height);
+            setAvatarSize((current) => (current === nextSize ? current : nextSize));
+        };
+
+        syncAvatarSize();
+
+        if (typeof ResizeObserver === "undefined") {
+            return;
+        }
+
+        const observer = new ResizeObserver(() => {
+            syncAvatarSize();
+        });
+        observer.observe(fieldsNode);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -300,15 +326,16 @@ export function ProfileInfoPage() {
 
     return (
         <div className="profile-pane">
-            <div className="profile-pane__header">
-                <span>个人</span>
-                <h1>账户与求职信息</h1>
-            </div>
-
             <section className="profile-section">
                 <div className="profile-section__title">账户信息</div>
                 <div className="profile-account">
-                    <button className="profile-avatar-editor" type="button" onClick={() => fileInputRef.current?.click()} aria-label="更换头像">
+                    <button
+                        className="profile-avatar-editor"
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        aria-label="更换头像"
+                        style={avatarSize ? { width: `${avatarSize}px`, height: `${avatarSize}px` } : undefined}
+                    >
                         {avatarUrl ? (
                             <img src={avatarUrl} alt="" />
                         ) : (
@@ -316,7 +343,7 @@ export function ProfileInfoPage() {
                         )}
                     </button>
                     <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileSelect} />
-                    <div className="profile-account__fields">
+                    <div ref={accountFieldsRef} className="profile-account__fields">
                         <Field label="用户名">
                             <TextInput readOnly value={currentUser?.username ?? ""} />
                         </Field>
@@ -340,7 +367,7 @@ export function ProfileInfoPage() {
                             <TextInput {...personalForm.register("targetRole")} />
                         </Field>
                         <Field label="目标领域" error={personalForm.formState.errors.targetDomain?.message}>
-                            <TextInput placeholder="Java 后端 / 中间件 / 数据库" {...personalForm.register("targetDomain")} />
+                            <TextInput {...personalForm.register("targetDomain")} />
                         </Field>
                         <Field label="目标公司" error={personalForm.formState.errors.targetCompany?.message}>
                             <TextInput {...personalForm.register("targetCompany")} />
@@ -357,7 +384,7 @@ export function ProfileInfoPage() {
                     </div>
                     <div className="profile-form__actions">
                         <BaseButton variant="primary" className="btn--profile-save" type="submit" disabled={saveMutation.isPending}>
-                            {saveMutation.isPending ? "保存中" : "保存个人信息"}
+                            {saveMutation.isPending ? "保存中" : "保存信息"}
                         </BaseButton>
                     </div>
                 </section>
@@ -387,7 +414,7 @@ export function ProfileInfoPage() {
                         </Field>
                     </div>
                     <div className="profile-form__actions">
-                        <BaseButton variant="outline" type="submit" disabled={changePasswordMutation.isPending}>
+                        <BaseButton variant="primary" type="submit" disabled={changePasswordMutation.isPending}>
                             {changePasswordMutation.isPending ? "修改中" : "修改密码"}
                         </BaseButton>
                     </div>
@@ -473,10 +500,6 @@ export function ProfileMemoryPage() {
 
     return (
         <div className="profile-pane profile-pane--memory">
-            <div className="profile-pane__header">
-                <span>记忆</span>
-                <h1>长期记忆</h1>
-            </div>
             {isError ? (
                 <div className="status-card">
                     <strong>记忆加载失败</strong>
@@ -599,22 +622,17 @@ export function ProfileConfigPage() {
                 await saveMutation.mutateAsync({ ...profile, ...values });
             })}
         >
-            <div className="profile-pane__header">
-                <span>智能体</span>
-                <h1>模型与行为配置</h1>
-            </div>
-
             <section className="profile-section">
                 <div className="profile-section__title">模型配置</div>
                 <div className="profile-grid">
                     <Field label="Base URL">
-                        <TextInput placeholder="https://api.openai.com/v1" {...form.register("llmBaseUrl")} />
+                        <TextInput placeholder="接口需要遵循 OpenAI 协议" {...form.register("llmBaseUrl")} />
                     </Field>
                     <Field label="API Key">
-                        <TextInput type="password" placeholder="sk-..." {...form.register("llmApiKey")} />
+                        <TextInput type="password" {...form.register("llmApiKey")} />
                     </Field>
                     <Field label="模型名称">
-                        <TextInput placeholder="gpt-4o" {...form.register("llmModelName")} />
+                        <TextInput {...form.register("llmModelName")} />
                     </Field>
                 </div>
             </section>
