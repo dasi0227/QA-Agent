@@ -384,7 +384,13 @@ export function QASetPage() {
                                                         >
                                                             <strong>{qaSetEntry.question}</strong>
                                                             <div className="repository-qaSetEntry-card__meta">
-                                                                <small>{qaSetEntry.difficulty || "未标注难度"}</small>
+                                                                {qaSetEntry.difficulty ? (
+    <Tag className={`qaSetEntry__difficulty-tag qaSetEntry__difficulty--${qaSetEntry.difficulty.toLowerCase()}`}>
+        {qaSetEntry.difficulty}
+    </Tag>
+) : (
+    <small>未标注难度</small>
+)}
                                                                 {qaSetEntry.moduleTag?.trim() ? (
                                                                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                                                                         {qaSetEntry.moduleTag.split(",").map((tag) => tag.trim()).filter(Boolean).map((tag) => (

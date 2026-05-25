@@ -738,6 +738,29 @@
 }
 
 
+.qaSetEntry__difficulty-tag {
+  font-weight: 700;
+}
+
+.qaSetEntry__difficulty--easy {
+  background: rgba(79, 138, 103, 0.14);
+  border-color: rgba(79, 138, 103, 0.18);
+  color: var(--btn-secondary-ink);
+}
+
+.qaSetEntry__difficulty--medium {
+  background: rgba(215, 185, 87, 0.18);
+  border-color: rgba(215, 185, 87, 0.22);
+  color: var(--btn-secondary-ink);
+}
+
+.qaSetEntry__difficulty--hard {
+  background: rgba(181, 90, 76, 0.16);
+  border-color: rgba(181, 90, 76, 0.22);
+  color: var(--btn-secondary-ink);
+}
+
+
 .repository-item-card:hover,
 .repository-qaSetEntry-card:hover {
   transform: translateY(-1px);

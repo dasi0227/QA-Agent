@@ -49,14 +49,13 @@ export function QuestionWorkspace({
         if (!value) return "";
         return value.split(/[,，、|]/).map((part) => part.trim()).filter(Boolean).join(" · ");
     }, [item.moduleTag]);
-    const difficultyClass = item.difficulty ? `question-workspace__difficulty--${item.difficulty.toLowerCase()}` : "";
     return (
         <main className="question-workspace">
             <section className="question-workspace__question">
                 <h1>{item.question}</h1>
                 {(item.moduleTag || item.difficulty || item.keywords || item.hint) ? (
                     <div className="question-workspace__meta">
-                        {item.difficulty ? <Tag className={`question-workspace__difficulty-tag ${difficultyClass}`}>{item.difficulty}</Tag> : null}
+                        {item.difficulty ? <Tag>{item.difficulty}</Tag> : null}
                         {moduleLabel ? <Tag className="question-workspace__module-tag">{moduleLabel}</Tag> : null}
                         {item.keywords ? (
                             <div className="question-workspace__keyword-wrap">

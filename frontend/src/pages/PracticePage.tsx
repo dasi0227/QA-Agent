@@ -25,6 +25,13 @@ function clampIndex(index: number, total: number) {
     return Math.min(Math.max(index, 0), total - 1);
 }
 
+function formatSaveTime(date: Date) {
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    const ss = String(date.getSeconds()).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+}
+
 function durationLabel(totalSeconds: number) {
     const seconds = Math.max(0, Math.floor(totalSeconds));
     const hours = Math.floor(seconds / 3600);
@@ -48,10 +55,9 @@ export function PracticePage() {
     const abandonMutation = useAbandonPracticeMutation();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answer, setAnswer] = useState("");
-    const [saveStatus, setSaveStatus] = useState("自动保存");
+    const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
     const [abandonOpen, setAbandonOpen] = useState(false);
     const [durationSeconds, setDurationSeconds] = useState(0);
-    const saveTimerRef = useRef<number | null>(null);
     const durationBaseRef = useRef(0);
     const durationStartedAtRef = useRef<number | null>(null);
 
@@ -101,36 +107,45 @@ export function PracticePage() {
         return () => window.clearInterval(timer);
     }, [readonly]);
 
+    // Auto-save every 60 seconds
     useEffect(() => {
         if (!currentItem || itemReadonly) return;
-        if ((currentItem.userAnswer ?? "") === answer) return;
-        setSaveStatus("保存中");
-        if (saveTimerRef.current) {
-            window.clearTimeout(saveTimerRef.current);
-        }
-            saveTimerRef.current = window.setTimeout(() => {
-                saveMutation.mutate({
+        const id = window.setInterval(() => {
+            if ((currentItem.userAnswer ?? "") === answer) return;
+            saveMutation.mutate({
+                sessionId,
+                sessionItemId: currentItem.sessionItemId,
+                userAnswer: answer,
+                currentIndex,
+                durationSeconds,
+            }, {
+                onSuccess: () => setLastSavedAt(formatSaveTime(new Date())),
+            });
+        }, 60_000);
+        return () => window.clearInterval(id);
+    }, [answer, currentIndex, currentItem, durationSeconds, itemReadonly, saveMutation, sessionId]);
+
+    // Save immediately when entering a new question
+    useEffect(() => {
+        if (!currentItem || itemReadonly) return;
+        const doSave = async () => {
+            try {
+                await saveMutation.mutateAsync({
                     sessionId,
                     sessionItemId: currentItem.sessionItemId,
-                    userAnswer: answer,
+                    userAnswer: currentItem.userAnswer ?? "",
                     currentIndex,
                     durationSeconds,
-                }, {
-                    onSuccess: () => setSaveStatus("已保存"),
-                    onError: () => setSaveStatus("保存失败"),
                 });
-        }, 700);
-        return () => {
-            if (saveTimerRef.current) {
-                window.clearTimeout(saveTimerRef.current);
-            }
+                setLastSavedAt(formatSaveTime(new Date()));
+            } catch { /* handled by mutation */ }
         };
-    }, [answer, currentIndex, currentItem, durationSeconds, itemReadonly, saveMutation, sessionId]);
+        doSave();
+    }, [currentItem?.sessionItemId]);
 
     const flushAnswer = async (force = false, nextIndex = currentIndex) => {
         if (!currentItem || itemReadonly) return;
         if (!force && (currentItem.userAnswer ?? "") === answer) return;
-        setSaveStatus("保存中");
         await saveMutation.mutateAsync({
             sessionId,
             sessionItemId: currentItem.sessionItemId,
@@ -138,7 +153,7 @@ export function PracticePage() {
             currentIndex: nextIndex,
             durationSeconds,
         });
-        setSaveStatus("已保存");
+        setLastSavedAt(formatSaveTime(new Date()));
     };
 
     const jumpTo = async (index: number) => {
@@ -154,7 +169,6 @@ export function PracticePage() {
             showErrorDialog({ title: "请先作答", message: "提交本题前需要填写答案，或者选择“不会”。" });
             return;
         }
-        setSaveStatus("判题中");
         await submitItemMutation.mutateAsync({
             sessionId,
             sessionItemId: currentItem.sessionItemId,
@@ -162,7 +176,6 @@ export function PracticePage() {
             currentIndex,
             durationSeconds,
         });
-        setSaveStatus("已提交");
     };
 
     const handleUnknown = async () => {
@@ -174,7 +187,6 @@ export function PracticePage() {
             currentIndex,
             durationSeconds,
         });
-        setSaveStatus("已标记不会");
     };
 
     const itemHasAnswer = (item: typeof currentItem, index: number) => {
@@ -218,12 +230,33 @@ export function PracticePage() {
                 <BaseButton variant="ghost" className="practice-top-status__exit" leadingIcon={<CornerUpLeft size={16} />} onClick={handleExit}>
                     退出
                 </BaseButton>
+                <BaseButton
+                    variant="ghost"
+                    className="practice-top-status__exit"
+                    leadingIcon={<Save size={16} />}
+                    onClick={async () => {
+                        if (!currentItem || itemReadonly) return;
+                        try {
+                            await saveMutation.mutateAsync({
+                                sessionId,
+                                sessionItemId: currentItem.sessionItemId,
+                                userAnswer: answer,
+                                currentIndex,
+                                durationSeconds,
+                            });
+                            setLastSavedAt(formatSaveTime(new Date()));
+                        } catch { /* handled by mutation */ }
+                    }}
+                    disabled={!currentItem || itemReadonly}
+                >
+                    保存
+                </BaseButton>
             </div>
             <div className="practice-top-status__center">
                 <strong>{session?.qaSetTitle || "练习"}</strong>
             </div>
             <div className="practice-top-status__right">
-                <span><Save size={14} />{saveStatus}</span>
+                <span><Save size={14} />{lastSavedAt ? `保存于 ${lastSavedAt}` : "尚未保存"}</span>
                 <span><Clock size={14} />{durationLabel(durationSeconds)}</span>
             </div>
         </>

@@ -173,7 +173,7 @@ export function ResultPage() {
                         </div>
                         <div>
                             <strong>{(session.perfectCount ?? 0) + (session.correctCount ?? 0)} / {session.totalQuestions || items.length}</strong>
-                            <span>完成情况</span>
+                            <span>正确情况</span>
                         </div>
                     </div>
                 </aside>

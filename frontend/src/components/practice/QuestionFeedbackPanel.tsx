@@ -33,6 +33,13 @@ export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
                 </article>
             ) : null}
 
+            {item.judgeDetail?.improvementAdvice ? (
+                <article className="practice-feedback__answer">
+                    <span>改进建议</span>
+                    <p>{item.judgeDetail.improvementAdvice}</p>
+                </article>
+            ) : null}
+
             {item.hintDetail ? (
                 <div className="practice-feedback__grid">
                     {item.hintDetail.memoryTip ? (
@@ -52,28 +59,26 @@ export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
 
             {item.judgeDetail ? (
                 <div className="practice-feedback__grid">
-                    {missingPoints.length ? (
-                        <article>
-                            <span>缺失点</span>
+                    <article>
+                        <span>缺失点</span>
+                        {missingPoints.length ? (
                             <ul>
                                 {missingPoints.map((point) => <li key={point}>{point}</li>)}
                             </ul>
-                        </article>
-                    ) : null}
-                    {wrongPoints.length ? (
-                        <article>
-                            <span>错误点</span>
+                        ) : (
+                            <p>无</p>
+                        )}
+                    </article>
+                    <article>
+                        <span>错误点</span>
+                        {wrongPoints.length ? (
                             <ul>
                                 {wrongPoints.map((point) => <li key={point}>{point}</li>)}
                             </ul>
-                        </article>
-                    ) : null}
-                    {item.judgeDetail.improvementAdvice ? (
-                        <article>
-                            <span>改进建议</span>
-                            <p>{item.judgeDetail.improvementAdvice}</p>
-                        </article>
-                    ) : null}
+                        ) : (
+                            <p>无</p>
+                        )}
+                    </article>
                 </div>
             ) : null}
         </section>
