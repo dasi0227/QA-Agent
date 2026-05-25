@@ -66,7 +66,8 @@ public class AssessSaver {
 
         // 3. 落库
         AssessResponse assessResponse = agentRepository.saveAssessResult(context.getSessionId(), userId, command);
-        mqUtil.sendMemoryMessage(context.getSessionId(), Map.of("sessionId", context.getSessionId(), "userId", userId));
+        // TODO Memory 代码完成审查后再启用异步画像沉淀。
+        // mqUtil.sendMemoryMessage(context.getSessionId(), Map.of("sessionId", context.getSessionId(), "userId", userId));
         log.info("【整轮评估】保存完成: sessionId={}, score={}, accuracy={}", context.getSessionId(), assessResponse.getScore(), assessResponse.getAccuracy());
         return assessResponse;
     }

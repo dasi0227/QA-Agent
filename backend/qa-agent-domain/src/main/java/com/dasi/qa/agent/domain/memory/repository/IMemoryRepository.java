@@ -1,8 +1,8 @@
 package com.dasi.qa.agent.domain.memory.repository;
 
-import com.dasi.qa.agent.domain.memory.model.MemoryIngestContext;
-import com.dasi.qa.agent.domain.memory.model.UserMemory;
-import com.dasi.qa.agent.domain.memory.model.UserMemoryEvidence;
+import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestContext;
+import com.dasi.qa.agent.domain.memory.model.dto.Memory;
+import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryDetailResponse;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryResponse;
 
@@ -18,15 +18,15 @@ public interface IMemoryRepository {
 
     MemoryIngestContext getIngestContext(String sessionId, String userId);
 
-    UserMemory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey);
+    Memory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey);
 
-    UserMemory findActiveMemoryById(String memoryId, String userId);
+    Memory findActiveMemoryById(String memoryId, String userId);
 
-    void createMemory(UserMemory memory);
+    void createMemory(Memory memory);
 
-    void updateMemory(UserMemory memory);
+    void updateMemory(Memory memory);
 
     boolean existsEvidence(String memoryId, String sessionItemId);
 
-    void createEvidence(UserMemoryEvidence evidence);
+    void createEvidence(MemoryEvidence evidence);
 }

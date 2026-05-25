@@ -3,26 +3,18 @@ package com.dasi.qa.agent.infrastructure.repository;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.dasi.qa.agent.domain.memory.model.MemoryIngestContext;
-import com.dasi.qa.agent.domain.memory.model.MemoryIngestItem;
-import com.dasi.qa.agent.domain.memory.model.UserMemory;
-import com.dasi.qa.agent.domain.memory.model.UserMemoryEvidence;
+import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestContext;
+import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestItem;
+import com.dasi.qa.agent.domain.memory.model.dto.Memory;
+import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryStatus;
 import com.dasi.qa.agent.domain.memory.repository.IMemoryRepository;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSession;
-import com.dasi.qa.agent.infrastructure.persistent.entity.PracticeSessionItem;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaItem;
-import com.dasi.qa.agent.infrastructure.persistent.entity.QaSet;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionItemMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.PracticeSessionMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaItemMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.QaSetMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserMemoryEvidenceMapper;
-import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.UserMemoryMapper;
-import com.dasi.qa.agent.types.dto.response.practice.JudgeDetail;
+import com.dasi.qa.agent.infrastructure.persistent.entity.*;
+import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryDetailResponse;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryEvidenceResponse;
 import com.dasi.qa.agent.types.dto.response.memory.UserMemoryResponse;
+import com.dasi.qa.agent.types.dto.response.practice.JudgeDetail;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.exception.ApiException;
 import org.springframework.stereotype.Repository;
@@ -58,11 +50,11 @@ public class MemoryRepository implements IMemoryRepository {
 
     @Override
     public List<UserMemoryResponse> listActiveMemories(String userId) {
-        return userMemoryMapper.selectList(new LambdaQueryWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory>()
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUserId, userId)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getStatus, MemoryStatus.ACTIVE.name())
-                        .orderByDesc(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getLastSeenAt)
-                        .orderByDesc(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUpdatedAt))
+        return userMemoryMapper.selectList(new LambdaQueryWrapper<UserMemory>()
+                        .eq(UserMemory::getUserId, userId)
+                        .eq(UserMemory::getStatus, MemoryStatus.ACTIVE.name())
+                        .orderByDesc(UserMemory::getLastSeenAt)
+                        .orderByDesc(UserMemory::getUpdatedAt))
                 .stream()
                 .map(this::toMemoryResponse)
                 .toList();
@@ -70,12 +62,12 @@ public class MemoryRepository implements IMemoryRepository {
 
     @Override
     public UserMemoryDetailResponse detailMemory(String memoryId, String userId) {
-        com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory memory = requireMemory(memoryId, userId);
+        UserMemory memory = requireMemory(memoryId, userId);
         List<UserMemoryEvidenceResponse> evidence = userMemoryEvidenceMapper.selectList(
-                        new LambdaQueryWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence>()
-                                .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence::getMemoryId, memoryId)
-                                .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence::getUserId, userId)
-                                .orderByDesc(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence::getCreatedAt))
+                        new LambdaQueryWrapper<UserMemoryEvidence>()
+                                .eq(UserMemoryEvidence::getMemoryId, memoryId)
+                                .eq(UserMemoryEvidence::getUserId, userId)
+                                .orderByDesc(UserMemoryEvidence::getCreatedAt))
                 .stream()
                 .map(this::toEvidenceResponse)
                 .toList();
@@ -88,12 +80,12 @@ public class MemoryRepository implements IMemoryRepository {
     @Override
     public void hideMemory(String memoryId, String userId) {
         requireMemory(memoryId, userId);
-        userMemoryMapper.update(null, new LambdaUpdateWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory>()
-                .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getId, memoryId)
-                .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUserId, userId)
-                .set(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getStatus, MemoryStatus.HIDDEN.name())
-                .set(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getHiddenAt, LocalDateTime.now())
-                .set(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUpdatedAt, LocalDateTime.now()));
+        userMemoryMapper.update(null, new LambdaUpdateWrapper<UserMemory>()
+                .eq(UserMemory::getId, memoryId)
+                .eq(UserMemory::getUserId, userId)
+                .set(UserMemory::getStatus, MemoryStatus.HIDDEN.name())
+                .set(UserMemory::getHiddenAt, LocalDateTime.now())
+                .set(UserMemory::getUpdatedAt, LocalDateTime.now()));
     }
 
     @Override
@@ -114,11 +106,11 @@ public class MemoryRepository implements IMemoryRepository {
         List<MemoryIngestItem> items = sessionItems.stream()
                 .map(item -> toIngestItem(item, userId))
                 .toList();
-        List<UserMemory> existing = userMemoryMapper.selectList(
-                        new LambdaQueryWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory>()
-                                .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUserId, userId)
-                                .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getStatus, MemoryStatus.ACTIVE.name())
-                                .orderByDesc(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getLastSeenAt)
+        List<Memory> existing = userMemoryMapper.selectList(
+                        new LambdaQueryWrapper<UserMemory>()
+                                .eq(UserMemory::getUserId, userId)
+                                .eq(UserMemory::getStatus, MemoryStatus.ACTIVE.name())
+                                .orderByDesc(UserMemory::getLastSeenAt)
                                 .last("LIMIT 20"))
                 .stream()
                 .map(this::toDomainMemory)
@@ -143,49 +135,49 @@ public class MemoryRepository implements IMemoryRepository {
     }
 
     @Override
-    public UserMemory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey) {
-        com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory entity = userMemoryMapper.selectOne(
-                new LambdaQueryWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory>()
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUserId, userId)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getMemoryType, memoryType)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getTargetType, targetType)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getTargetKey, targetKey));
+    public Memory findMemoryByKey(String userId, String memoryType, String targetType, String targetKey) {
+        UserMemory entity = userMemoryMapper.selectOne(
+                new LambdaQueryWrapper<UserMemory>()
+                        .eq(UserMemory::getUserId, userId)
+                        .eq(UserMemory::getMemoryType, memoryType)
+                        .eq(UserMemory::getTargetType, targetType)
+                        .eq(UserMemory::getTargetKey, targetKey));
         return entity == null ? null : toDomainMemory(entity);
     }
 
     @Override
-    public UserMemory findActiveMemoryById(String memoryId, String userId) {
-        com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory entity = userMemoryMapper.selectOne(
-                new LambdaQueryWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory>()
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getId, memoryId)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUserId, userId)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getStatus, MemoryStatus.ACTIVE.name()));
+    public Memory findActiveMemoryById(String memoryId, String userId) {
+        UserMemory entity = userMemoryMapper.selectOne(
+                new LambdaQueryWrapper<UserMemory>()
+                        .eq(UserMemory::getId, memoryId)
+                        .eq(UserMemory::getUserId, userId)
+                        .eq(UserMemory::getStatus, MemoryStatus.ACTIVE.name()));
         return entity == null ? null : toDomainMemory(entity);
     }
 
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
-    public void createMemory(UserMemory memory) {
+    public void createMemory(Memory memory) {
         userMemoryMapper.insert(toEntityMemory(memory));
     }
 
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
-    public void updateMemory(UserMemory memory) {
+    public void updateMemory(Memory memory) {
         userMemoryMapper.updateById(toEntityMemory(memory));
     }
 
     @Override
     public boolean existsEvidence(String memoryId, String sessionItemId) {
         return userMemoryEvidenceMapper.selectCount(
-                new LambdaQueryWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence>()
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence::getMemoryId, memoryId)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence::getSessionItemId, sessionItemId)) > 0;
+                new LambdaQueryWrapper<UserMemoryEvidence>()
+                        .eq(UserMemoryEvidence::getMemoryId, memoryId)
+                        .eq(UserMemoryEvidence::getSessionItemId, sessionItemId)) > 0;
     }
 
     @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
-    public void createEvidence(UserMemoryEvidence evidence) {
+    public void createEvidence(MemoryEvidence evidence) {
         userMemoryEvidenceMapper.insert(toEntityEvidence(evidence));
     }
 
@@ -223,18 +215,18 @@ public class MemoryRepository implements IMemoryRepository {
         }
     }
 
-    private com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory requireMemory(String memoryId, String userId) {
-        com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory memory = userMemoryMapper.selectOne(
-                new LambdaQueryWrapper<com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory>()
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getId, memoryId)
-                        .eq(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory::getUserId, userId));
+    private UserMemory requireMemory(String memoryId, String userId) {
+        UserMemory memory = userMemoryMapper.selectOne(
+                new LambdaQueryWrapper<UserMemory>()
+                        .eq(UserMemory::getId, memoryId)
+                        .eq(UserMemory::getUserId, userId));
         if (memory == null) {
             throw new ApiException(ResultCode.NOT_FOUND, "记忆不存在");
         }
         return memory;
     }
 
-    private UserMemoryResponse toMemoryResponse(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory entity) {
+    private UserMemoryResponse toMemoryResponse(UserMemory entity) {
         UserMemoryResponse response = new UserMemoryResponse();
         response.setId(entity.getId());
         response.setCreatedAt(time(entity.getCreatedAt()));
@@ -256,7 +248,7 @@ public class MemoryRepository implements IMemoryRepository {
         return response;
     }
 
-    private UserMemoryEvidenceResponse toEvidenceResponse(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence entity) {
+    private UserMemoryEvidenceResponse toEvidenceResponse(UserMemoryEvidence entity) {
         UserMemoryEvidenceResponse response = new UserMemoryEvidenceResponse();
         response.setId(entity.getId());
         response.setCreatedAt(time(entity.getCreatedAt()));
@@ -275,8 +267,8 @@ public class MemoryRepository implements IMemoryRepository {
         return response;
     }
 
-    private UserMemory toDomainMemory(com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory entity) {
-        return UserMemory.builder()
+    private Memory toDomainMemory(UserMemory entity) {
+        return Memory.builder()
                 .id(entity.getId())
                 .userId(entity.getUserId())
                 .memoryType(entity.getMemoryType())
@@ -298,8 +290,8 @@ public class MemoryRepository implements IMemoryRepository {
                 .build();
     }
 
-    private com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory toEntityMemory(UserMemory memory) {
-        return com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory.builder()
+    private UserMemory toEntityMemory(Memory memory) {
+        return UserMemory.builder()
                 .id(memory.getId())
                 .userId(memory.getUserId())
                 .memoryType(memory.getMemoryType())
@@ -321,8 +313,8 @@ public class MemoryRepository implements IMemoryRepository {
                 .build();
     }
 
-    private com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence toEntityEvidence(UserMemoryEvidence evidence) {
-        return com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence.builder()
+    private UserMemoryEvidence toEntityEvidence(MemoryEvidence evidence) {
+        return UserMemoryEvidence.builder()
                 .id(evidence.getId())
                 .memoryId(evidence.getMemoryId())
                 .userId(evidence.getUserId())

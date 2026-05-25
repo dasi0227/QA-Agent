@@ -4,10 +4,10 @@ import com.dasi.qa.agent.domain.agent.service.memory.IMemoryAgent;
 import com.dasi.qa.agent.domain.agent.service.memory.model.context.MemoryContext;
 import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.MemoryConfidenceHint;
 import com.dasi.qa.agent.domain.agent.service.memory.model.result.MemoryCandidateResult;
-import com.dasi.qa.agent.domain.memory.model.MemoryIngestContext;
-import com.dasi.qa.agent.domain.memory.model.MemoryIngestItem;
-import com.dasi.qa.agent.domain.memory.model.UserMemory;
-import com.dasi.qa.agent.domain.memory.model.UserMemoryEvidence;
+import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestContext;
+import com.dasi.qa.agent.domain.memory.model.vo.MemoryIngestItem;
+import com.dasi.qa.agent.domain.memory.model.dto.Memory;
+import com.dasi.qa.agent.domain.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryStatus;
 import com.dasi.qa.agent.domain.memory.repository.IMemoryRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
@@ -127,7 +127,7 @@ public class MemoryService implements IMemoryService {
         if (evidenceItems.isEmpty()) {
             return;
         }
-        UserMemory existing = resolveExistingMemory(candidate, context.getUserId());
+        Memory existing = resolveExistingMemory(candidate, context.getUserId());
         if (existing != null && MemoryStatus.HIDDEN.name().equals(existing.getStatus())) {
             return;
         }
@@ -140,7 +140,7 @@ public class MemoryService implements IMemoryService {
             }
         }
         LocalDateTime now = LocalDateTime.now();
-        UserMemory memory = existing == null ? newMemory(candidate, context, evidenceItems.size(), now) : updateMemory(existing, candidate, context, evidenceItems.size(), now);
+        Memory memory = existing == null ? newMemory(candidate, context, evidenceItems.size(), now) : updateMemory(existing, candidate, context, evidenceItems.size(), now);
         if (existing == null) {
             memoryRepository.createMemory(memory);
         } else {
@@ -150,7 +150,7 @@ public class MemoryService implements IMemoryService {
             if (memoryRepository.existsEvidence(memory.getId(), item.getSessionItemId())) {
                 continue;
             }
-            memoryRepository.createEvidence(UserMemoryEvidence.builder()
+            memoryRepository.createEvidence(MemoryEvidence.builder()
                     .id(idUtil.nextId())
                     .memoryId(memory.getId())
                     .userId(context.getUserId())
@@ -170,9 +170,9 @@ public class MemoryService implements IMemoryService {
         }
     }
 
-    private UserMemory resolveExistingMemory(MemoryCandidateResult candidate, String userId) {
+    private Memory resolveExistingMemory(MemoryCandidateResult candidate, String userId) {
         if (StringUtils.hasText(candidate.getRelatedMemoryId())) {
-            UserMemory related = memoryRepository.findActiveMemoryById(candidate.getRelatedMemoryId(), userId);
+            Memory related = memoryRepository.findActiveMemoryById(candidate.getRelatedMemoryId(), userId);
             if (related != null
                     && candidate.getMemoryType().equals(related.getMemoryType())
                     && candidate.getTargetType().equals(related.getTargetType())
@@ -183,8 +183,8 @@ public class MemoryService implements IMemoryService {
         return memoryRepository.findMemoryByKey(userId, candidate.getMemoryType(), candidate.getTargetType(), candidate.getTargetKey());
     }
 
-    private UserMemory newMemory(MemoryCandidateResult candidate, MemoryIngestContext context, int evidenceCount, LocalDateTime now) {
-        return UserMemory.builder()
+    private Memory newMemory(MemoryCandidateResult candidate, MemoryIngestContext context, int evidenceCount, LocalDateTime now) {
+        return Memory.builder()
                 .id(idUtil.nextId())
                 .userId(context.getUserId())
                 .memoryType(candidate.getMemoryType())
@@ -205,7 +205,7 @@ public class MemoryService implements IMemoryService {
                 .build();
     }
 
-    private UserMemory updateMemory(UserMemory existing, MemoryCandidateResult candidate, MemoryIngestContext context, int evidenceCount, LocalDateTime now) {
+    private Memory updateMemory(Memory existing, MemoryCandidateResult candidate, MemoryIngestContext context, int evidenceCount, LocalDateTime now) {
         int currentSupport = existing.getSupportCount() == null ? 0 : existing.getSupportCount();
         existing.setTitle(candidate.getTitle());
         existing.setSummary(candidate.getSummary());

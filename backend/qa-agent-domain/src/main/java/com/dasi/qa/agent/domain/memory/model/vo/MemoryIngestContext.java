@@ -1,5 +1,6 @@
-package com.dasi.qa.agent.domain.memory.model;
+package com.dasi.qa.agent.domain.memory.model.vo;
 
+import com.dasi.qa.agent.domain.memory.model.dto.Memory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,5 +28,5 @@ public class MemoryIngestContext {
     private Integer unknownCount;
     private String memoryClueJson;
     private List<MemoryIngestItem> items;
-    private List<UserMemory> existingMemories;
+    private List<Memory> existingMemories;
 }

@@ -1,4 +1,4 @@
-package com.dasi.qa.agent.domain.memory.model;
+package com.dasi.qa.agent.domain.memory.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserMemoryEvidence {
+public class MemoryEvidence {
 
     private String id;
     private String memoryId;

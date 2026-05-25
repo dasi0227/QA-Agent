@@ -1,11 +1,12 @@
-package com.dasi.qa.agent.domain.memory.model.enumeration;
+package com.dasi.qa.agent.types.constant;
 
-import org.springframework.util.StringUtils;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Set;
 
-public final class MemoryModuleTag {
+@NoArgsConstructor
+public class ModuleTag {
 
     private static final List<String> VALUES = List.of(
             "JavaSE", "OOP", "JVM", "IO", "JUC", "JCF", "MCP", "SKILL", "AGENT", "Harness",
@@ -17,11 +18,8 @@ public final class MemoryModuleTag {
 
     private static final Set<String> VALUE_SET = Set.copyOf(VALUES);
 
-    private MemoryModuleTag() {
-    }
-
     public static boolean contains(String value) {
-        return StringUtils.hasText(value) && VALUE_SET.contains(value.trim());
+        return value != null && !value.isBlank() && VALUE_SET.contains(value.trim());
     }
 
     public static List<String> values() {

@@ -2,9 +2,9 @@ package com.dasi.qa.agent.domain.agent.service.memory.support;
 
 import com.dasi.qa.agent.domain.agent.service.memory.model.result.MemoryCandidateResult;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryBehaviorKey;
-import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryModuleTag;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryTargetType;
 import com.dasi.qa.agent.domain.memory.model.enumeration.MemoryType;
+import com.dasi.qa.agent.types.constant.ModuleTag;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -74,7 +74,7 @@ public class MemoryResultCleaner {
         }
         String value = targetKey.trim();
         return switch (targetType) {
-            case MODULE -> MemoryModuleTag.contains(value) ? value : "";
+            case MODULE -> ModuleTag.contains(value) ? value : "";
             case BEHAVIOR -> MemoryBehaviorKey.fromValue(value) == null ? "" : MemoryBehaviorKey.fromValue(value).name();
             case GENERAL -> "GENERAL".equalsIgnoreCase(value) ? "GENERAL" : "";
         };
