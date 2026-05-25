@@ -4,7 +4,7 @@ import com.dasi.qa.agent.domain.agent.service.complete.ICompleteAgent;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
-import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
@@ -105,9 +105,9 @@ public class QaItemService implements IQaItemService {
     }
 
     @Override
-    public QaItemResponse completeQaItem(QaItemCompleteRetryRequest request) {
+    public QaItemResponse completeQaItem(QaItemCompleteRequest request) {
         String userId = contextUtil.getUserId();
-        QaItemResponse response = repository.markQaItemCompleteProcessing(request.getId(), userId);
+        QaItemResponse response = repository.markQaItemCompleteProcessing(request, userId);
         applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));
         return response;
     }

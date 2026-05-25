@@ -86,6 +86,8 @@ export function QuestionPage() {
 
     const [itemDraft, setItemDraft] = useState<QuestionItemDraft>(emptyItemDraft);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+    const [completeQuestionDraft, setCompleteQuestionDraft] = useState("");
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [createMode, setCreateMode] = useState<"single" | "batch">("single");
     const [smartQuestionDraft, setSmartQuestionDraft] = useState("");
@@ -96,6 +98,7 @@ export function QuestionPage() {
     const [selectedKeywordsDraft, setSelectedKeywordsDraft] = useState<string[]>([]);
     const [keywordInput, setKeywordInput] = useState("");
     const [selectedEvidenceChunkId, setSelectedEvidenceChunkId] = useState("");
+    const [draggingBatchIndex, setDraggingBatchIndex] = useState<number | null>(null);
 
     const keywordList = useMemo(() => parseDelimitedValues(activeItem?.keywords), [activeItem?.keywords]);
     const moduleTagList = useMemo(() => parseDelimitedValues(activeItem?.moduleTag), [activeItem?.moduleTag]);
@@ -140,6 +143,8 @@ export function QuestionPage() {
 
     useEffect(() => {
         setEditDialogOpen(false);
+        setCompleteDialogOpen(false);
+        setCompleteQuestionDraft("");
         setSelectedEvidenceChunkId("");
     }, [activeItemId]);
 
@@ -197,6 +202,18 @@ export function QuestionPage() {
         setItemDraft(activeItem ? toQuestionItemDraft(activeItem) : emptyItemDraft);
     };
 
+    const openCompleteDialog = () => {
+        if (!activeItem) return;
+        setCompleteQuestionDraft(activeItem.question);
+        setCompleteDialogOpen(true);
+    };
+
+    const closeCompleteDialog = () => {
+        if (retryCompleteQuestionItemMutation.isPending) return;
+        setCompleteQuestionDraft("");
+        setCompleteDialogOpen(false);
+    };
+
     const closeCreateDialog = () => {
         if (createSmartQuestionItemMutation.isPending || createSmartQuestionItemsBatchMutation.isPending) return;
         setSmartQuestionDraft("");
@@ -232,8 +249,13 @@ export function QuestionPage() {
 
     const retryCompleteItem = async () => {
         if (!activeItemId) return;
-        await retryCompleteQuestionItemMutation.mutateAsync(activeItemId);
-        activeItemQuery.refetch();
+        const question = completeQuestionDraft.trim();
+        if (!question) return;
+        await retryCompleteQuestionItemMutation.mutateAsync({ id: activeItemId, question });
+        setCompleteDialogOpen(false);
+        setCompleteQuestionDraft("");
+        await activeItemQuery.refetch();
+        await refetchSelectedSetItems();
     };
 
     const addKeyword = () => {
@@ -279,6 +301,21 @@ export function QuestionPage() {
                 return [""];
             }
             return sanitizeBatchQuestionDrafts(current.filter((_, questionIndex) => questionIndex !== index));
+        });
+    };
+
+    const moveBatchQuestionDraft = (fromIndex: number, toIndex: number) => {
+        if (fromIndex === toIndex) {
+            return;
+        }
+        setBatchQuestionDrafts((current) => {
+            if (fromIndex < 0 || fromIndex >= current.length || toIndex < 0 || toIndex >= current.length) {
+                return current;
+            }
+            const next = [...current];
+            const [moved] = next.splice(fromIndex, 1);
+            next.splice(toIndex, 0, moved);
+            return next;
         });
     };
 
@@ -375,15 +412,7 @@ export function QuestionPage() {
                                                     ) : null}
                                                     {activeItem.completeStatus === "UNSOLVED" ? (
                                                         <div className="question-detail-status question-detail-status--warning">
-                                                            <span>智能补全未完成，可以重试或手动编辑。</span>
-                                                            <BaseButton
-                                                                variant="soft"
-                                                                type="button"
-                                                                disabled={retryCompleteQuestionItemMutation.isPending}
-                                                                onClick={retryCompleteItem}
-                                                            >
-                                                                {retryCompleteQuestionItemMutation.isPending ? "重试中" : "重新智能补全"}
-                                                            </BaseButton>
+                                                            <span>智能补全未完成，可以在右侧操作区重试或手动编辑。</span>
                                                         </div>
                                                     ) : null}
                                                 </div>
@@ -460,9 +489,9 @@ export function QuestionPage() {
                                                 <div className="question-info-card__header">
                                                     <h3 className="question-info-card__title">题目信息</h3>
                                                     {!activeItem.sourceReliable ? (
-                                                        <div className="question-reliability-indicator" aria-label="资料存在明显错误或冲突">
+                                                        <div className="question-reliability-indicator" aria-label="与资料不一致，请注意甄别">
                                                             <AlertTriangle size={14} />
-                                                            <span className="question-reliability-indicator__tooltip">资料存在明显错误或冲突</span>
+                                                            <span className="question-reliability-indicator__tooltip">与资料不一致，请注意甄别</span>
                                                         </div>
                                                     ) : null}
                                                 </div>
@@ -511,7 +540,16 @@ export function QuestionPage() {
                                                     className="question-side-rail__action-btn"
                                                     onClick={openEditDialog}
                                                 >
-                                                    编辑题目
+                                                    编辑信息
+                                                </BaseButton>
+                                                <BaseButton
+                                                    variant="soft"
+                                                    type="button"
+                                                    className="question-side-rail__action-btn"
+                                                    disabled={retryCompleteQuestionItemMutation.isPending}
+                                                    onClick={openCompleteDialog}
+                                                >
+                                                    {retryCompleteQuestionItemMutation.isPending ? "补全中" : "重新补全"}
                                                 </BaseButton>
                                                 <BaseButton
                                                     variant="soft"
@@ -581,7 +619,38 @@ export function QuestionPage() {
                                 <Field label={`问题列表（${batchQuestionList.length}/${MAX_BATCH_QUESTIONS}）`}>
                                     <div className="question-create-dialog__batch-list">
                                         {batchQuestionDrafts.map((question, index) => (
-                                            <div key={`batch-question-${index}`} className="question-create-dialog__batch-row">
+                                            <div
+                                                key={`batch-question-${index}`}
+                                                className={cn(
+                                                    "question-create-dialog__batch-row",
+                                                    draggingBatchIndex === index && "question-create-dialog__batch-row--dragging",
+                                                )}
+                                                onDragOver={(event) => {
+                                                    event.preventDefault();
+                                                    if (draggingBatchIndex == null || draggingBatchIndex === index) {
+                                                        return;
+                                                    }
+                                                    moveBatchQuestionDraft(draggingBatchIndex, index);
+                                                    setDraggingBatchIndex(index);
+                                                }}
+                                                onDrop={(event) => {
+                                                    event.preventDefault();
+                                                    setDraggingBatchIndex(null);
+                                                }}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className="question-create-dialog__order"
+                                                    draggable
+                                                    onDragStart={(event) => {
+                                                        setDraggingBatchIndex(index);
+                                                        event.dataTransfer.effectAllowed = "move";
+                                                    }}
+                                                    onDragEnd={() => setDraggingBatchIndex(null)}
+                                                    aria-label={`拖动排序，第 ${index + 1} 题`}
+                                                >
+                                                    {index + 1}
+                                                </button>
                                                 <TextInput
                                                     className="question-create-dialog__input"
                                                     value={question}
@@ -639,6 +708,47 @@ export function QuestionPage() {
                                     </BaseButton>
                                 )}
                                 <BaseButton variant="ghost" type="button" onClick={closeCreateDialog}>
+                                    取消
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {completeDialogOpen ? (
+                <div className="doc-select-dialog" role="presentation" onClick={closeCompleteDialog}>
+                    <div className="question-recomplete-dialog" role="dialog" aria-modal="true" aria-label="重新补全" onClick={(event) => event.stopPropagation()}>
+                        <div className="doc-select-dialog__header">
+                            <h3 className="doc-select-dialog__title">重新补全</h3>
+                            <button type="button" className="doc-select-dialog__close" onClick={closeCompleteDialog}>
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="question-edit-dialog__body">
+                            <Field label="问题">
+                                <TextArea
+                                    className="question-edit-dialog__textarea"
+                                    value={completeQuestionDraft}
+                                    onChange={(event) => setCompleteQuestionDraft(event.target.value)}
+                                    rows={4}
+                                    autoFocus
+                                />
+                            </Field>
+                        </div>
+
+                        <div className="modal-card__footer">
+                            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                <BaseButton
+                                    variant="primary"
+                                    type="button"
+                                    disabled={retryCompleteQuestionItemMutation.isPending || !completeQuestionDraft.trim()}
+                                    onClick={retryCompleteItem}
+                                >
+                                    {retryCompleteQuestionItemMutation.isPending ? "提交中" : "确认"}
+                                </BaseButton>
+                                <BaseButton variant="ghost" type="button" onClick={closeCompleteDialog}>
                                     取消
                                 </BaseButton>
                             </div>

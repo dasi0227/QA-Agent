@@ -10,8 +10,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class QaItemCompleteRetryRequest {
+public class QaItemCompleteRequest {
 
-    @NotBlank
+    @NotBlank(message = "题目 ID 不能为空")
     private String id;
+
+    @NotBlank(message = "问题不能为空")
+    private String question;
 }

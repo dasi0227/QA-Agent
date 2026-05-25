@@ -19,6 +19,7 @@ import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRequest;
 import com.dasi.qa.agent.types.dto.response.BaseResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetExportFile;
@@ -368,21 +369,41 @@ public class QaRepository implements IQaRepository {
 
     @Override
     @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
-    public QaItemResponse markQaItemCompleteProcessing(String id, String userId) {
-        QaItem item = qaItemMapper.selectById(id);
+    public QaItemResponse markQaItemCompleteProcessing(QaItemCompleteRequest request, String userId) {
+        QaItem item = qaItemMapper.selectById(request.getId());
         if (item == null) {
             throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         if (!userId.equals(item.getUserId())) {
             throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
-        qaItemMapper.update(null,
+        if (CompleteStatus.PROCESSING.name().equals(item.getCompleteStatus())) {
+            throw new ApiException(ResultCode.CONFLICT, "题目正在补全中，请稍后再试");
+        }
+        String question = request.getQuestion().trim();
+        LocalDateTime now = LocalDateTime.now();
+        int updated = qaItemMapper.update(null,
                 new LambdaUpdateWrapper<QaItem>()
+                        .set(QaItem::getQuestion, question)
                         .set(QaItem::getCompleteStatus, CompleteStatus.PROCESSING.name())
-                        .set(QaItem::getUpdatedAt, LocalDateTime.now())
-                        .eq(QaItem::getId, id)
-                        .eq(QaItem::getUserId, userId));
+                        .set(QaItem::getUpdatedAt, now)
+                        .eq(QaItem::getId, request.getId())
+                        .eq(QaItem::getUserId, userId)
+                        .ne(QaItem::getCompleteStatus, CompleteStatus.PROCESSING.name()));
+        if (updated == 0) {
+            throw new ApiException(ResultCode.CONFLICT, "题目正在补全中，请稍后再试");
+        }
+        item.setQuestion(question);
+        item.setAnswer("");
+        item.setKnowledgeNote("");
+        item.setDifficulty("");
+        item.setKeywords("");
+        item.setHint("");
+        item.setModuleTag("");
+        item.setSourceChunkIdsJson("[]");
+        item.setSourceReliable(Boolean.TRUE);
         item.setCompleteStatus(CompleteStatus.PROCESSING.name());
+        item.setUpdatedAt(now);
         return toResponse(item, QaItemResponse.class);
     }
 

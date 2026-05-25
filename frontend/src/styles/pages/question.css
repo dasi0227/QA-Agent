@@ -441,13 +441,22 @@
 
 .question-create-dialog {
   width: min(560px, 92vw);
+  height: min(76vh, 640px);
+  max-height: min(76vh, 640px);
   background: #f6f2ea;
   border-radius: 28px;
   padding: 22px 22px 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
   box-shadow: 0 28px 90px rgba(77, 63, 40, 0.12);
+}
+
+
+.question-create-dialog .question-edit-dialog__body {
+  min-height: 0;
+  align-content: start;
 }
 
 
@@ -490,14 +499,66 @@
 .question-create-dialog__batch-list {
   display: grid;
   gap: 12px;
+  min-height: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+
+.question-create-dialog__batch-list::-webkit-scrollbar {
+  display: none;
 }
 
 
 .question-create-dialog__batch-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   gap: 10px;
+  align-items: start;
+}
+
+
+.question-create-dialog__batch-row--dragging {
+  opacity: 0.72;
+}
+
+
+.question-create-dialog__order,
+.question-create-dialog__input {
+  width: 100%;
+}
+
+
+.question-create-dialog__order {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(183, 133, 74, 0.18);
+  background: rgba(255, 252, 246, 0.94);
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: grab;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+
+.question-create-dialog__order:active {
+  cursor: grabbing;
+}
+
+
+.question-create-dialog__order:hover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(183, 133, 74, 0.28);
+  color: var(--ink);
 }
 
 
@@ -702,6 +763,17 @@
   box-shadow: 0 28px 90px rgba(77, 63, 40, 0.12);
 }
 
+.question-recomplete-dialog {
+  width: min(620px, 92vw);
+  background: #f6f2ea;
+  border-radius: 28px;
+  padding: 24px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 28px 90px rgba(77, 63, 40, 0.12);
+}
+
 
 .question-edit-dialog__body {
   display: grid;
@@ -709,6 +781,11 @@
   min-height: 0;
   flex: 1 1 auto;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.question-edit-dialog__body::-webkit-scrollbar {
+  display: none;
 }
 
 

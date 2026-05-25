@@ -209,7 +209,6 @@ export function QASetPage() {
                                 className="sidebar__upload-btn"
                                 onClick={() => {
                                     setImportError("");
-                                    setImportSuccess("");
                                     setCreateSetDialogOpen(true);
                                 }}
                             >

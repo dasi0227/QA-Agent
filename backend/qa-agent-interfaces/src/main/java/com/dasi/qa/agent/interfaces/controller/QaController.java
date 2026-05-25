@@ -138,7 +138,7 @@ public class QaController {
     }
 
     @PostMapping("/item/complete")
-    public Result<QaItemResponse> qaItemComplete(@RequestBody @Valid QaItemCompleteRetryRequest request) {
+    public Result<QaItemResponse> qaItemComplete(@RequestBody @Valid QaItemCompleteRequest request) {
         return Result.success(qaItemService.completeQaItem(request));
     }
 

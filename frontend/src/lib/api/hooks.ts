@@ -22,6 +22,7 @@ import type {
     AbandonPracticeInput,
     QuestionItem,
     QuestionItemDraft,
+    RetryCompleteQuestionItemInput,
     QuestionSet,
     RegisterInput,
     SaveAnswerInput,
@@ -913,9 +914,9 @@ export function useCreateSmartQuestionItemsBatchMutation() {
 export function useRetryCompleteQuestionItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (questionItemId: string) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/complete", {
+        mutationFn: async (input: RetryCompleteQuestionItemInput) => normalizeQuestionItem(await apiRequest<unknown>("/qa/item/complete", {
             method: "POST",
-            body: { id: questionItemId },
+            body: input,
         })),
         onSuccess: async (result) => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(result.qaSetId) });

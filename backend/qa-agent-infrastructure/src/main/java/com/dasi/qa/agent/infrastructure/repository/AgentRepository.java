@@ -598,24 +598,13 @@ public class AgentRepository implements IAgentRepository {
             markQaItemCompleteFailed(qaItemId, userId);
             return;
         }
-        if (!StringUtils.hasText(qaItem.getAnswer())) {
-            qaItem.setAnswer(result.getAnswer());
-        }
-        if (!StringUtils.hasText(qaItem.getKnowledgeNote())) {
-            qaItem.setKnowledgeNote(result.getKnowledgeNote());
-        }
-        if (!StringUtils.hasText(qaItem.getModuleTag())) {
-            qaItem.setModuleTag(result.getModuleTag());
-        }
-        if (!StringUtils.hasText(qaItem.getDifficulty())) {
-            qaItem.setDifficulty(result.getDifficulty());
-        }
-        if (!hasSourceChunkIds(qaItem.getSourceChunkIdsJson()) && result.getSourceChunkIds() != null && !result.getSourceChunkIds().isEmpty()) {
-            qaItem.setSourceChunkIdsJson(JSON.toJSONString(result.getSourceChunkIds()));
-        }
-        if (CompleteStatus.PROCESSING.name().equals(qaItem.getCompleteStatus()) || qaItem.getSourceReliable() == null) {
-            qaItem.setSourceReliable(Boolean.TRUE.equals(result.getSourceReliable()));
-        }
+        qaItem.setAnswer(result.getAnswer());
+        qaItem.setKnowledgeNote(result.getKnowledgeNote());
+        qaItem.setModuleTag(result.getModuleTag());
+        qaItem.setDifficulty(result.getDifficulty());
+        qaItem.setSourceChunkIdsJson(result.getSourceChunkIds() != null && !result.getSourceChunkIds().isEmpty()
+                ? JSON.toJSONString(result.getSourceChunkIds()) : "[]");
+        qaItem.setSourceReliable(Boolean.TRUE.equals(result.getSourceReliable()));
         qaItem.setCompleteStatus(CompleteStatus.SOLVED.name());
         qaItem.setUpdatedAt(LocalDateTime.now());
         qaItemMapper.updateById(qaItem);
@@ -672,18 +661,6 @@ public class AgentRepository implements IAgentRepository {
             throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
         }
         return entity;
-    }
-
-    private boolean hasSourceChunkIds(String sourceChunkIdsJson) {
-        if (!StringUtils.hasText(sourceChunkIdsJson)) {
-            return false;
-        }
-        try {
-            List<String> chunkIds = JSON.parseArray(sourceChunkIdsJson, String.class);
-            return chunkIds != null && !chunkIds.isEmpty();
-        } catch (Exception exception) {
-            return false;
-        }
     }
 
     private List<String> qaSetDocumentIds(String qaSetId) {

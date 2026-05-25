@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.qa.service.item;
 
-import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRetryRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
@@ -14,7 +14,7 @@ public interface IQaItemService {
 
     List<QaItemResponse> createQaItems(CreateQaItemBatchRequest request);
 
-    QaItemResponse completeQaItem(QaItemCompleteRetryRequest request);
+    QaItemResponse completeQaItem(QaItemCompleteRequest request);
 
     QaItemResponse detailQaItem(String id);
 

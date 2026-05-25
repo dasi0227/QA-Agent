@@ -210,6 +210,11 @@ export type CreateSmartQuestionItemBatchInput = {
     questions: string[];
 };
 
+export type RetryCompleteQuestionItemInput = {
+    id: string;
+    question: string;
+};
+
 export type DeleteQuestionItemInput = {
     qaSetId: string;
     questionItemId: string;
