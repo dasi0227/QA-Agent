@@ -224,6 +224,16 @@ export function PracticePage() {
         navigate("/quiz");
     };
 
+    const appendVoiceText = (text: string) => {
+        if (!text.trim() || itemReadonly) {
+            return;
+        }
+        setAnswer((current) => {
+            const prefix = current.trim() ? `${current.trimEnd()}\n` : "";
+            return `${prefix}${text.trim()}`;
+        });
+    };
+
     const topStatus = (
         <>
             <div className="practice-top-status__left">
@@ -273,6 +283,7 @@ export function PracticePage() {
             submitting={submitItemMutation.isPending || markUnknownMutation.isPending || saveMutation.isPending}
             readonly={itemReadonly}
             onAnswerChange={setAnswer}
+            onVoiceText={appendVoiceText}
             onPrev={() => jumpTo(currentIndex - 1)}
             onNext={() => jumpTo(currentIndex + 1)}
             onUnknown={handleUnknown}

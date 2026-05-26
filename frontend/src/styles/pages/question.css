@@ -775,6 +775,126 @@
 }
 
 
+.question-practice-dialog {
+  width: min(620px, 92vw);
+  max-height: min(80vh, 720px);
+  background: #f6f2ea;
+  border-radius: 28px;
+  padding: 24px 24px 18px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  box-shadow: 0 28px 90px rgba(77, 63, 40, 0.12);
+}
+
+
+.question-practice-dialog__body {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+
+.question-practice-dialog__body::-webkit-scrollbar {
+  display: none;
+}
+
+
+.question-practice-dialog__item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  text-align: left;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+
+.question-practice-dialog__item:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--line-strong);
+}
+
+
+.question-practice-dialog__item--selected {
+  border-color: #8e642d;
+  background: rgba(142, 100, 45, 0.06);
+}
+
+
+.question-practice-dialog__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  color: #fff;
+  font-size: 12px;
+  flex: none;
+}
+
+
+.question-practice-dialog__item--selected .question-practice-dialog__check {
+  background: #8e642d;
+  border-color: #8e642d;
+}
+
+
+.question-practice-dialog__text {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+
+.question-practice-dialog__content {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+
+.question-practice-dialog__title {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+
+.question-practice-dialog__meta {
+  gap: 6px;
+}
+
+
+.question-practice-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+
+.question-practice-dialog__footer > span {
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+
 .question-edit-dialog__body {
   display: grid;
   gap: 18px;

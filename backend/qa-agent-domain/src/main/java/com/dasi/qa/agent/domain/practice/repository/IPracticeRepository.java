@@ -31,7 +31,7 @@ public interface IPracticeRepository {
 
     void abandonActivePractice(String qaSetId, String userId);
 
-    PracticeDetailResponse abandonPractice(String sessionId, Integer durationSeconds, String userId);
+    void abandonPractice(String sessionId, Integer durationSeconds, String userId);
 
     boolean isPracticeSessionReadyForItemByItemAssess(String sessionId, String userId);
 

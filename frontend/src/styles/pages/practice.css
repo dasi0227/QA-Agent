@@ -752,3 +752,48 @@
   color: var(--btn-secondary-ink);
   font-size: 12px;
 }
+
+
+.question-workspace__answer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+.voice-answer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+
+.voice-answer__button {
+  min-height: 34px;
+  padding-inline: 12px;
+  box-shadow: none;
+}
+
+
+.voice-answer__status {
+  color: #8e642d;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+
+.voice-answer__status--muted {
+  color: var(--ink-faint);
+}
+
+
+.voice-answer__status--error {
+  color: #b55a4c;
+}

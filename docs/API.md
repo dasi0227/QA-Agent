@@ -287,7 +287,7 @@
 | POST | `/qa/item/create/single` | 是 | `qaSetId`, `question` |
 | POST | `/qa/item/create/batch` | 是 | `qaSetId`, `questions[]`，有效题目最多 50 道 |
 | POST | `/qa/item/create` | 是 | `qaSetId`, `question`，兼容旧单题入口 |
-| POST | `/qa/item/complete` | 是 | `id` |
+| POST | `/qa/item/complete` | 是 | `id`, `question`, `answer?` |
 | POST | `/qa/item/delete` | 是 | `id` |
 
 说明：
@@ -295,7 +295,7 @@
 1. 新代码应使用 `/qa/item/create/single` 和 `/qa/item/create/batch`；`/qa/item/create` 只作为旧单题兼容入口保留。
 2. 单题和批量新增都会立即返回 `completeStatus=PROCESSING`，后端用本地线程池逐题异步执行 CompleteAgent 补全核心字段。
 3. 批量新增会在一个 MySQL 事务内创建题目，并一次性更新题集 `questionCount`。
-4. `/qa/item/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent。
+4. `/qa/item/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent；`answer` 为空时由 AI 自动补全标准答案，`answer` 非空时作为用户指定标准答案，AI 只补齐知识点、难度、模块和来源信息。
 5. 空资料题集手动新增题目时，CompleteAgent 不执行 RAG 全资料检索，证据输入为空数组。
 6. `keywords` 和 `hint` 由 AssistAgent 异步补全；前端不查询 `message_job`。
 
@@ -307,7 +307,7 @@
 
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
-| POST | `/practice/session/init` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?` |
+| POST | `/practice/session/init` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?`, `itemIds?` |
 | GET | `/practice/session/exist?qaSetId=...` | 是 | `qaSetId` |
 | GET | `/practice/session/history?qaSetId=...` | 是 | `qaSetId` |
 | GET | `/practice/session/detail?sessionId=...` | 是 | `sessionId` |
@@ -315,7 +315,7 @@
 | POST | `/practice/item/unknown` | 是 | 同 `/practice/item/save` |
 | POST | `/practice/item/answer` | 是 | `sessionId`, `sessionItemId`, `userAnswer?`, `currentIndex`, `durationSeconds?` |
 | POST | `/practice/session/submit` | 是 | `sessionId`, `durationSeconds?` |
-| POST | `/practice/session/restart` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?`, `sessionId?` |
+| POST | `/practice/session/restart` | 是 | `qaSetId`, `mode`, `feedbackMode`, `selectedModule?`, `itemIds?`, `sessionId?` |
 | POST | `/practice/session/abandon` | 是 | `sessionId`, `durationSeconds?` |
 
 响应 `PracticeSessionDetailResponse`：
@@ -345,8 +345,9 @@
 2. `ITEM_BY_ITEM` 模式下 `/practice/item/answer` 调用 FeedbackAgent，并由 `FeedbackSaver` 写入 `practice_session_item`。
 3. `AFTER_ALL` 模式做题阶段不调用 `/practice/item/answer`；提交本轮时 `/practice/session/submit` 逐题调用 FeedbackAgent，再调用 AssessAgent。
 4. `/practice/session/submit` 由 `AssessSaver` 写入 `practice_session`，并将 session 标记为 `FINISHED`。
-5. `/practice/session/history` 只返回当前用户当前题集的 `FINISHED` 会话。
-6. `/practice/session/restart` 会把同题集未完成会话标记为 `ABANDONED` 后创建新会话。
+5. `/practice/session/init` 和 `/practice/session/restart` 支持可选 `itemIds`；传入后只练指定题目，`itemIds` 优先于 `selectedModule`，后端不因 `completeStatus=PROCESSING` 过滤题目。
+6. `/practice/session/history` 只返回当前用户当前题集的 `FINISHED` 会话，响应包含 `perfectCount/correctCount/deficientCount/wrongCount/unknownCount`。
+7. `/practice/session/restart` 会把同题集未完成会话标记为 `ABANDONED` 后创建新会话。
 7. 进度恢复以服务端 `detail` 为准，前端 localStorage 只保存最近 session 快照。
 
 ### 6.2 练习会话查询接口

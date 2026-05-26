@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Result 页面改造预览 (Recharts)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+    background: #faf6ef;
+    color: #292520;
+    padding: 32px;
+  }
+  .preview { width: min(1100px, 100%); margin: 0 auto; display: grid; gap: 28px; }
+  h1.page-title { font-size: 22px; text-align: center; margin-bottom: 8px; }
+
+  .card {
+    background: #fffcf7;
+    border: 1px solid rgba(67,59,48,0.1);
+    border-radius: 22px;
+    padding: 28px;
+  }
+  .card__head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card__head h2 { font-size: 18px; font-weight: 700; }
+  .card__badge {
+    font-size: 12px; color: rgba(41,37,32,0.4);
+    background: rgba(0,0,0,0.04); padding: 4px 12px; border-radius: 999px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .side-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  .hero { display: grid; gap: 18px; }
+  .hero h1 { font-size: clamp(28px, 4vw, 42px); }
+  .hero p { color: rgba(41,37,32,0.6); line-height: 1.7; }
+  .hero-row { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .hero-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: rgba(41,37,32,0.4); }
+  .hero-stats { display: flex; gap: 24px; }
+  .hero-stat strong { font-size: 28px; display: block; }
+  .hero-stat span { font-size: 12px; color: rgba(41,37,32,0.4); }
+
+  .section-label { font-size: 13px; color: rgba(41,37,32,0.35); font-family: -apple-system, sans-serif; }
+
+  /* Recharts text overrides */
+  .recharts-cartesian-axis-tick text,
+  .recharts-text.recharts-cartesian-axis-tick-value {
+    fill: rgba(41,37,32,0.4) !important;
+    font-size: 12px !important;
+    font-family: -apple-system, sans-serif !important;
+  }
+</style>
+</head>
+<body>
+<div class="preview">
+  <h1 class="page-title">Result 页面改造预览 (Recharts)</h1>
+
+  <section class="card hero">
+    <h1>SpringBoot 核心题集 · 练习结果</h1>
+    <p>本轮练习已完成，系统已保存你的作答记录。</p>
+    <div class="hero-row">
+      <div class="hero-meta">
+        <span>逐题反馈</span><span>完成于 05/27 14:30</span><span>总耗时 22分 18秒</span>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><strong>78%</strong><span>达标率</span></div>
+        <div class="hero-stat"><strong>82</strong><span>平均分</span></div>
+        <div class="hero-stat"><strong>7/10</strong><span>正确情况</span></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="section-label" style="margin-bottom:-20px;">✕ 已删除：结果结构（堆叠条）+ 题目结果矩阵</p>
+
+  <div id="root"></div>
+
+  <p style="font-size:13px;color:rgba(41,37,32,0.4);text-align:center;margin-top:-12px;">
+    ▼ 以下保持不变：做得好的地方 / 需要补的地方 / 复习建议 / 题目结果明细
+  </p>
+</div>
+<script type="module" src="./main.jsx"></script>
+</body>
+</html>

@@ -25,7 +25,6 @@
 
 
 .result-score-panel,
-.result-stat-tile,
 .result-report-panel,
 .result-review-plan,
 .result-question-panel,
@@ -148,8 +147,7 @@
 
 
 .result-score-ring span,
-.result-score-panel__stats span,
-.result-stat-tile span {
+.result-score-panel__stats span {
   color: var(--ink-faint);
   font-family: var(--font-sans);
   font-size: 12px;
@@ -172,8 +170,7 @@
 }
 
 
-.result-score-panel__stats strong,
-.result-stat-tile strong {
+.result-score-panel__stats strong {
   display: block;
   margin-bottom: 6px;
   color: var(--ink);
@@ -183,54 +180,23 @@
 }
 
 
-.result-distribution {
+.result-charts-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
 }
 
 
-.result-stat-tile {
-  position: relative;
-  min-height: 112px;
-  padding: 18px;
-  border-radius: 22px;
-  overflow: hidden;
+/* Remove focus rings from Recharts SVG elements */
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none;
 }
-
-
-.result-stat-tile::before {
-  content: "";
-  position: absolute;
-  inset: auto 18px 16px 18px;
-  height: 3px;
-  border-radius: 999px;
-  background: rgba(47, 42, 36, 0.12);
-}
-
-
-.result-stat-tile--perfect::before {
-  background: #c8853b;
-}
-
-
-.result-stat-tile--correct::before {
-  background: #4f8a67;
-}
-
-
-.result-stat-tile--deficient::before {
-  background: #d7b957;
-}
-
-
-.result-stat-tile--wrong::before {
-  background: #b55a4c;
-}
-
-
-.result-stat-tile--unknown::before {
-  background: #7b8ca8;
+.recharts-layer:focus,
+.recharts-layer:focus-visible {
+  outline: none;
 }
 
 
@@ -538,3 +504,9 @@
   flex: none;
   height: 5px;
 }
+
+
+
+
+
+

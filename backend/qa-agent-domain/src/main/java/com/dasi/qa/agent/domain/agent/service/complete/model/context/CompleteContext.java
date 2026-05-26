@@ -16,6 +16,7 @@ public class CompleteContext {
 
     private String qaItemId;
     private String question;
+    private String answer;
     private List<String> documentIds;
     private UserProfileInfoVO userProfile;
     private String answerStyle;

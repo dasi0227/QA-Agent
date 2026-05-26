@@ -4,6 +4,7 @@ import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
 import { BaseButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea, TextInput } from "@/components/base/field";
+import { Tag } from "@/components/base/tag";
 import {
     parseDelimitedValues,
     useCreateSmartQuestionItemMutation,
@@ -12,6 +13,7 @@ import {
     useQuestionItemQuery,
     useQuestionSetItemsQuery,
     useRetryCompleteQuestionItemMutation,
+    useRestartPracticeMutation,
     useUpdateQuestionItemMutation,
 } from "@/lib/api/hooks";
 import type { QuestionItem, QuestionItemDraft } from "@/lib/api/types";
@@ -75,6 +77,7 @@ export function QuestionPage() {
     const createSmartQuestionItemMutation = useCreateSmartQuestionItemMutation();
     const createSmartQuestionItemsBatchMutation = useCreateSmartQuestionItemsBatchMutation();
     const retryCompleteQuestionItemMutation = useRetryCompleteQuestionItemMutation();
+    const startSelectedPracticeMutation = useRestartPracticeMutation();
 
     const itemList = selectedSetItemsQuery.data ?? [];
     const fallbackItemId = itemList[0]?.id ?? "";
@@ -88,7 +91,9 @@ export function QuestionPage() {
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
     const [completeQuestionDraft, setCompleteQuestionDraft] = useState("");
+    const [completeAnswerDraft, setCompleteAnswerDraft] = useState("");
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [practiceDialogOpen, setPracticeDialogOpen] = useState(false);
     const [createMode, setCreateMode] = useState<"single" | "batch">("single");
     const [smartQuestionDraft, setSmartQuestionDraft] = useState("");
     const [batchQuestionDrafts, setBatchQuestionDrafts] = useState<string[]>([""]);
@@ -99,6 +104,7 @@ export function QuestionPage() {
     const [keywordInput, setKeywordInput] = useState("");
     const [selectedEvidenceChunkId, setSelectedEvidenceChunkId] = useState("");
     const [draggingBatchIndex, setDraggingBatchIndex] = useState<number | null>(null);
+    const [selectedPracticeItemIds, setSelectedPracticeItemIds] = useState<string[]>([]);
 
     const keywordList = useMemo(() => parseDelimitedValues(activeItem?.keywords), [activeItem?.keywords]);
     const moduleTagList = useMemo(() => parseDelimitedValues(activeItem?.moduleTag), [activeItem?.moduleTag]);
@@ -145,7 +151,9 @@ export function QuestionPage() {
         setEditDialogOpen(false);
         setCompleteDialogOpen(false);
         setCompleteQuestionDraft("");
+        setCompleteAnswerDraft("");
         setSelectedEvidenceChunkId("");
+        setSelectedPracticeItemIds([]);
     }, [activeItemId]);
 
     useEffect(() => {
@@ -205,13 +213,27 @@ export function QuestionPage() {
     const openCompleteDialog = () => {
         if (!activeItem) return;
         setCompleteQuestionDraft(activeItem.question);
+        setCompleteAnswerDraft(activeItem.answer || "");
         setCompleteDialogOpen(true);
     };
 
     const closeCompleteDialog = () => {
         if (retryCompleteQuestionItemMutation.isPending) return;
         setCompleteQuestionDraft("");
+        setCompleteAnswerDraft("");
         setCompleteDialogOpen(false);
+    };
+
+    const openPracticeDialog = () => {
+        if (!itemList.length) return;
+        setSelectedPracticeItemIds([]);
+        setPracticeDialogOpen(true);
+    };
+
+    const closePracticeDialog = () => {
+        if (startSelectedPracticeMutation.isPending) return;
+        setPracticeDialogOpen(false);
+        setSelectedPracticeItemIds([]);
     };
 
     const closeCreateDialog = () => {
@@ -251,11 +273,40 @@ export function QuestionPage() {
         if (!activeItemId) return;
         const question = completeQuestionDraft.trim();
         if (!question) return;
-        await retryCompleteQuestionItemMutation.mutateAsync({ id: activeItemId, question });
+        await retryCompleteQuestionItemMutation.mutateAsync({
+            id: activeItemId,
+            question,
+            answer: completeAnswerDraft.trim() || undefined,
+        });
         setCompleteDialogOpen(false);
         setCompleteQuestionDraft("");
+        setCompleteAnswerDraft("");
         await activeItemQuery.refetch();
         await refetchSelectedSetItems();
+    };
+
+    const togglePracticeItemSelection = (itemId: string) => {
+        setSelectedPracticeItemIds((current) => (
+            current.includes(itemId)
+                ? current.filter((id) => id !== itemId)
+                : [...current, itemId]
+        ));
+    };
+
+    const startPracticeWithItems = async (itemIds: string[]) => {
+        const normalized = itemIds.filter(Boolean);
+        if (!qaSetId || !normalized.length) {
+            return;
+        }
+        const detail = await startSelectedPracticeMutation.mutateAsync({
+            qaSetId,
+            mode: "SEQUENTIAL",
+            feedbackMode: "ITEM_BY_ITEM",
+            itemIds: normalized,
+        });
+        setPracticeDialogOpen(false);
+        setSelectedPracticeItemIds([]);
+        navigate(`/practice/${detail.session.id}`);
     };
 
     const addKeyword = () => {
@@ -530,9 +581,10 @@ export function QuestionPage() {
                                                     variant="primary"
                                                     type="button"
                                                     className="question-side-rail__action-btn"
-                                                    onClick={() => navigate(`/quiz?questionSetId=${qaSetId}`)}
+                                                    disabled={startSelectedPracticeMutation.isPending || itemList.length === 0}
+                                                    onClick={openPracticeDialog}
                                                 >
-                                                    开始测试
+                                                    {startSelectedPracticeMutation.isPending ? "启动中" : "开始测试"}
                                                 </BaseButton>
                                                 <BaseButton
                                                     variant="soft"
@@ -716,6 +768,65 @@ export function QuestionPage() {
                 </div>
             ) : null}
 
+            {practiceDialogOpen ? (
+                <div className="doc-select-dialog" role="presentation" onClick={closePracticeDialog}>
+                    <div className="question-practice-dialog" role="dialog" aria-modal="true" aria-label="选择测试题目" onClick={(event) => event.stopPropagation()}>
+                        <div className="doc-select-dialog__header">
+                            <h3 className="doc-select-dialog__title">选择测试题目</h3>
+                            <button type="button" className="doc-select-dialog__close" onClick={closePracticeDialog}>
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="question-practice-dialog__body">
+                            {itemList.map((qaSetEntry) => {
+                                const selected = selectedPracticeItemIds.includes(qaSetEntry.id);
+                                return (
+                                    <button
+                                        key={`practice-${qaSetEntry.id}`}
+                                        type="button"
+                                        className={cn("question-practice-dialog__item", selected && "question-practice-dialog__item--selected")}
+                                        onClick={() => togglePracticeItemSelection(qaSetEntry.id)}
+                                    >
+                                        <span className="question-practice-dialog__check" aria-hidden="true">{selected ? "✓" : ""}</span>
+                                        <span className="question-practice-dialog__content">
+                                            <strong className="question-practice-dialog__title">{qaSetEntry.question}</strong>
+                                            <span className="repository-qaSetEntry-card__meta question-practice-dialog__meta">
+                                                {qaSetEntry.difficulty ? (
+                                                    <Tag className={`qaSetEntry__difficulty-tag qaSetEntry__difficulty--${qaSetEntry.difficulty.toLowerCase()}`}>
+                                                        {qaSetEntry.difficulty}
+                                                    </Tag>
+                                                ) : null}
+                                                {parseDelimitedValues(qaSetEntry.moduleTag).map((moduleTag) => (
+                                                    <Tag key={`${qaSetEntry.id}-${moduleTag}`}>{moduleTag}</Tag>
+                                                ))}
+                                            </span>
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="modal-card__footer">
+                            <div className="question-practice-dialog__footer">
+                                <span>已选 {selectedPracticeItemIds.length} 题</span>
+                                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                    <BaseButton
+                                        variant="primary"
+                                        type="button"
+                                        disabled={startSelectedPracticeMutation.isPending || selectedPracticeItemIds.length === 0}
+                                        onClick={() => startPracticeWithItems(selectedPracticeItemIds)}
+                                    >
+                                        {startSelectedPracticeMutation.isPending ? "启动中" : "开始测试"}
+                                    </BaseButton>
+                                    <BaseButton variant="ghost" type="button" onClick={closePracticeDialog}>
+                                        取消
+                                    </BaseButton>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
             {completeDialogOpen ? (
                 <div className="doc-select-dialog" role="presentation" onClick={closeCompleteDialog}>
                     <div className="question-recomplete-dialog" role="dialog" aria-modal="true" aria-label="重新补全" onClick={(event) => event.stopPropagation()}>
@@ -734,6 +845,15 @@ export function QuestionPage() {
                                     onChange={(event) => setCompleteQuestionDraft(event.target.value)}
                                     rows={4}
                                     autoFocus
+                                />
+                            </Field>
+                            <Field label="标准答案（可选）">
+                                <TextArea
+                                    className="question-edit-dialog__textarea"
+                                    value={completeAnswerDraft}
+                                    onChange={(event) => setCompleteAnswerDraft(event.target.value)}
+                                    rows={6}
+                                    placeholder="填写后，AI 不会改写这段答案，只补充知识点、难度、模块和来源信息。留空则由 AI 自动生成标准答案。"
                                 />
                             </Field>
                         </div>

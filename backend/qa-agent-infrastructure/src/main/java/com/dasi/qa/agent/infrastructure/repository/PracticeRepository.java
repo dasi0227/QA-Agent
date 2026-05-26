@@ -31,6 +31,7 @@ import com.dasi.qa.agent.types.exception.ApiException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -123,6 +124,10 @@ public class PracticeRepository implements IPracticeRepository {
 
     @Override
     public int countPracticeItems(PracticeInitRequest request, String userId) {
+        List<String> itemIds = normalizedItemIds(request);
+        if (!itemIds.isEmpty()) {
+            return itemIds.size();
+        }
         return Math.toIntExact(qaItemMapper.selectCount(startPracticeItemWrapper(request, userId)));
     }
 
@@ -207,35 +212,39 @@ public class PracticeRepository implements IPracticeRepository {
     }
 
     @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
     @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
     public void abandonActivePractice(String qaSetId, String userId) {
-        LocalDateTime now = LocalDateTime.now();
-        practiceSessionMapper.update(null, new LambdaUpdateWrapper<PracticeSession>()
-                .set(PracticeSession::getStatus, "ABANDONED")
-                .set(PracticeSession::getUpdatedAt, now)
-                .eq(PracticeSession::getQaSetId, qaSetId)
-                .eq(PracticeSession::getUserId, userId)
-                .eq(PracticeSession::getStatus, "IN_PROGRESS"));
+        List<String> sessionIds = practiceSessionMapper.selectList(new LambdaQueryWrapper<PracticeSession>()
+                        .select(PracticeSession::getId)
+                        .eq(PracticeSession::getQaSetId, qaSetId)
+                        .eq(PracticeSession::getUserId, userId)
+                        .eq(PracticeSession::getStatus, "IN_PROGRESS"))
+                .stream()
+                .map(PracticeSession::getId)
+                .toList();
+        if (sessionIds.isEmpty()) {
+            return;
+        }
+        practiceSessionItemMapper.delete(new LambdaQueryWrapper<PracticeSessionItem>()
+                .in(PracticeSessionItem::getSessionId, sessionIds)
+                .eq(PracticeSessionItem::getUserId, userId));
+        practiceSessionMapper.delete(new LambdaQueryWrapper<PracticeSession>()
+                .in(PracticeSession::getId, sessionIds)
+                .eq(PracticeSession::getUserId, userId));
     }
 
     @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
     @CacheEvict(cacheNames = RedisConstant.PRACTICE_SESSION_CACHE, allEntries = true)
-    public PracticeDetailResponse abandonPractice(String sessionId, Integer durationSeconds, String userId) {
+    public void abandonPractice(String sessionId, Integer durationSeconds, String userId) {
         requirePracticeSession(sessionId, userId);
-        LocalDateTime now = LocalDateTime.now();
-        LambdaUpdateWrapper<PracticeSession> wrapper = new LambdaUpdateWrapper<PracticeSession>()
-                .set(PracticeSession::getStatus, "ABANDONED")
-                .set(PracticeSession::getUpdatedAt, now)
+        practiceSessionItemMapper.delete(new LambdaQueryWrapper<PracticeSessionItem>()
+                .eq(PracticeSessionItem::getSessionId, sessionId)
+                .eq(PracticeSessionItem::getUserId, userId));
+        practiceSessionMapper.delete(new LambdaQueryWrapper<PracticeSession>()
                 .eq(PracticeSession::getId, sessionId)
-                .eq(PracticeSession::getUserId, userId)
-                .eq(PracticeSession::getStatus, "IN_PROGRESS");
-        if (durationSeconds != null && durationSeconds >= 0) {
-            PracticeSession session = requirePracticeSession(sessionId, userId);
-            int nextDuration = Math.max(session.getDurationSeconds() == null ? 0 : session.getDurationSeconds(), durationSeconds);
-            wrapper.set(PracticeSession::getDurationSeconds, nextDuration);
-        }
-        practiceSessionMapper.update(null, wrapper);
-        return detailPractice(sessionId, userId);
+                .eq(PracticeSession::getUserId, userId));
     }
 
     @Override
@@ -327,7 +336,36 @@ public class PracticeRepository implements IPracticeRepository {
     }
 
     private List<QaItem> startPracticeItems(PracticeInitRequest request, String userId) {
+        List<String> itemIds = normalizedItemIds(request);
+        if (!itemIds.isEmpty()) {
+            List<QaItem> items = qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
+                    .eq(QaItem::getQaSetId, request.getQaSetId())
+                    .eq(QaItem::getUserId, userId)
+                    .in(QaItem::getId, itemIds));
+            if (items.size() != itemIds.size()) {
+                throw new ApiException(ResultCode.NOT_FOUND, "题目不存在");
+            }
+            Map<String, QaItem> itemMap = items.stream().collect(Collectors.toMap(QaItem::getId, Function.identity()));
+            return itemIds.stream()
+                    .map(itemMap::get)
+                    .filter(Objects::nonNull)
+                    .toList();
+        }
         return qaItemMapper.selectList(startPracticeItemWrapper(request, userId));
+    }
+
+    private List<String> normalizedItemIds(PracticeInitRequest request) {
+        if (request.getItemIds() == null) {
+            return List.of();
+        }
+        return request.getItemIds().stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toCollection(LinkedHashSet::new),
+                        List::copyOf
+                ));
     }
 
     private LambdaQueryWrapper<QaItem> startPracticeItemWrapper(PracticeInitRequest request, String userId) {

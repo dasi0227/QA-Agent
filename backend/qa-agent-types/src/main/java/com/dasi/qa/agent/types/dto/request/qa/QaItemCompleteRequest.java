@@ -17,4 +17,6 @@ public class QaItemCompleteRequest {
 
     @NotBlank(message = "问题不能为空")
     private String question;
+
+    private String answer;
 }

@@ -84,13 +84,14 @@ public class PracticeFlowService implements IPracticeFlowService {
                 .mode(request.getMode())
                 .feedbackMode(request.getFeedbackMode())
                 .selectedModule(request.getSelectedModule())
+                .itemIds(request.getItemIds())
                 .build();
         return init(initRequest);
     }
 
     @Override
-    public PracticeDetailResponse abandon(PracticeAbandonRequest request) {
-        return practiceRepository.abandonPractice(request.getSessionId(), request.getDurationSeconds(), contextUtil.getUserId());
+    public void abandon(PracticeAbandonRequest request) {
+        practiceRepository.abandonPractice(request.getSessionId(), request.getDurationSeconds(), contextUtil.getUserId());
     }
 
     @Override

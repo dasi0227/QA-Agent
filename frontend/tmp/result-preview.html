@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Result 页面改造预览</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+    background: #faf6ef;
+    color: #292520;
+    padding: 32px;
+  }
+  .preview { width: min(1100px, 100%); margin: 0 auto; display: grid; gap: 28px; }
+  h1.page-title { font-size: 22px; text-align: center; margin-bottom: 8px; }
+
+  :root {
+    --c-perfect: #c8853b;
+    --c-correct: #4f8a67;
+    --c-deficient: #d7b957;
+    --c-wrong: #b55a4c;
+    --c-unknown: #7b8ca8;
+    --c-module: #b7a27d;
+    --ink: #292520;
+    --ink-soft: rgba(41,37,32,0.6);
+    --ink-faint: rgba(41,37,32,0.4);
+    --bg-card: #fffcf7;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid rgba(67,59,48,0.1);
+    border-radius: 22px;
+    padding: 28px;
+  }
+  .card__head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card__head h2 { font-size: 18px; font-weight: 700; }
+  .card__badge {
+    font-size: 12px; color: var(--ink-faint);
+    background: rgba(0,0,0,0.04); padding: 4px 12px; border-radius: 999px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .side-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  .hero { display: grid; gap: 18px; }
+  .hero h1 { font-size: clamp(28px, 4vw, 42px); }
+  .hero p { color: var(--ink-soft); line-height: 1.7; }
+  .hero-row { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .hero-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-faint); }
+  .hero-stats { display: flex; gap: 24px; }
+  .hero-stat strong { font-size: 28px; display: block; }
+  .hero-stat span { font-size: 12px; color: var(--ink-faint); }
+
+  .section-label { font-size: 13px; color: rgba(41,37,32,0.35); font-family: -apple-system, sans-serif; }
+
+  /* ── Distribution Bar Chart ── */
+  .dist-chart {
+    display: flex; align-items: flex-end; gap: 16px;
+    height: 220px;
+    padding-top: 24px; /* room for value labels above bars */
+  }
+  .dist-col {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    justify-content: flex-end;
+  }
+  .dist-col__value {
+    font-size: 18px; font-weight: 800; font-family: -apple-system, sans-serif; line-height: 1;
+  }
+  .dist-col__bar {
+    width: 100%; max-width: 64px; border-radius: 8px 8px 3px 3px;
+    min-height: 4px;
+  }
+  .dist-col__label {
+    font-size: 13px; color: var(--ink-soft); font-weight: 600;
+  }
+  .dist-col:nth-child(1) .dist-col__bar { background: var(--c-perfect); }
+  .dist-col:nth-child(1) .dist-col__value { color: var(--c-perfect); }
+  .dist-col:nth-child(2) .dist-col__bar { background: var(--c-correct); }
+  .dist-col:nth-child(2) .dist-col__value { color: var(--c-correct); }
+  .dist-col:nth-child(3) .dist-col__bar { background: var(--c-deficient); }
+  .dist-col:nth-child(3) .dist-col__value { color: var(--c-deficient); }
+  .dist-col:nth-child(4) .dist-col__bar { background: var(--c-wrong); }
+  .dist-col:nth-child(4) .dist-col__value { color: var(--c-wrong); }
+  .dist-col:nth-child(5) .dist-col__bar { background: var(--c-unknown); }
+  .dist-col:nth-child(5) .dist-col__value { color: var(--c-unknown); }
+
+  /* ── Module Bars ── */
+  .module-list { display: grid; gap: 16px; }
+  .mod-bar { display: grid; gap: 8px; }
+  .mod-bar__head { display: flex; justify-content: space-between; font-size: 14px; }
+  .mod-bar__head strong { font-weight: 700; }
+  .mod-bar__head span { color: var(--ink-soft); font-size: 13px; }
+  .mod-bar__track {
+    height: 10px; border-radius: 999px; background: rgba(0,0,0,0.06); overflow: hidden;
+  }
+  .mod-bar__fill {
+    height: 100%; border-radius: 999px; background: var(--c-module);
+  }
+
+  /* ── Trend SVG inline ── */
+  .trend-wrap { width: 100%; }
+  .trend-wrap svg { width: 100%; display: block; }
+  .trend-labels {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--ink-faint); padding: 0 4px; margin-top: 4px;
+    font-family: -apple-system, sans-serif;
+  }
+  .trend-legend {
+    display: flex; gap: 16px; justify-content: center;
+    font-size: 12px; color: var(--ink-soft); margin-top: 10px;
+    font-family: -apple-system, sans-serif;
+  }
+</style>
+</head>
+<body>
+<div class="preview">
+  <h1 class="page-title">Result 页面改造预览</h1>
+
+  <section class="card hero">
+    <h1>SpringBoot 核心题集 · 练习结果</h1>
+    <p>本轮练习已完成，系统已保存你的作答记录。</p>
+    <div class="hero-row">
+      <div class="hero-meta">
+        <span>逐题反馈</span><span>完成于 05/27 14:30</span><span>总耗时 22分 18秒</span>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><strong>78%</strong><span>达标率</span></div>
+        <div class="hero-stat"><strong>82</strong><span>平均分</span></div>
+        <div class="hero-stat"><strong>7/10</strong><span>正确情况</span></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="section-label" style="margin-bottom:-20px;">✕ 已删除：结果结构（堆叠条）+ 题目结果矩阵</p>
+
+  <div class="side-grid">
+    <!-- 结果分布 -->
+    <section class="card">
+      <div class="card__head">
+        <h2>结果分布</h2>
+        <span class="card__badge">10 题</span>
+      </div>
+      <div class="dist-chart">
+        <!-- 完美=2, 正确=5, 缺漏=1, 错误=1, 不会=1 → max=5 → 5=130px, 2=52px, 1=26px -->
+        <div class="dist-col"><div class="dist-col__value">2</div><div class="dist-col__bar" style="height:52px"></div><div class="dist-col__label">完美</div></div>
+        <div class="dist-col"><div class="dist-col__value">5</div><div class="dist-col__bar" style="height:130px"></div><div class="dist-col__label">正确</div></div>
+        <div class="dist-col"><div class="dist-col__value">1</div><div class="dist-col__bar" style="height:26px"></div><div class="dist-col__label">缺漏</div></div>
+        <div class="dist-col"><div class="dist-col__value">1</div><div class="dist-col__bar" style="height:26px"></div><div class="dist-col__label">错误</div></div>
+        <div class="dist-col"><div class="dist-col__value">1</div><div class="dist-col__bar" style="height:26px"></div><div class="dist-col__label">不会</div></div>
+      </div>
+    </section>
+
+    <!-- 模块表现 -->
+    <section class="card">
+      <div class="card__head">
+        <h2>模块表现</h2>
+        <span class="card__badge">4 组</span>
+      </div>
+      <div class="module-list">
+        <div class="mod-bar">
+          <div class="mod-bar__head"><strong>SpringBoot</strong><span>85分 · 4题</span></div>
+          <div class="mod-bar__track"><div class="mod-bar__fill" style="width:85%"></div></div>
+        </div>
+        <div class="mod-bar">
+          <div class="mod-bar__head"><strong>JVM</strong><span>72分 · 3题</span></div>
+          <div class="mod-bar__track"><div class="mod-bar__fill" style="width:72%"></div></div>
+        </div>
+        <div class="mod-bar">
+          <div class="mod-bar__head"><strong>MySQL</strong><span>60分 · 2题</span></div>
+          <div class="mod-bar__track"><div class="mod-bar__fill" style="width:60%"></div></div>
+        </div>
+        <div class="mod-bar">
+          <div class="mod-bar__head"><strong>Redis</strong><span>45分 · 1题</span></div>
+          <div class="mod-bar__track"><div class="mod-bar__fill" style="width:45%"></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 历史趋势 -->
+  <section class="card">
+    <div class="card__head">
+      <h2>历史趋势</h2>
+      <span class="card__badge">最近 6 次</span>
+    </div>
+    <div class="trend-wrap">
+      <svg viewBox="0 0 800 180" preserveAspectRatio="xMidYMid meet">
+        <!-- Y grid lines -->
+        <line x1="0" y1="30" x2="800" y2="30" stroke="rgba(0,0,0,0.04)"/>
+        <line x1="0" y1="70" x2="800" y2="70" stroke="rgba(0,0,0,0.04)"/>
+        <line x1="0" y1="110" x2="800" y2="110" stroke="rgba(0,0,0,0.04)"/>
+        <line x1="0" y1="150" x2="800" y2="150" stroke="rgba(0,0,0,0.04)"/>
+
+        <!-- Y axis labels -->
+        <text x="6" y="34" fill="rgba(41,37,32,0.3)" font-size="11" font-family="-apple-system,sans-serif">100</text>
+        <text x="6" y="74" fill="rgba(41,37,32,0.3)" font-size="11" font-family="-apple-system,sans-serif">75</text>
+        <text x="6" y="114" fill="rgba(41,37,32,0.3)" font-size="11" font-family="-apple-system,sans-serif">50</text>
+        <text x="6" y="154" fill="rgba(41,37,32,0.3)" font-size="11" font-family="-apple-system,sans-serif">25</text>
+
+        <!-- Score area -->
+        <!-- data: 65,72,70,78,80,82 → scaled: 65→max 82 (96px), 65=96, 72=106, 70=103, 78=115, 80=118, 82=120  -->
+        <!-- in svg coords (y): 180-96=84, 180-106=74, 180-103=77, 180-115=65, 180-118=62, 180-120=60 -->
+        <!-- Corrected: maxScore=82, y ranges from 30(100) to 150(25). score y = 150 - (score/100)*120 -->
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4f8a67" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#4f8a67" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Score Y coords: 150 - score*1.2 (120/100) -->
+        <!-- 65→72, 72→63.6≈64, 70→66, 78→56.4≈56, 80→54, 82→51.6≈52 -->
+        <!-- Accuracy Y: 150 - acc*1.2 -->
+        <!-- 52→87.6≈88, 60→78, 55→84, 68→68.4≈68, 72→63.6≈64, 78→56.4≈56 -->
+
+        <polygon points="0,72 160,64 320,66 480,56 640,54 800,52 800,180 0,180" fill="url(#areaGrad)"/>
+        <polyline points="0,72 160,64 320,66 480,56 640,54 800,52" fill="none" stroke="#4f8a67" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="0" cy="72" r="4" fill="#fff" stroke="#4f8a67" stroke-width="2"/>
+        <circle cx="160" cy="64" r="4" fill="#fff" stroke="#4f8a67" stroke-width="2"/>
+        <circle cx="320" cy="66" r="4" fill="#fff" stroke="#4f8a67" stroke-width="2"/>
+        <circle cx="480" cy="56" r="4" fill="#fff" stroke="#4f8a67" stroke-width="2"/>
+        <circle cx="640" cy="54" r="4" fill="#fff" stroke="#4f8a67" stroke-width="2"/>
+        <circle cx="800" cy="52" r="4" fill="#fff" stroke="#4f8a67" stroke-width="2"/>
+
+        <polyline points="0,88 160,78 320,84 480,68 640,64 800,56" fill="none" stroke="#c8853b" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round"/>
+        <circle cx="0" cy="88" r="3" fill="#fff" stroke="#c8853b" stroke-width="1.5"/>
+        <circle cx="160" cy="78" r="3" fill="#fff" stroke="#c8853b" stroke-width="1.5"/>
+        <circle cx="320" cy="84" r="3" fill="#fff" stroke="#c8853b" stroke-width="1.5"/>
+        <circle cx="480" cy="68" r="3" fill="#fff" stroke="#c8853b" stroke-width="1.5"/>
+        <circle cx="640" cy="64" r="3" fill="#fff" stroke="#c8853b" stroke-width="1.5"/>
+        <circle cx="800" cy="56" r="3" fill="#fff" stroke="#c8853b" stroke-width="1.5"/>
+      </svg>
+      <div class="trend-labels">
+        <span>05/20</span><span>05/21</span><span>05/22</span><span>05/24</span><span>05/25</span><span>05/27</span>
+      </div>
+      <div class="trend-legend">
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span style="width:14px;height:2px;background:#4f8a67;border-radius:1px;display:inline-block;"></span> 分数
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span style="width:14px;height:0;border-top:2px dashed #c8853b;display:inline-block;"></span> 达标率
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <p style="font-size:13px;color:var(--ink-faint);text-align:center;">
+    ▼ 以下保持不变：做得好的地方 / 需要补的地方 / 复习建议 / 题目结果明细
+  </p>
+</div>
+</body>
+</html>

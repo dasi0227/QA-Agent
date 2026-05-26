@@ -209,6 +209,7 @@ export type CreateSmartQuestionItemBatchInput = {
 export type RetryCompleteQuestionItemInput = {
     id: string;
     question: string;
+    answer?: string;
 };
 
 export type DeleteQuestionItemInput = {
@@ -389,6 +390,7 @@ export type StartPracticeInput = {
     mode: PracticeMode;
     feedbackMode: PracticeFeedbackMode;
     selectedModule?: string;
+    itemIds?: string[];
 };
 
 export type SaveAnswerInput = {

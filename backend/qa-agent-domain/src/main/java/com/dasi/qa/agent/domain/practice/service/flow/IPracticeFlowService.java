@@ -33,5 +33,5 @@ public interface IPracticeFlowService {
 
     PracticeDetailResponse restart(PracticeRestartRequest request);
 
-    PracticeDetailResponse abandon(PracticeAbandonRequest request);
+    void abandon(PracticeAbandonRequest request);
 }

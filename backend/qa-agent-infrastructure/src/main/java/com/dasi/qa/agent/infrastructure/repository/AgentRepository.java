@@ -593,6 +593,7 @@ public class AgentRepository implements IAgentRepository {
         return CompleteContext.builder()
                 .qaItemId(qaItem.getId())
                 .question(qaItem.getQuestion())
+                .answer(qaItem.getAnswer())
                 .documentIds(qaSetDocumentIds(qaItem.getQaSetId()))
                 .userProfile(profile)
                 .answerStyle(style == null ? "" : style.getAnswerStyle())

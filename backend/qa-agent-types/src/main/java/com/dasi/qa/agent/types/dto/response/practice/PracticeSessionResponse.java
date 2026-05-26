@@ -29,6 +29,7 @@ public class PracticeSessionResponse extends BaseResponse {
     private Integer durationSeconds;
     private Integer score;
     private BigDecimal accuracy;
+    private Integer perfectCount;
     private Integer correctCount;
     private Integer deficientCount;
     private Integer wrongCount;

@@ -44,8 +44,9 @@ public class PracticeController {
 
     // 抛弃练习
     @PostMapping("/session/abandon")
-    public Result<PracticeDetailResponse> abandon(@RequestBody @Valid PracticeAbandonRequest request) {
-        return Result.success(practiceFlowService.abandon(request));
+    public Result<Void> abandon(@RequestBody @Valid PracticeAbandonRequest request) {
+        practiceFlowService.abandon(request);
+        return Result.success();
     }
 
     // 判断是否还有未完成的练习

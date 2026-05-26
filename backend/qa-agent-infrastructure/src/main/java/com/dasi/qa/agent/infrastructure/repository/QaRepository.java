@@ -381,10 +381,12 @@ public class QaRepository implements IQaRepository {
             throw new ApiException(ResultCode.CONFLICT, "题目正在补全中，请稍后再试");
         }
         String question = request.getQuestion().trim();
+        String answer = request.getAnswer() == null ? "" : request.getAnswer().trim();
         LocalDateTime now = LocalDateTime.now();
         int updated = qaItemMapper.update(null,
                 new LambdaUpdateWrapper<QaItem>()
                         .set(QaItem::getQuestion, question)
+                        .set(QaItem::getAnswer, answer)
                         .set(QaItem::getCompleteStatus, CompleteStatus.PROCESSING.name())
                         .set(QaItem::getUpdatedAt, now)
                         .eq(QaItem::getId, request.getId())
@@ -394,7 +396,7 @@ public class QaRepository implements IQaRepository {
             throw new ApiException(ResultCode.CONFLICT, "题目正在补全中，请稍后再试");
         }
         item.setQuestion(question);
-        item.setAnswer("");
+        item.setAnswer(answer);
         item.setKnowledgeNote("");
         item.setDifficulty("");
         item.setKeywords("");

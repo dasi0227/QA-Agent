@@ -1064,13 +1064,12 @@ export function useRestartPracticeMutation() {
 export function useAbandonPracticeMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: AbandonPracticeInput) => normalizePracticeSessionDetail(await apiRequest<unknown>("/practice/session/abandon", {
+        mutationFn: async (input: AbandonPracticeInput) => apiRequest<void>("/practice/session/abandon", {
             method: "POST",
             body: input,
-        })),
-        onSuccess: async (detail, variables) => {
+        }),
+        onSuccess: async (_detail, variables) => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.practiceDetail(variables.sessionId) });
-            await queryClient.invalidateQueries({ queryKey: apiKeys.existingPractice(detail.session.qaSetId) });
         },
     });
 }

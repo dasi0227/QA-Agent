@@ -1,8 +1,18 @@
 import type { CSSProperties } from "react";
 import { useNavigate, useParams } from "react-router";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { BaseButton, LinkButton } from "@/components/base/button";
-import { usePracticeDetailQuery, useRestartPracticeMutation } from "@/lib/api/hooks";
+import { usePracticeDetailQuery, usePracticeHistoryQuery, useRestartPracticeMutation } from "@/lib/api/hooks";
 import type { AssessPoint, PracticeFlowItem } from "@/lib/api/types";
+
+const CHART_COLORS = {
+    perfect: "#c8853b",
+    correct: "#4f8a67",
+    deficient: "#d7b957",
+    wrong: "#b55a4c",
+    unknown: "#7b8ca8",
+    module: "#b7a27d",
+} as const;
 
 function pointTitle(point: AssessPoint) {
     return point.title || point.moduleTag || "未命名要点";
@@ -90,6 +100,7 @@ export function ResultPage() {
     const restartPracticeMutation = useRestartPracticeMutation();
     const detail = detailQuery.data;
     const session = detail?.session;
+    const historyQuery = usePracticeHistoryQuery(session?.qaSetId, { enabled: Boolean(session?.qaSetId) });
     const items = detail?.items ?? [];
     const assessDetail = session?.assessDetail;
     const strengths = assessDetail?.strengths ?? [];
@@ -100,6 +111,39 @@ export function ResultPage() {
     const accuracyValue = session?.accuracy == null ? 0 : Math.min(100, Math.max(0, session.accuracy));
     const finishedAt = formatDateTime(session?.finishedAt);
     const totalDuration = formatDurationSeconds(session?.durationSeconds);
+    const totalQuestions = session?.totalQuestions || items.length || 1;
+
+    const distData = [
+        { name: "完美", value: session?.perfectCount ?? 0, color: CHART_COLORS.perfect },
+        { name: "正确", value: session?.correctCount ?? 0, color: CHART_COLORS.correct },
+        { name: "缺漏", value: session?.deficientCount ?? 0, color: CHART_COLORS.deficient },
+        { name: "错误", value: session?.wrongCount ?? 0, color: CHART_COLORS.wrong },
+        { name: "不会", value: session?.unknownCount ?? 0, color: CHART_COLORS.unknown },
+    ];
+
+    const moduleData = (() => {
+        const map = new Map<string, { total: number; totalScore: number }>();
+        items.forEach((item) => {
+            const tags = (item.moduleTag || "").trim().split(/[,，、|]/).filter(Boolean);
+            if (tags.length === 0) tags.push("未标注");
+            tags.slice(0, 3).forEach((tag) => {
+                const cur = map.get(tag) ?? { total: 0, totalScore: 0 };
+                cur.total += 1;
+                cur.totalScore += item.score ?? 0;
+                map.set(tag, cur);
+            });
+        });
+        return Array.from(map.entries())
+            .map(([name, { total, totalScore }]) => ({ name, score: total ? Math.round(totalScore / total) : 0, total }))
+            .sort((a, b) => b.total - a.total || b.score - a.score)
+            .slice(0, 8);
+    })();
+
+    const trendData = (historyQuery.data ?? []).slice(0, 8).reverse().map((item) => ({
+        date: formatDateTime(item.finishedAt),
+        score: item.score ?? 0,
+        accuracy: item.accuracy ?? 0,
+    }));
 
     if (detailQuery.isLoading) {
         return <div className="page-frame"><div className="status-card">正在读取练习结果...</div></div>;
@@ -179,28 +223,62 @@ export function ResultPage() {
                 </aside>
             </section>
 
-            <section className="result-distribution" aria-label="结果分布">
-                <article className="result-stat-tile result-stat-tile--perfect">
-                    <span>完美 / 无懈可击</span>
-                    <strong>{session.perfectCount}</strong>
-                </article>
-                <article className="result-stat-tile result-stat-tile--correct">
-                    <span>正确 / 完全掌握</span>
-                    <strong>{session.correctCount}</strong>
-                </article>
-                <article className="result-stat-tile result-stat-tile--deficient">
-                    <span>缺漏 / 需补全</span>
-                    <strong>{session.deficientCount}</strong>
-                </article>
-                <article className="result-stat-tile result-stat-tile--wrong">
-                    <span>错误 / 需重做</span>
-                    <strong>{session.wrongCount}</strong>
-                </article>
-                <article className="result-stat-tile result-stat-tile--unknown">
-                    <span>不会 / 建议回炉</span>
-                    <strong>{session.unknownCount}</strong>
-                </article>
-            </section>
+            <div className="result-charts-row">
+                <div className="result-report-panel">
+                    <div className="result-section-head">
+                        <h2>结果分布</h2>
+                        <span className="result-soft-badge">{totalQuestions} 题</span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={distData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fill: "rgba(41,37,32,0.4)", fontSize: 12, fontFamily: "-apple-system, sans-serif" }} axisLine={false} tickLine={false} />
+                            <YAxis hide />
+                            <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid rgba(67,59,48,0.1)", backgroundColor: "#fffcf7", fontFamily: "-apple-system, sans-serif", fontSize: 13 }} formatter={(val) => [`${val} 题`, "数量"]} cursor={{ fill: "transparent" }} />
+                            <Bar dataKey="value" radius={[8, 8, 3, 3]} maxBarSize={64}>
+                                {distData.map((entry, idx) => (<Cell key={idx} fill={entry.color} />))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div className="result-report-panel">
+                    <div className="result-section-head">
+                        <h2>模块表现</h2>
+                        <span className="result-soft-badge">{moduleData.length} 组</span>
+                    </div>
+                    {moduleData.length ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={moduleData} layout="vertical" margin={{ top: 0, right: 0, bottom: 0, left: 72 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" horizontal={false} />
+                                <XAxis type="number" domain={[0, 100]} hide />
+                                <YAxis type="category" dataKey="name" tick={{ fill: "#292520", fontSize: 14, fontFamily: "-apple-system, sans-serif" }} axisLine={false} tickLine={false} width={70} />
+                                <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid rgba(67,59,48,0.1)", backgroundColor: "#fffcf7", fontFamily: "-apple-system, sans-serif", fontSize: 13 }} formatter={(val) => [`${val} 分`]} cursor={{ fill: "transparent" }} />
+                                <Bar dataKey="score" radius={[0, 6, 6, 0]} fill={CHART_COLORS.module} maxBarSize={16} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : <div className="result-empty">暂无模块数据。</div>}
+                </div>
+            </div>
+
+            <div className="result-report-panel">
+                <div className="result-section-head">
+                    <h2>历史趋势</h2>
+                    <span className="result-soft-badge">最近 {trendData.length} 次</span>
+                </div>
+                {trendData.length > 1 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={trendData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
+                            <XAxis dataKey="date" tick={{ fill: "rgba(41,37,32,0.4)", fontSize: 12, fontFamily: "-apple-system, sans-serif" }} axisLine={false} tickLine={false} />
+                            <YAxis hide domain={[0, 100]} />
+                            <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid rgba(67,59,48,0.1)", backgroundColor: "#fffcf7", fontFamily: "-apple-system, sans-serif", fontSize: 13 }} cursor={{ stroke: "rgba(0,0,0,0.08)", strokeDasharray: "3 3" }} />
+                            <Line type="monotone" dataKey="score" name="分数" stroke={CHART_COLORS.correct} strokeWidth={2.5} dot={{ r: 4, fill: "#fff", stroke: CHART_COLORS.correct, strokeWidth: 2 }} activeDot={{ r: 6, fill: CHART_COLORS.correct, stroke: "#fff", strokeWidth: 2 }} />
+                            <Line type="monotone" dataKey="accuracy" name="达标率" stroke={CHART_COLORS.perfect} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, fill: "#fff", stroke: CHART_COLORS.perfect, strokeWidth: 1.5 }} activeDot={{ r: 5, fill: CHART_COLORS.perfect, stroke: "#fff", strokeWidth: 2 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : <div className="result-empty">至少完成两次练习后展示趋势。</div>}
+            </div>
 
             <section className="result-analysis-grid">
                 <article className="result-report-panel">
