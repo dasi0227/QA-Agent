@@ -96,7 +96,7 @@
 
 **生成链路接入记忆画像**
 
-- `GenerateAgent` 新增 `UserMemoryProvider`（当前返回 `"[]"` 占位），将 `memoryProfileJson` 传入 `PlanContext` 和 `PlanAgent` 的 prompt
+- `GenerateAgent` 在 `allowReferMemory=true` 时通过 `UserMemoryProvider` 查询当前用户 ACTIVE 记忆，将精简后的 `memoryProfileJson` 传入 `PlanContext` 和 `PlanAgent` 的 prompt
 - Plan prompt 新增"长期记忆画像"输入字段和规则：只允许影响训练策略（提高薄弱模块题量、降低基础薄弱模块难度等），不能引入资料外事实
 
 **其他**

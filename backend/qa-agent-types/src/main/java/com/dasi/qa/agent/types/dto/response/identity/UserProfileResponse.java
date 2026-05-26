@@ -17,7 +17,7 @@ public class UserProfileResponse extends BaseResponse {
     private String targetRole;
     private String targetDomain;
     private String targetCompany;
-    private Boolean allowGeneralKnowledge;
+    private Boolean allowReferMemory;
     private Boolean allowWebSearch;
     private Boolean allowFallback;
     private String answerStyle;

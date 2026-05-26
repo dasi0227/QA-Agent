@@ -79,7 +79,7 @@ public class AuthService implements IAuthService {
         }
         UserAccountResponse created = identityRepository.createUserAccount(accountRequest, accountRequest.getId());
         UserProfileRequest profileRequest = new UserProfileRequest();
-        profileRequest.setAllowGeneralKnowledge(false);
+        profileRequest.setAllowReferMemory(false);
         profileRequest.setAllowWebSearch(false);
         profileRequest.setAnswerStyle("先结论后展开，优先说明原理、场景和风险");
         profileRequest.setFeedbackStyle("先指出问题，再补正确答案和追问点");

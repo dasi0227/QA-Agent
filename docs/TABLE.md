@@ -71,7 +71,7 @@
 | `target_role` | `VARCHAR(120)` | 目标岗位 |
 | `target_domain` | `VARCHAR(120)` | 目标领域 |
 | `target_company` | `VARCHAR(120)` | 目标公司 |
-| `allow_general_knowledge` | `TINYINT(1)` | 生成链路是否允许泛化知识 |
+| `allow_refer_memory` | `TINYINT(1)` | 生成规划是否允许参考长期记忆 |
 | `allow_web_search` | `TINYINT(1)` | 生成链路是否允许 Web 补充 |
 | `allow_fallback` | `TINYINT(1)` | Plan 失败时是否允许兜底规划，默认 `0` |
 | `answer_style` | `VARCHAR(255)` | 答案风格 |
@@ -144,7 +144,7 @@
 | `stage` | `VARCHAR(32)` | 当前展示阶段，存 `GeneratePhase.generateStage` 文案 |
 | `error_code` | `VARCHAR(64)` | `AgentErrorType` 名称 |
 | `error_message` | `LONGTEXT` | 错误详情 |
-| `allow_general_knowledge` | `TINYINT(1)` | 任务启动时快照 |
+| `allow_refer_memory` | `TINYINT(1)` | 任务启动时是否允许参考长期记忆的快照 |
 | `allow_web_search` | `TINYINT(1)` | 任务启动时快照 |
 | `requested_question_count` | `INT` | 请求题数 |
 | `created_at` | `DATETIME` | 创建时间 |

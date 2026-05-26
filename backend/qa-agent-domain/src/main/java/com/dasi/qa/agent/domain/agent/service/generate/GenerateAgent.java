@@ -114,7 +114,9 @@ public class GenerateAgent implements IGenerateAgent {
         UserProfileStyleVO style = agentRepository.getUserProfileStyle(userId);
         UserProfileAllowVO allow = agentRepository.getUserProfileAllow(userId);
         String userProfileJson = jsonUtil.toJsonString(info);
-        String memoryProfileJson = userMemoryProvider.getGenerationMemory(userId);
+        String memoryProfileJson = Boolean.TRUE.equals(allow.getAllowReferMemory())
+                ? userMemoryProvider.getGenerationMemory(userId)
+                : jsonUtil.toJsonString(List.of());
         String answerStyle = style.getAnswerStyle();
 
         // 跨阶段累计 token，用于并发场景下的线程安全统计

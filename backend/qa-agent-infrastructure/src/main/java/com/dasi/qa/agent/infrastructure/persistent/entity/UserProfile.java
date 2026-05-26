@@ -26,7 +26,7 @@ public class UserProfile {
 
     private String targetCompany;
 
-    private Boolean allowGeneralKnowledge;
+    private Boolean allowReferMemory;
 
     private Boolean allowWebSearch;
 

@@ -133,7 +133,7 @@ public class AgentRepository implements IAgentRepository {
         entity.setDocumentIdsJson(JSON.toJSONString(request.getDocumentIds()));
         entity.setStatus(GenerateStatus.PENDING.name());
         entity.setStage(GeneratePhase.INIT.getGenerateStage());
-        entity.setAllowGeneralKnowledge(Boolean.TRUE.equals(allow.getAllowGeneralKnowledge()));
+        entity.setAllowReferMemory(Boolean.TRUE.equals(allow.getAllowReferMemory()));
         entity.setAllowWebSearch(Boolean.TRUE.equals(allow.getAllowWebSearch()));
         entity.setRequestedQuestionCount(questionCount(request));
         entity.setCreatedAt(now);
@@ -316,7 +316,7 @@ public class AgentRepository implements IAgentRepository {
             return null;
         }
         return new UserProfileAllowVO(
-                profile.getAllowGeneralKnowledge(),
+                profile.getAllowReferMemory(),
                 profile.getAllowWebSearch(),
                 profile.getAllowFallback()
         );

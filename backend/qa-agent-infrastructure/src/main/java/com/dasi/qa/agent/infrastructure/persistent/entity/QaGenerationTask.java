@@ -37,7 +37,7 @@ public class QaGenerationTask {
 
     private String errorMessage;
 
-    private Boolean allowGeneralKnowledge;
+    private Boolean allowReferMemory;
 
     private Boolean allowWebSearch;
 

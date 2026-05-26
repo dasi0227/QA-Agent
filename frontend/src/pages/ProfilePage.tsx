@@ -31,7 +31,7 @@ const personalSchema = z.object({
 });
 
 const agentSchema = z.object({
-    allowGeneralKnowledge: z.boolean(),
+    allowReferMemory: z.boolean(),
     allowWebSearch: z.boolean(),
     allowFallback: z.boolean(),
     answerStyle: z.string().min(1, "请输入答案风格"),
@@ -70,7 +70,7 @@ const defaultProfile: Profile = {
     targetRole: "Java 后端开发",
     targetDomain: "Java 后端",
     targetCompany: "互联网公司",
-    allowGeneralKnowledge: true,
+    allowReferMemory: true,
     allowWebSearch: false,
     allowFallback: false,
     answerStyle: "口语化但逻辑清晰",
@@ -586,7 +586,7 @@ export function ProfileConfigPage() {
         form.reset(pickAgentDefaults(profile));
     }, [form, profile]);
 
-    const allowGeneralKnowledge = form.watch("allowGeneralKnowledge");
+    const allowReferMemory = form.watch("allowReferMemory");
     const allowWebSearch = form.watch("allowWebSearch");
     const allowFallback = form.watch("allowFallback");
 
@@ -628,12 +628,12 @@ export function ProfileConfigPage() {
                 <div className="profile-section__title">能力开关</div>
                 <button
                     type="button"
-                    className={cn("profile-switch", allowGeneralKnowledge && "profile-switch--active")}
-                    onClick={() => form.setValue("allowGeneralKnowledge", !allowGeneralKnowledge, { shouldDirty: true })}
+                    className={cn("profile-switch", allowReferMemory && "profile-switch--active")}
+                    onClick={() => form.setValue("allowReferMemory", !allowReferMemory, { shouldDirty: true })}
                 >
                     <span className="profile-switch__copy">
-                        <strong>通用知识</strong>
-                        <small>生成时优先依赖资料，必要时可补通用知识，并标注补充内容。</small>
+                        <strong>参考记忆规划</strong>
+                        <small>允许生成规划参考长期记忆，调整模块题量、难度起点和检索方向。</small>
                     </span>
                     <span className="profile-switch__track" aria-hidden="true">
                         <span className="profile-switch__thumb" />
@@ -689,7 +689,7 @@ function pickPersonalDefaults(profile: Profile): PersonalForm {
 
 function pickAgentDefaults(profile: Profile): AgentForm {
     return {
-        allowGeneralKnowledge: profile.allowGeneralKnowledge,
+        allowReferMemory: profile.allowReferMemory,
         allowWebSearch: profile.allowWebSearch,
         allowFallback: profile.allowFallback,
         answerStyle: profile.answerStyle,

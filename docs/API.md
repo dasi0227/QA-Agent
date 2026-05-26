@@ -60,13 +60,14 @@
 | 方法 | 路径 | 鉴权 | 请求 |
 | --- | --- | --- | --- |
 | GET | `/identity/profile/me` | 是 | 无 |
-| POST | `/identity/profile/create` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowGeneralKnowledge?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` |
+| POST | `/identity/profile/create` | 是 | `targetRole?`, `targetDomain?`, `targetCompany?`, `allowReferMemory?`, `allowWebSearch?`, `allowFallback?`, `answerStyle?`, `feedbackStyle?`, `grade?`, `major?`, `stage?`, `llmBaseUrl?`, `llmApiKey?`, `llmModelName?` |
 | POST | `/identity/profile/update` | 是 | 同上 |
 
 说明：
 
-1. `allowFallback` 用于控制 Plan 失败时是否允许兜底规划。
-2. `llmBaseUrl`、`llmApiKey`、`llmModelName` 是 Generate / Feedback / Assess 三条 Agent 链路运行前置条件；缺失时会返回 `40902 LLM_NOT_CONFIGURED`。
+1. `allowReferMemory` 用于控制 Generate 的 Plan 阶段是否允许参考长期记忆画像。
+2. `allowFallback` 用于控制 Plan 失败时是否允许兜底规划。
+3. `llmBaseUrl`、`llmApiKey`、`llmModelName` 是 Generate / Feedback / Assess 三条 Agent 链路运行前置条件；缺失时会返回 `40902 LLM_NOT_CONFIGURED`。
 
 ## 4. Document
 
@@ -404,4 +405,4 @@ Memory 是基于真实练习评估异步沉淀的用户学习画像。前端只�
 
 1. Memory 由 Assess 保存完成后通过 MQ 异步沉淀，Assess 接口本身不直接写 Memory。
 2. `HIDDEN` 记忆不返回列表，不参与后续 Agent 输入。
-3. 第一版 GenerateAgent 只预留 Memory 输入，`UserMemoryProvider` 固定返回空，不改变生成结果。
+3. GenerateAgent 仅在 `allowReferMemory=true` 时把 ACTIVE Memory 的精简画像传给 PlanAgent；Memory 不传给 DraftAgent，不作为资料证据。

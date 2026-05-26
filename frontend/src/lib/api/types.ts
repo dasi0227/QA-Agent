@@ -45,7 +45,7 @@ export type Profile = {
     targetRole: string;
     targetDomain: string;
     targetCompany: string;
-    allowGeneralKnowledge: boolean;
+    allowReferMemory: boolean;
     allowWebSearch: boolean;
     allowFallback: boolean;
     answerStyle: string;

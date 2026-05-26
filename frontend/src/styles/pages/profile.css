@@ -116,6 +116,11 @@
   min-width: 0;
   padding: 34px;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.profile-settings__content::-webkit-scrollbar {
+  display: none;
 }
 
 .profile-pane {

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserProfileAllowVO {
 
-    private Boolean allowGeneralKnowledge;
+    private Boolean allowReferMemory;
 
     private Boolean allowWebSearch;
 

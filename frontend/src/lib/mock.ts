@@ -59,7 +59,7 @@ export type PracticeResult = {
 export type ProfileDraft = {
   targetRole: string;
   targetDirection: string;
-  allowGeneralKnowledge: boolean;
+  allowReferMemory: boolean;
   answerStyle: string;
   feedbackStyle: string;
   grade: string;
@@ -152,7 +152,7 @@ export const timelineItems: TimelineItem[] = [
 export const profileDefaults: ProfileDraft = {
   targetRole: "Java 后端开发",
   targetDirection: "校招",
-  allowGeneralKnowledge: true,
+  allowReferMemory: true,
   answerStyle: "口语化但逻辑清晰",
   feedbackStyle: "直接指出问题并给建议",
   grade: "大四",
