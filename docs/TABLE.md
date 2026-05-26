@@ -341,8 +341,8 @@
 | `id` | `CHAR(36)` | 主键 |
 | `user_id` | `CHAR(36)` | 用户隔离字段 |
 | `memory_type` | `VARCHAR(32)` | `AWFUL` / `UNCLEAR` / `MASTER` |
-| `target_type` | `VARCHAR(32)` | `MODULE` / `BEHAVIOR` / `GENERAL` |
-| `target_key` | `VARCHAR(120)` | 模块 tag、行为枚举或 `GENERAL` |
+| `target_type` | `VARCHAR(32)` | `MODULE_TAG` / `ANSWER_SKILL` |
+| `target_key` | `VARCHAR(120)` | 模块 tag 或回答能力 key |
 | `content` | `TEXT` | 客观画像内容 |
 | `support_count` | `INT` | 支撑证据数量 |
 | `status` | `VARCHAR(32)` | `ACTIVE` / `HIDDEN` |

@@ -28,10 +28,8 @@ public class UserMemoryProvider {
     private Map<String, Object> toGenerationMemory(UserMemoryResponse memory) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("memoryType", memory.getMemoryType());
-        value.put("memoryTypeText", memory.getMemoryTypeText());
         value.put("targetType", memory.getTargetType());
         value.put("targetKey", memory.getTargetKey());
-        value.put("targetKeyText", memory.getTargetKeyText());
         value.put("content", memory.getContent());
         value.put("supportCount", memory.getSupportCount());
         return value;

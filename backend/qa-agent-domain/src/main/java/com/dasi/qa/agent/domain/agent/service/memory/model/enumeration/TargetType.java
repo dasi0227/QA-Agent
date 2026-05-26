@@ -7,9 +7,8 @@ import org.springframework.util.StringUtils;
 @Getter
 @AllArgsConstructor
 public enum TargetType {
-    MODULE("模块"),
-    BEHAVIOR("行为"),
-    GENERAL("整体");
+    MODULE_TAG("知识模块"),
+    ANSWER_SKILL("回答能力");
 
     private final String label;
 

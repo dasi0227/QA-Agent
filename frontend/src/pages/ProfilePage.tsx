@@ -17,7 +17,7 @@ import {
     useSaveProfileMutation,
     useUploadAvatarMutation,
 } from "@/lib/api/hooks";
-import type { AuthUser, Profile, UserMemory } from "@/lib/api/types";
+import type { AuthUser, Profile, UserMemory, UserMemoryEvidence } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
@@ -88,6 +88,14 @@ const defaultPassword: PasswordForm = {
     newPassword: "",
     confirmPassword: "",
 };
+
+const memoryGroups = [
+    { type: "MASTER", label: "表现稳定", titleLabel: "稳定掌握", tone: "master" },
+    { type: "UNCLEAR", label: "需要巩固", titleLabel: "理解不稳", tone: "unclear" },
+    { type: "AWFUL", label: "明显缺口", titleLabel: "严重薄弱", tone: "awful" },
+] as const;
+
+type MemoryGroupType = (typeof memoryGroups)[number]["type"];
 
 type ProfileSettingsContext = {
     profile: Profile;
@@ -442,7 +450,9 @@ export function ProfileInfoPage() {
 export function ProfileMemoryPage() {
     const { data = [], isLoading, isError, error, refetch } = useMemoryListQuery();
     const [selectedMemoryId, setSelectedMemoryId] = useState("");
-    const selectedMemory = data.find((item) => item.id === selectedMemoryId) ?? data[0];
+    const [selectedMemoryType, setSelectedMemoryType] = useState<MemoryGroupType>("UNCLEAR");
+    const selectedGroupMemories = data.filter((item) => item.memoryType === selectedMemoryType);
+    const selectedMemory = selectedGroupMemories.find((item) => item.id === selectedMemoryId) ?? selectedGroupMemories[0];
     const detailQuery = useMemoryDetailQuery(selectedMemory?.id ?? "", { enabled: Boolean(selectedMemory?.id) });
     const hideMemoryMutation = useHideMemoryMutation();
     const { showErrorDialog } = useGlobalErrorDialog();
@@ -452,10 +462,19 @@ export function ProfileMemoryPage() {
             setSelectedMemoryId("");
             return;
         }
-        if (!selectedMemoryId || !data.some((item) => item.id === selectedMemoryId)) {
-            setSelectedMemoryId(data[0].id);
+        const currentGroupHasData = data.some((item) => item.memoryType === selectedMemoryType);
+        const nextType = currentGroupHasData
+            ? selectedMemoryType
+            : memoryGroups.find((group) => data.some((item) => item.memoryType === group.type))?.type ?? selectedMemoryType;
+        if (nextType !== selectedMemoryType) {
+            setSelectedMemoryType(nextType);
+            return;
         }
-    }, [data, selectedMemoryId]);
+        const groupItems = data.filter((item) => item.memoryType === nextType);
+        if (!selectedMemoryId || !groupItems.some((item) => item.id === selectedMemoryId)) {
+            setSelectedMemoryId(groupItems[0]?.id ?? "");
+        }
+    }, [data, selectedMemoryId, selectedMemoryType]);
 
     const handleHideMemory = async (memory: UserMemory) => {
         try {
@@ -494,26 +513,62 @@ export function ProfileMemoryPage() {
                 </div>
             ) : (
                 <div className="profile-memory">
-                    <div className="profile-memory__list" aria-label="长期记忆列表">
-                        {data.map((memory) => (
-                            <button
-                                key={memory.id}
-                                type="button"
-                                className={cn("profile-memory-card", selectedMemory?.id === memory.id && "profile-memory-card--active")}
-                                onClick={() => setSelectedMemoryId(memory.id)}
-                            >
-                                <div className="profile-memory-card__meta">
-                                    <span>{memory.memoryTypeText || memory.memoryType}</span>
-                                    <span>{memory.targetKeyText || memory.targetKey}</span>
+                    <aside className="profile-memory__types" aria-label="学习画像分类">
+                        <div className="profile-memory__types-title">学习画像</div>
+                        {memoryGroups.map((group) => {
+                            const count = data.filter((item) => item.memoryType === group.type).length;
+                            return (
+                                <button
+                                    key={group.type}
+                                    type="button"
+                                    className={cn(
+                                        "profile-memory-type",
+                                        `profile-memory-type--${group.tone}`,
+                                        selectedMemoryType === group.type && "profile-memory-type--active",
+                                    )}
+                                    onClick={() => {
+                                        setSelectedMemoryType(group.type);
+                                        setSelectedMemoryId("");
+                                    }}
+                                >
+                                    <span className="profile-memory-type__dot" />
+                                    <span>{group.label}</span>
+                                    <strong>{count}</strong>
+                                </button>
+                            );
+                        })}
+                    </aside>
+                    <section className="profile-memory__list" aria-label="长期记忆列表">
+                        <div className="profile-memory__list-head">
+                            <h2>{memoryGroups.find((group) => group.type === selectedMemoryType)?.label ?? "学习画像"}</h2>
+                            <p>选择一条画像查看它背后的真实作答证据。</p>
+                        </div>
+                        <div className="profile-memory__scroll">
+                            {selectedGroupMemories.length === 0 ? (
+                                <div className="profile-empty-state profile-empty-state--compact">
+                                    <strong>当前分类暂无画像</strong>
+                                    <p>可以切换其它分类查看已有记忆。</p>
                                 </div>
-                                <strong>{memoryTitle(memory)}</strong>
-                                <p>{memory.content}</p>
-                                <div className="profile-memory-card__stats">
-                                    <span>证据 {memory.supportCount}</span>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
+                            ) : selectedGroupMemories.map((memory) => (
+                                <button
+                                    key={memory.id}
+                                    type="button"
+                                    className={cn("profile-memory-card", selectedMemory?.id === memory.id && "profile-memory-card--active")}
+                                    onClick={() => setSelectedMemoryId(memory.id)}
+                                >
+                                    <div className="profile-memory-card__meta">
+                                        <span>{memoryTargetTypeLabel(memory.targetType)}</span>
+                                        <span>{formatDateTime(memory.lastSeenAt)}</span>
+                                    </div>
+                                    <strong>{memoryTitle(memory)}</strong>
+                                    <p>{memory.content}</p>
+                                    <div className="profile-memory-card__stats">
+                                        <span>证据 {memory.supportCount}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </section>
                     <div className="profile-memory__detail">
                         {detailQuery.isLoading ? (
                             <LoadingCard />
@@ -522,8 +577,8 @@ export function ProfileMemoryPage() {
                                 <div className="profile-memory-detail__header">
                                     <div>
                                         <div className="profile-memory-card__meta">
-                                            <span>{detailQuery.data.memory.targetTypeText || detailQuery.data.memory.targetType}</span>
-                                            <span>{detailQuery.data.memory.targetKeyText || detailQuery.data.memory.targetKey}</span>
+                                            <span>{memoryTargetTypeLabel(detailQuery.data.memory.targetType)}</span>
+                                            <span>{detailQuery.data.memory.targetKey}</span>
                                         </div>
                                         <h2>{memoryTitle(detailQuery.data.memory)}</h2>
                                     </div>
@@ -538,26 +593,29 @@ export function ProfileMemoryPage() {
                                 </div>
                                 <p className="profile-memory-detail__summary">{detailQuery.data.memory.content}</p>
                                 <div className="profile-memory-detail__facts">
-                                    <span>类型：{detailQuery.data.memory.memoryTypeText || detailQuery.data.memory.memoryType}</span>
+                                    <span>类型：{memoryTypeTitleLabel(detailQuery.data.memory.memoryType)}</span>
                                     <span>证据数：{detailQuery.data.memory.supportCount}</span>
                                     <span>最近出现：{formatDateTime(detailQuery.data.memory.lastSeenAt)}</span>
                                 </div>
-                                <section className="profile-section">
+                                <section className="profile-section profile-memory-evidence-section">
                                     <div className="profile-section__title">证据记录</div>
                                     <div className="profile-memory-evidence">
                                         {detailQuery.data.evidenceList.length === 0 ? (
                                             <p>暂无证据记录。</p>
-                                        ) : detailQuery.data.evidenceList.map((evidence) => (
-                                            <div key={evidence.id} className="profile-memory-evidence__item">
-                                                <div className="profile-memory-card__meta">
-                                                    <span>{evidence.moduleTag || "未标记模块"}</span>
-                                                    <span>{evidence.result || "未评分"} · {evidence.score} 分</span>
+                                        ) : detailQuery.data.evidenceList.map((evidence) => {
+                                            const meta = memoryEvidenceResultMeta(evidence);
+                                            return (
+                                            <div key={evidence.id} className={cn("profile-memory-evidence__item", `profile-memory-evidence__item--${meta.tone}`)}>
+                                                <div className="profile-memory-evidence__result">
+                                                    <strong>{evidence.score == null ? "-" : `${evidence.score} 分`}</strong>
+                                                    <span className={cn("profile-memory-result", `profile-memory-result--${meta.tone}`)}>{meta.label}</span>
                                                 </div>
                                                 <strong>{evidence.questionSnapshot || "题目快照缺失"}</strong>
                                                 <p>{evidence.evidenceSummary}</p>
-                                                <small>{formatDateTime(evidence.createdAt ?? "")}</small>
+                                                <small>{evidence.moduleTag || "未标记模块"} · {formatDateTime(evidence.createdAt ?? "")}</small>
                                             </div>
-                                        ))}
+                                        );
+                                        })}
                                     </div>
                                 </section>
                             </>
@@ -701,9 +759,43 @@ function pickAgentDefaults(profile: Profile): AgentForm {
 }
 
 function memoryTitle(memory: UserMemory) {
-    const target = memory.targetKeyText || memory.targetKey || "未命名对象";
-    const type = memory.memoryTypeText || memory.memoryType || "未命名画像";
+    const target = memory.targetKey || "未命名对象";
+    const type = memoryTypeTitleLabel(memory.memoryType);
     return `${target} · ${type}`;
+}
+
+function memoryTypeTitleLabel(memoryType: string) {
+    return memoryGroups.find((group) => group.type === memoryType)?.titleLabel ?? (memoryType || "未命名画像");
+}
+
+function memoryTargetTypeLabel(targetType: string) {
+    if (targetType === "MODULE_TAG") {
+        return "知识模块";
+    }
+    if (targetType === "ANSWER_SKILL") {
+        return "回答能力";
+    }
+    return targetType || "目标对象";
+}
+
+function memoryEvidenceResultMeta(evidence: UserMemoryEvidence) {
+    const raw = (evidence.result || "").toUpperCase();
+    if (raw === "PERFECT") {
+        return { label: "完美", tone: "perfect" };
+    }
+    if (raw === "CORRECT") {
+        return { label: "正确", tone: "correct" };
+    }
+    if (raw === "DEFICIENT") {
+        return { label: "缺漏", tone: "deficient" };
+    }
+    if (raw === "WRONG") {
+        return { label: "错误", tone: "wrong" };
+    }
+    if (raw === "UNKNOWN") {
+        return { label: "不会", tone: "unknown" };
+    }
+    return { label: raw || "未评分", tone: "pending" };
 }
 
 function formatDateTime(value: string) {

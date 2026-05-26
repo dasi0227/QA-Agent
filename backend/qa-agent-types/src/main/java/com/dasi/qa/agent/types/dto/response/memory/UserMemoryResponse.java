@@ -15,11 +15,8 @@ import lombok.NoArgsConstructor;
 public class UserMemoryResponse extends BaseResponse {
 
     private String memoryType;
-    private String memoryTypeText;
     private String targetType;
-    private String targetTypeText;
     private String targetKey;
-    private String targetKeyText;
     private String content;
     private Integer supportCount;
     private String status;

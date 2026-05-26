@@ -2,10 +2,7 @@ package com.dasi.qa.agent.infrastructure.repository;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.BehaviorKey;
-import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.ProficientType;
 import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.MemoryStatus;
-import com.dasi.qa.agent.domain.agent.service.memory.model.enumeration.TargetType;
 import com.dasi.qa.agent.domain.memory.repository.IMemoryRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserMemory;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserMemoryEvidence;
@@ -90,11 +87,8 @@ public class MemoryRepository implements IMemoryRepository {
         response.setCreatedAt(time(entity.getCreatedAt()));
         response.setUpdatedAt(time(entity.getUpdatedAt()));
         response.setMemoryType(entity.getMemoryType());
-        response.setMemoryTypeText(memoryTypeText(entity.getMemoryType()));
         response.setTargetType(entity.getTargetType());
-        response.setTargetTypeText(targetTypeText(entity.getTargetType()));
         response.setTargetKey(entity.getTargetKey());
-        response.setTargetKeyText(targetKeyText(entity.getTargetType(), entity.getTargetKey()));
         response.setContent(entity.getContent());
         response.setSupportCount(entity.getSupportCount());
         response.setStatus(entity.getStatus());
@@ -128,28 +122,4 @@ public class MemoryRepository implements IMemoryRepository {
         return value == null ? null : value.toString();
     }
 
-    private String memoryTypeText(String value) {
-        ProficientType type = ProficientType.fromValue(value);
-        return type == null ? value : type.getLabel();
-    }
-
-    private String targetTypeText(String value) {
-        TargetType type = TargetType.fromValue(value);
-        return type == null ? value : type.getLabel();
-    }
-
-    private String targetKeyText(String targetTypeValue, String targetKey) {
-        TargetType targetType = TargetType.fromValue(targetTypeValue);
-        if (targetType == null) {
-            return targetKey;
-        }
-        return switch (targetType) {
-            case MODULE -> targetKey;
-            case BEHAVIOR -> {
-                BehaviorKey behaviorKey = BehaviorKey.fromValue(targetKey);
-                yield behaviorKey == null ? targetKey : behaviorKey.getLabel();
-            }
-            case GENERAL -> "整体";
-        };
-    }
 }

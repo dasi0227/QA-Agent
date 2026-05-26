@@ -73,7 +73,7 @@
 **新增 Memory 领域模块（domain/memory/）**
 
 - 领域模型：`Memory`、`MemoryEvidence`、`IngestContext`
-- 枚举：`MemoryProficientType`（AWFUL/UNCLEAR/MASTER）、`MemoryTargetType`（MODULE/BEHAVIOR/GENERAL）、`MemoryBehaviorKey`（6 种行为画像）、`ModuleTag`（固定模块池白名单）、`MemoryStatus`（ACTIVE/HIDDEN）
+- 枚举：`MemoryProficientType`（AWFUL/UNCLEAR/MASTER）、`MemoryTargetType`（MODULE_TAG/ANSWER_SKILL）、`AnswerSkill`（内容/结构回答的完整性、原因/场景分析的逻辑性、概念/术语表达的精确度）、`ModuleTag`（固定模块池白名单）、`MemoryStatus`（ACTIVE/HIDDEN）
 - 仓储接口：`IAgentRepository` 承载 MemoryAgent 沉淀所需的上下文读取、按 key 查询、写 Memory 和 evidence；`IMemoryRepository` 只保留 list/detail/hide
 - 领域服务：`MemoryService` 只负责前端列表、详情和隐藏，不再承载异步沉淀入口
 

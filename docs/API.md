@@ -379,11 +379,8 @@ Memory 是基于真实练习评估异步沉淀的用户学习画像。前端只�
 | --- | --- |
 | `id` | Memory ID |
 | `memoryType` | `AWFUL` / `UNCLEAR` / `MASTER` |
-| `memoryTypeText` | Memory 类型中文展示值 |
-| `targetType` | `MODULE` / `BEHAVIOR` / `GENERAL` |
-| `targetTypeText` | 目标类型中文展示值 |
-| `targetKey` | 模块 tag、行为枚举或 `GENERAL` |
-| `targetKeyText` | 目标对象中文展示值 |
+| `targetType` | `MODULE_TAG` / `ANSWER_SKILL` |
+| `targetKey` | 模块 tag 或回答能力 key |
 | `content` | 用户可读画像内容 |
 | `supportCount` | 支撑证据数量 |
 | `status` | `ACTIVE` / `HIDDEN` |
