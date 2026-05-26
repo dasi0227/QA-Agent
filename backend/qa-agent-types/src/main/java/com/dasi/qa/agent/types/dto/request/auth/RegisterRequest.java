@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class RegisterRequest {
 
     @NotBlank
-    @Size(min = 3, max = 100)
+    @Size(min = 4, max = 10)
     private String username;
 
     @NotBlank
@@ -23,7 +23,7 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank
-    @Size(min = 6)
+    @Size(min = 6, max = 18)
     private String password;
 
     @NotBlank
