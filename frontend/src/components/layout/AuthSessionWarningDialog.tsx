@@ -7,7 +7,6 @@ import {
 } from "@/lib/authSessionWarningBus";
 
 const DEFAULT_COUNTDOWN_SECONDS = 3;
-const DEDUP_WINDOW_MS = 1500;
 const AUTH_PATHS = new Set(["/login", "/register"]);
 
 function isPublicAuthPath(pathname: string) {
@@ -36,7 +35,7 @@ export function triggerAuthSessionWarning(payload: Omit<AuthSessionWarningPayloa
 export function AuthSessionWarningDialog() {
     const [activeWarning, setActiveWarning] = useState<AuthSessionWarningPayload | null>(null);
     const [countdown, setCountdown] = useState(DEFAULT_COUNTDOWN_SECONDS);
-    const recentWarningMapRef = useRef<Map<string, number>>(new Map());
+    const hasActiveWarningRef = useRef(false);
 
     const redirectToLogin = useCallback(() => {
         if (typeof window === "undefined") {
@@ -47,13 +46,10 @@ export function AuthSessionWarningDialog() {
     }, [activeWarning?.from]);
 
     const enqueueWarning = useCallback((payload: AuthSessionWarningPayload) => {
-        const key = `${payload.title}|${payload.message}|${payload.from}`;
-        const now = Date.now();
-        const lastShownAt = recentWarningMapRef.current.get(key) || 0;
-        if (now - lastShownAt <= DEDUP_WINDOW_MS) {
+        if (hasActiveWarningRef.current) {
             return;
         }
-        recentWarningMapRef.current.set(key, now);
+        hasActiveWarningRef.current = true;
         setActiveWarning(payload);
         setCountdown(payload.countdownSeconds ?? DEFAULT_COUNTDOWN_SECONDS);
     }, []);

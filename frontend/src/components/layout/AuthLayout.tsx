@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { Link, Outlet } from "react-router";
 import { SiteFooter } from "./SiteFooter";
 
 export function AuthLayout() {
@@ -6,10 +6,10 @@ export function AuthLayout() {
     <div className="app-shell auth-shell">
       <div className="page-shell auth-shell__inner">
         <div className="auth-shell__content">
-          <div className="auth-banner">
+          <Link to="/" className="auth-banner">
             <img className="auth-banner__icon" src="/logo.svg" alt="" />
             <span className="auth-banner__text">QA Agent</span>
-          </div>
+          </Link>
           <Outlet />
         </div>
         <SiteFooter />

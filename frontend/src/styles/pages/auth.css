@@ -125,6 +125,8 @@
   gap: 12px;
   width: min(680px, 100%);
   padding: 0 4px;
+  text-decoration: none;
+  color: inherit;
 }
 
 

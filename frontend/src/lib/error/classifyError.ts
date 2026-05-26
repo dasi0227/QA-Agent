@@ -23,10 +23,6 @@ export function classifyError(error: unknown, context: ErrorContext): ErrorClass
     const message = extractMessage(error, context.fallbackMessage);
     const title = context.errorTitle || context.fallbackTitle || "请求失败";
 
-    if (context.errorMode) {
-        return { mode: context.errorMode, code, title, message };
-    }
-
     if (code === "40100" || (error instanceof ApiError && error.status === 401)) {
         return {
             mode: "redirect_login",
