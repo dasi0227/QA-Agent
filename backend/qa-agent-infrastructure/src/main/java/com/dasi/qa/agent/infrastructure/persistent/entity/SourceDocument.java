@@ -28,6 +28,8 @@ public class SourceDocument {
     
     private String rawContent;
 
+    private String indexStatus;
+
     private Integer referenceCount;
     
     private Boolean deleted;

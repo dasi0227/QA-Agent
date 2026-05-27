@@ -13,6 +13,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dasi.qa.agent.domain.document.model.ChunkDraft;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.document.model.ChunkSearchRow;
+import com.dasi.qa.agent.domain.document.model.IndexStatus;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.infrastructure.persistent.entity.DocumentChunk;
 import com.dasi.qa.agent.infrastructure.persistent.entity.QaSet;
@@ -225,6 +226,28 @@ public class DocumentRepository implements IDocumentRepository {
             throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
         return entity.getUserId();
+    }
+
+    @Override
+    public void updateIndexStatus(String documentId, String userId, String indexStatus) {
+        SourceDocument entity = new SourceDocument();
+        entity.setId(documentId);
+        entity.setIndexStatus(indexStatus);
+        LambdaQueryWrapper<SourceDocument> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SourceDocument::getId, documentId).eq(SourceDocument::getUserId, userId);
+        sourceDocumentMapper.update(entity, wrapper);
+    }
+
+    @Override
+    public List<SourceDocumentResponse> listFinishedDocuments(String userId) {
+        LambdaQueryWrapper<SourceDocument> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SourceDocument::getUserId, userId)
+                .eq(SourceDocument::getDeleted, false)
+                .eq(SourceDocument::getIndexStatus, IndexStatus.FINISHED.name())
+                .orderByDesc(SourceDocument::getCreatedAt);
+        return sourceDocumentMapper.selectList(wrapper).stream()
+                .map(entity -> toResponse(entity, SourceDocumentResponse.class))
+                .toList();
     }
 
     // ======================== V2 RAG: PostgreSQL chunk_search ========================

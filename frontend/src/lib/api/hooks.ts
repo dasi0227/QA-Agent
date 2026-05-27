@@ -101,6 +101,7 @@ export const apiKeys = {
     currentUser: ["auth", "me"] as const,
     profile: ["profile"] as const,
     documents: ["documents"] as const,
+    finishedDocuments: ["documents", "finished"] as const,
     document: (id: string) => ["documents", id] as const,
     documentChunks: (idsKey: string) => ["document-chunks", idsKey] as const,
     questionSets: ["question-sets"] as const,
@@ -246,6 +247,7 @@ export function normalizeDocument(raw: unknown): DocumentRecord {
         fileType: toStringValue(pick(raw, "fileType", "file_type")),
         filePath: toStringValue(pick(raw, "filePath", "file_path")),
         rawContent: toStringValue(pick(raw, "rawContent", "raw_content")),
+        indexStatus: toStringValue(pick(raw, "indexStatus", "index_status"), "UNSOLVED"),
         referenceCount: toNumberValue(pick(raw, "referenceCount", "reference_count")),
         deleted: toBooleanValue(pick(raw, "deleted")),
         createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
@@ -669,6 +671,14 @@ export function useDocumentsQuery(options: QueryControlOptions = {}) {
             method: "POST",
             body: {},
         })).map(normalizeDocument),
+    });
+}
+
+export function useFinishedDocumentsQuery(options: QueryControlOptions = {}) {
+    return useQuery({
+        queryKey: apiKeys.finishedDocuments,
+        enabled: options.enabled ?? true,
+        queryFn: async () => (await apiRequest<unknown[]>("/document/source/finished")).map(normalizeDocument),
     });
 }
 

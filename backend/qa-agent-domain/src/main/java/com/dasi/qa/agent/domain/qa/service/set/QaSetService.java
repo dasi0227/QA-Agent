@@ -3,6 +3,7 @@ package com.dasi.qa.agent.domain.qa.service.set;
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
+import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetConverter;
 import com.dasi.qa.agent.domain.qa.service.convert.QaSetExportFile;
@@ -15,6 +16,7 @@ import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetExportResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetResponse;
+import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskCreateResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskListItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.TaskMessageResponse;
@@ -28,7 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Service
 public class QaSetService implements IQaSetService {
@@ -38,6 +42,7 @@ public class QaSetService implements IQaSetService {
     private final QaSetConverter converter;
     private final IIdUtil idUtil;
     private final IAgentRepository agentRepository;
+    private final IDocumentRepository documentRepository;
     private final IGenerateAgent generateAgent;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
@@ -46,6 +51,7 @@ public class QaSetService implements IQaSetService {
                         QaSetConverter converter,
                         IIdUtil idUtil,
                         IAgentRepository agentRepository,
+                        IDocumentRepository documentRepository,
                         IGenerateAgent generateAgent,
                         @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
         this.repository = repository;
@@ -53,6 +59,7 @@ public class QaSetService implements IQaSetService {
         this.converter = converter;
         this.idUtil = idUtil;
         this.agentRepository = agentRepository;
+        this.documentRepository = documentRepository;
         this.generateAgent = generateAgent;
         this.applicationTaskExecutor = applicationTaskExecutor;
     }
@@ -109,6 +116,7 @@ public class QaSetService implements IQaSetService {
     @Override
     public TaskCreateResponse createTask(CreateQaSetRequest request) {
         String userId = contextUtil.getUserId();
+        validateDocumentFinished(request.getDocumentIds(), userId);
         String taskId = idUtil.nextId();
         agentRepository.createGenerationTask(taskId, userId, request, agentRepository.getUserProfileAllow(userId));
         return TaskCreateResponse.builder().taskId(taskId).build();
@@ -120,7 +128,22 @@ public class QaSetService implements IQaSetService {
             throw new ApiException(ResultCode.BAD_REQUEST, "生成任务 ID 不能为空，请先创建生成任务");
         }
         String userId = contextUtil.getUserId();
+        validateDocumentFinished(request.getDocumentIds(), userId);
         applicationTaskExecutor.execute(() -> generateAgent.execute(userId, request, sseEventHandler));
+    }
+
+    private void validateDocumentFinished(List<String> documentIds, String userId) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            return;
+        }
+        Set<String> finishedIds = documentRepository.listFinishedDocuments(userId).stream()
+                .map(SourceDocumentResponse::getId)
+                .collect(Collectors.toSet());
+        for (String docId : documentIds) {
+            if (!finishedIds.contains(docId)) {
+                throw new ApiException(ResultCode.BAD_REQUEST, "资料尚未完成索引，请稍后重试");
+            }
+        }
     }
 
     @Override

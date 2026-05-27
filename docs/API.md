@@ -80,13 +80,15 @@
 | POST | `/document/source/upload` | 是 | `fileName`, `fileType`, `filePath?`, `rawContent` |
 | POST | `/document/source/update` | 是 | `id`, `fileName?` |
 | POST | `/document/source/delete` | 是 | `id` |
+| GET | `/document/source/finished` | 是 | 无 |
 
 说明：
 
 1. `upload` 成功后发送 Kafka 消息到 `document.index`，异步触发 RAG 索引。
 2. `update` 只允许修改 `fileName`，不触发重索引，不修改资料正文。
 3. `delete` 执行软删除（`deleted = true`）。删除前校验 userId 归属，若 `referenceCount > 0` 则返回 `40903` 并提示引用该资料的问答集名称列表。
-4. 当前没有开放 `/document/source/reindex` 接口。
+4. `/document/source/finished` 只返回索引状态为 `FINISHED` 的资料，用于创建题集时的资料选择。
+5. 当前没有开放 `/document/source/reindex` 接口。
 
 响应元素 `SourceDocumentResponse`：
 
@@ -97,6 +99,7 @@
 | `fileType` | 文件类型 |
 | `filePath` | 文件路径 |
 | `rawContent` | 原始正文 |
+| `indexStatus` | 索引状态：`INDEXING` / `FINISHED` / `UNSOLVED` |
 | `referenceCount` | 被问答集引用的次数 |
 | `deleted` | 是否已逻辑删除 |
 | `createdAt` | 创建时间 |

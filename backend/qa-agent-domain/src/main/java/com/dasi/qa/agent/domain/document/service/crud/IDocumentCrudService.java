@@ -17,6 +17,8 @@ public interface IDocumentCrudService {
 
     SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request);
 
+    List<SourceDocumentResponse> listFinishedDocuments();
+
     void deleteSourceDocument(String id);
 
     DocumentChunkResponse detailDocumentChunk(String id);

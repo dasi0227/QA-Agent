@@ -7,7 +7,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { TextArea } from "@/components/base/field";
 import {
     apiKeys,
-    useDocumentsQuery,
+    useFinishedDocumentsQuery,
     useCreateTaskMutation,
     useCreateQuestionSetStream,
     useTaskStatusQuery,
@@ -125,7 +125,7 @@ export function CreatePage() {
     const navigate = useNavigate();
     const { taskId: urlTaskId } = useParams();
     const [draft] = useState(loadDraft);
-    const documentsQuery = useDocumentsQuery();
+    const documentsQuery = useFinishedDocumentsQuery();
     const createTask = useCreateTaskMutation();
     const createStream = useCreateQuestionSetStream();
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>(draft.selectedIds);

@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.domain.document.service.crud;
 
+import com.dasi.qa.agent.domain.document.model.IndexStatus;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
 import com.dasi.qa.agent.domain.util.IContextUtil;
@@ -60,7 +61,13 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         }
         SourceDocumentResponse response = repository.createSourceDocument(request, userId);
         mqUtil.sendIndexMessage(response.getId(), Map.of("documentId", response.getId(), "userId", userId));
+        repository.updateIndexStatus(response.getId(), userId, IndexStatus.INDEXING.name());
         return response;
+    }
+
+    @Override
+    public List<SourceDocumentResponse> listFinishedDocuments() {
+        return repository.listFinishedDocuments(contextUtil.getUserId());
     }
 
     @Override

@@ -39,6 +39,10 @@ public interface IDocumentRepository {
 
     List<DocumentChunkResponse> batchQueryDocumentChunk(List<String> chunkIds);
 
+    void updateIndexStatus(String documentId, String userId, String indexStatus);
+
+    List<SourceDocumentResponse> listFinishedDocuments(String userId);
+
     String getDocumentUserId(String documentId);
 
     // -- V2 RAG: PostgreSQL chunk_search operations --

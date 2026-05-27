@@ -102,6 +102,7 @@
 | `file_type` | `VARCHAR(32)` | 当前主要为 `MARKDOWN` |
 | `file_path` | `VARCHAR(500)` | 可选路径 |
 | `raw_content` | `LONGTEXT` | 原始正文 |
+| `index_status` | `VARCHAR(32)` | `INDEXING` / `FINISHED` / `UNSOLVED` |
 | `reference_count` | `INT` | 被题集引用次数 |
 | `deleted` | `TINYINT(1)` | 软删除标记 |
 | `created_at` | `DATETIME` | 创建时间 |

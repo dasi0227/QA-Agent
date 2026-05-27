@@ -256,6 +256,7 @@ export function DocumentPage() {
                                                 <span>添加于 {formatCompactDateTime(selectedDocumentQuery.data.createdAt || selectedDocumentUpdatedAt)}</span>
                                                 <span>更新于 {formatCompactDateTime(selectedDocumentUpdatedAt)}</span>
                                                 <span>引用次数 {selectedDocumentUseCount} 次</span>
+                                                <span className={cn("document-index-status-tag", `document-index-status-tag--${(selectedDocumentQuery.data.indexStatus || "UNSOLVED").toLowerCase()}`)}>{(() => { const s = selectedDocumentQuery.data.indexStatus || "UNSOLVED"; return s === "FINISHED" ? "已索引" : s === "INDEXING" ? "索引中" : "未索引"; })()}</span>
                                             </div>
                                         </div>
                                     </div>

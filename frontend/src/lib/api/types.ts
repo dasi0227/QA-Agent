@@ -118,6 +118,7 @@ export type DocumentRecord = {
     fileType: string;
     filePath: string;
     rawContent: string;
+    indexStatus: string;
     referenceCount: number;
     deleted: boolean;
     createdAt?: string;

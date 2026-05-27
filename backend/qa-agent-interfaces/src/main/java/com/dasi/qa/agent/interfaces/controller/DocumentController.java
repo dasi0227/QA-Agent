@@ -41,6 +41,11 @@ public class DocumentController {
         return Result.success(documentService.updateSourceDocument(request));
     }
 
+    @GetMapping("/source/finished")
+    public Result<List<SourceDocumentResponse>> sourceDocumentFinished() {
+        return Result.success(documentService.listFinishedDocuments());
+    }
+
     @PostMapping("/source/delete")
     public Result<Void> sourceDocumentDelete(@RequestBody SourceDocumentRequest request) {
         documentService.deleteSourceDocument(request.getId());
