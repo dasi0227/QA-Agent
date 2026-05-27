@@ -36,4 +36,6 @@ public class RedisConstant {
 
     public static final String AUTH_VERIFY_CODE_KEY = "auth:verify-code:";
     public static final String AUTH_VERIFY_RATE_LIMIT_KEY = "auth:verify-rate-limit:";
+
+    public static final String LLM_HEALTH_KEY = "llm:health:";
 }

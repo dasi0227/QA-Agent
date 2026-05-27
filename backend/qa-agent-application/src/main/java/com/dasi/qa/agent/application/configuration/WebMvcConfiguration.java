@@ -1,6 +1,7 @@
 package com.dasi.qa.agent.application.configuration;
 
 import com.dasi.qa.agent.interfaces.interceptor.JwtInterceptor;
+import com.dasi.qa.agent.interfaces.interceptor.LlmHealthInterceptor;
 import com.dasi.qa.agent.interfaces.interceptor.RequestLoggerInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -18,12 +19,15 @@ import java.util.List;
 public class WebMvcConfiguration implements WebMvcConfigurer {
 
     private final JwtInterceptor jwtInterceptor;
-
+    private final LlmHealthInterceptor llmHealthInterceptor;
     private final RequestLoggerInterceptor requestLoggerInterceptor;
 
-    public WebMvcConfiguration(JwtInterceptor jwtInterceptor, RequestLoggerInterceptor requestLoggerInterceptor) {
-        this.requestLoggerInterceptor = requestLoggerInterceptor;
+    public WebMvcConfiguration(JwtInterceptor jwtInterceptor,
+                               LlmHealthInterceptor llmHealthInterceptor,
+                               RequestLoggerInterceptor requestLoggerInterceptor) {
         this.jwtInterceptor = jwtInterceptor;
+        this.llmHealthInterceptor = llmHealthInterceptor;
+        this.requestLoggerInterceptor = requestLoggerInterceptor;
     }
 
     @Override
@@ -49,6 +53,18 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 "/actuator/health",
                 "/error"
             );
+
+        registry.addInterceptor(llmHealthInterceptor)
+                .addPathPatterns(
+                        "/qa/set/task",
+                        "/qa/set/create",
+                        "/qa/item/create/single",
+                        "/qa/item/create/batch",
+                        "/qa/item/complete",
+                        "/practice/item/answer",
+                        "/practice/session/submit",
+                        "/chat/temp"
+                );
 
         registry.addInterceptor(requestLoggerInterceptor)
                 .addPathPatterns("/**")
