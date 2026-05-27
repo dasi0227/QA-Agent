@@ -1,7 +1,6 @@
 package com.dasi.qa.agent.domain.chat.service;
 
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
-import com.dasi.qa.agent.domain.chat.service.subagent.DasiTempChatAgent;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.dto.request.chat.TempChatRequest;
 import com.dasi.qa.agent.types.dto.response.chat.TempChatResponse;
@@ -11,7 +10,9 @@ import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
+import dev.langchain4j.service.MemoryId;
+import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,10 +25,15 @@ public class ChatService implements IChatService {
 
     public ChatService(IContextUtil contextUtil,
                        UserLlmModelProvider userLlmModelProvider,
-                       @Qualifier("dasiTempChatMemoryProvider") ChatMemoryProvider chatMemoryProvider) {
+                       ChatMemoryProvider chatMemoryProvider) {
         this.contextUtil = contextUtil;
         this.userLlmModelProvider = userLlmModelProvider;
         this.chatMemoryProvider = chatMemoryProvider;
+    }
+
+    private interface TempChatBot {
+        @SystemMessage(fromResource = "prompt/chat/temp-chat.txt")
+        String chat(@MemoryId String tempChatId, @UserMessage String message);
     }
 
     @Override
@@ -35,7 +41,7 @@ public class ChatService implements IChatService {
         String userId = contextUtil.getUserId();
         try {
             ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
-            DasiTempChatAgent agent = AiServices.builder(DasiTempChatAgent.class)
+            TempChatBot agent = AiServices.builder(TempChatBot.class)
                     .chatModel(userModel)
                     .chatMemoryProvider(chatMemoryProvider)
                     .build();
