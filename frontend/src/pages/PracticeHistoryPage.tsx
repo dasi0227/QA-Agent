@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { LinkButton } from "@/components/base/button";
 import { usePracticeHistoryQuery, useQuestionSetQuery } from "@/lib/api/hooks";
 
@@ -35,7 +35,8 @@ function feedbackModeLabel(value?: string) {
 }
 
 export function PracticeHistoryPage() {
-    const { qaSetId = "" } = useParams();
+    const [searchParams] = useSearchParams();
+    const qaSetId = searchParams.get("qaSetId") ?? "";
     const qaSetQuery = useQuestionSetQuery(qaSetId);
     const historyQuery = usePracticeHistoryQuery(qaSetId);
     const records = historyQuery.data ?? [];
@@ -44,7 +45,7 @@ export function PracticeHistoryPage() {
         <div className="page-frame practice-history-page">
             <div className="practice-history-page__head">
                 <h1>练习历史 · {qaSetQuery.data?.title || "问答集练习历史"}</h1>
-                <LinkButton to={`/repository/qa-set/${qaSetId}`} variant="ghost">返回问答集</LinkButton>
+                <LinkButton to={`/repository/qa-set?qaSetId=${qaSetId}`} variant="ghost">返回问答集</LinkButton>
             </div>
 
             {historyQuery.isLoading ? (

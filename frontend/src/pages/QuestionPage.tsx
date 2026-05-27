@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
 import { BaseButton } from "@/components/base/button";
+import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea, TextInput } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
@@ -248,6 +249,7 @@ export function QuestionPage() {
         const question = smartQuestionDraft.trim();
         if (!question) return;
         const qaSetEntry = await createSmartQuestionItemMutation.mutateAsync({ qaSetId, question });
+        emitDasiBubble("✅ 题目已创建，Dasi 正在补全内容，稍后刷新查看。");
         setSmartQuestionDraft("");
         setCreateDialogOpen(false);
         navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${qaSetEntry.id}`, { replace: true });
@@ -328,6 +330,7 @@ export function QuestionPage() {
             moduleTag: selectedModuleDraft.join(","),
             keywords: selectedKeywordsDraft.join(","),
         });
+        emitDasiBubble("✅ 题目已保存，继续完善其他题目吧。");
         setEditDialogOpen(false);
     };
 
@@ -607,7 +610,7 @@ export function QuestionPage() {
                                                     variant="soft"
                                                     type="button"
                                                     className="question-side-rail__action-btn"
-                                                    onClick={() => navigate(`/repository/qa-set/${qaSetId}`)}
+                                                    onClick={() => navigate(`/repository/qa-set?qaSetId=${qaSetId}`)}
                                                 >
                                                     返回问答集
                                                 </BaseButton>

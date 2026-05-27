@@ -3,6 +3,7 @@ import { Clock, CornerUpLeft, Save } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
+import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { AssessmentGeneratingPanel } from "@/components/practice/AssessmentGeneratingPanel";
 import { AnswerCard } from "@/components/practice/AnswerCard";
 import { PracticeLayout } from "@/components/practice/PracticeLayout";
@@ -143,6 +144,26 @@ export function PracticePage() {
         doSave();
     }, [currentItem?.sessionItemId]);
 
+    // Idle timer: show encouragement bubble if stuck on same question > 3 min
+    const idleFiredRef = useRef(false);
+    const itemEnteredAtRef = useRef(Date.now());
+    useEffect(() => {
+        itemEnteredAtRef.current = Date.now();
+        idleFiredRef.current = false;
+    }, [currentItem?.sessionItemId]);
+
+    useEffect(() => {
+        if (!currentItem || itemReadonly) return;
+        const id = window.setInterval(() => {
+            if (idleFiredRef.current) return;
+            if (Date.now() - itemEnteredAtRef.current > 180_000) {
+                idleFiredRef.current = true;
+                emitDasiBubble("这道题花了些时间，实在卡住了可以先标记「不会」跳过哦 ⏰");
+            }
+        }, 30000);
+        return () => window.clearInterval(id);
+    }, [currentItem, itemReadonly]);
+
     const flushAnswer = async (force = false, nextIndex = currentIndex) => {
         if (!currentItem || itemReadonly) return;
         if (!force && (currentItem.userAnswer ?? "") === answer) return;
@@ -187,6 +208,7 @@ export function PracticePage() {
             currentIndex,
             durationSeconds,
         });
+        emitDasiBubble("不会也没关系，标记下来回头再攻克它～ 🤗");
     };
 
     const itemHasAnswer = (item: typeof currentItem, index: number) => {
@@ -211,6 +233,7 @@ export function PracticePage() {
             return;
         }
         await submitSessionMutation.mutateAsync({ sessionId, durationSeconds });
+        emitDasiBubble("🎉 一轮练习完成！来看看总结，薄弱点值得再多花时间。");
         navigate(`/practice/${sessionId}/result`);
     };
 

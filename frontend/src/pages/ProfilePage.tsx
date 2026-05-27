@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { NavLink, Navigate, Outlet, useNavigate, useOutletContext } from "react-router";
 import { z } from "zod";
 import { BaseButton } from "@/components/base/button";
+import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { Field, TextInput } from "@/components/base/field";
 import { LoadingCard } from "@/components/base/loading-card";
 import type { CropArea } from "@/components/profile/ProfileAvatarCropper";
@@ -343,6 +344,7 @@ export function ProfileInfoPage() {
                 className="profile-form"
                 onSubmit={personalForm.handleSubmit(async (values) => {
                     await saveMutation.mutateAsync({ ...profile, ...values });
+                    emitDasiBubble("✅ 信息已保存，Dasi 已经记录下来了。");
                 })}
             >
                 <section className="profile-section">
@@ -653,6 +655,7 @@ export function ProfileConfigPage() {
             className="profile-pane"
             onSubmit={form.handleSubmit(async (values) => {
                 await saveMutation.mutateAsync({ ...profile, ...values });
+                emitDasiBubble("✅ 配置已保存，模型参数已生效。");
             })}
         >
             <section className="profile-section">

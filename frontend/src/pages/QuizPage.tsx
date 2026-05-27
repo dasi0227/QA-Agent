@@ -261,7 +261,7 @@ export function QuizPage() {
                                                 onClick={() => {
                                                     if (isAnimating) return;
                                                     if (isActiveCard) {
-                                                        navigate(`/repository/qa-set/${item.id}`);
+                                                        navigate(`/repository/qa-set?qaSetId=${item.id}`);
                                                     } else {
                                                         setActiveSetByIndex(questionSets.findIndex((set) => set.id === item.id));
                                                     }

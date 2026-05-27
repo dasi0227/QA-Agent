@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { FileUp, FolderPlus, Sparkles, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
+import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import {
     useCreateEmptyQuestionSetMutation,
     useDeleteQuestionSetMutation,
@@ -47,7 +48,7 @@ function formatCompactDateTime(value?: string) {
 }
 
 export function QASetPage() {
-    const params = useParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [setTitleDraft, setSetTitleDraft] = useState("");
     const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
@@ -63,7 +64,7 @@ export function QASetPage() {
 
     const questionSetsQuery = useQuestionSetsQuery();
 
-    const selectedSetId = params.id ?? questionSetsQuery.data?.[0]?.id ?? "";
+    const selectedSetId = searchParams.get("qaSetId") ?? questionSetsQuery.data?.[0]?.id ?? "";
     const selectedSetQuery = useQuestionSetQuery(selectedSetId);
     const selectedSetItemsQuery = useQuestionSetItemsQuery(selectedSetId);
     const deleteQuestionSetMutation = useDeleteQuestionSetMutation();
@@ -125,6 +126,7 @@ export function QASetPage() {
             description: setDescriptionDraft.trim(),
             moduleTagsJson: JSON.stringify(selectedTagsDraft),
         });
+        emitDasiBubble("✅ 题集信息已更新。");
         setEditDialogOpen(false);
     };
 
@@ -153,7 +155,7 @@ export function QASetPage() {
             setEmptySetFormOpen(false);
             setEmptySetTitleDraft("");
             setEmptySetDescriptionDraft("");
-            navigate(`/repository/qa-set/${createdSet.id}`, { replace: true });
+            navigate(`/repository/qa-set?qaSetId=${createdSet.id}`, { replace: true });
         } catch (error) {
             setImportError(error instanceof Error ? error.message : "空题集创建失败，请稍后重试。");
         }
@@ -168,8 +170,9 @@ export function QASetPage() {
         }
         try {
             const importedSet = await importQuestionSetMutation.mutateAsync({ file });
+            emitDasiBubble("导入成功，题目已加入题库，可以开练了 📦");
             setCreateSetDialogOpen(false);
-            navigate(`/repository/qa-set/${importedSet.id}`, { replace: true });
+            navigate(`/repository/qa-set?qaSetId=${importedSet.id}`, { replace: true });
         } catch (error) {
             setImportError(error instanceof Error ? error.message : "导入失败，请检查文件格式。");
         } finally {
@@ -190,6 +193,7 @@ export function QASetPage() {
         anchor.click();
         anchor.remove();
         window.URL.revokeObjectURL(url);
+        emitDasiBubble("导出成功！.dasi 文件可以分享给朋友一起练习，一起进步～ ✅");
     };
 
     return (
@@ -229,7 +233,7 @@ export function QASetPage() {
                                 return (
                                     <Link
                                         key={qaSetEntry.id}
-                                        to={`/repository/qa-set/${qaSetEntry.id}`}
+                                        to={`/repository/qa-set?qaSetId=${qaSetEntry.id}`}
                                         className={cn("tree-qaSetEntry", "tree-qaSetEntry--entry", isActive && "tree-qaSetEntry--active")}
                                     >
                                         <span className="tree-item__label">{qaSetEntry.title}</span>
@@ -323,7 +327,7 @@ export function QASetPage() {
                                     <LinkButton to={`/quiz?questionSetId=${selectedSetQuery.data.id}`} variant="primary">
                                         开始练习
                                     </LinkButton>
-                                    <LinkButton to={`/repository/qa-set/${selectedSetQuery.data.id}/history`} variant="soft">
+                                    <LinkButton to={`/repository/qa-set/history?qaSetId=${selectedSetQuery.data.id}`} variant="soft">
                                         练习历史
                                     </LinkButton>
                                     <LinkButton
@@ -431,6 +435,7 @@ export function QASetPage() {
                 onConfirm={async () => {
                     if (!selectedSetQuery.data) return;
                     await deleteQuestionSetMutation.mutateAsync(selectedSetQuery.data.id);
+                    emitDasiBubble("题集已删除 🗑️");
                     setDeleteSetDialogOpen(false);
                     navigate("/repository/qa-set", { replace: true });
                 }}

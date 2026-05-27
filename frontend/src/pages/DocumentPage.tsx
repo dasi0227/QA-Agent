@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
+import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { GlassCard } from "@/components/base/card";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import {
@@ -167,6 +168,7 @@ export function DocumentPage() {
                                     }
                                     try {
                                         await uploadDocumentMutation.mutateAsync(file);
+                                        emitDasiBubble("资料已添加，Dasi 正在后台建立索引 📄");
                                     } catch { /* handled by mutation */ }
                                     e.target.value = "";
                                 }}
@@ -331,6 +333,7 @@ export function DocumentPage() {
                 onConfirm={async () => {
                     if (!selectedDocumentQuery.data) return;
                     await deleteDocumentMutation.mutateAsync(selectedDocumentQuery.data.id);
+                    emitDasiBubble("资料已移除，相关索引也会同步清理 🗑️");
                     setDeleteDocDialogOpen(false);
                     setActiveDocumentId("");
                     setDocumentNameDraft("");

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { CornerDownLeft, Loader2, X } from "lucide-react";
+import { ChevronLeft, CornerDownLeft, Loader2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useLocation } from "react-router";
@@ -12,19 +12,75 @@ type DasiMessage = {
     tone?: "normal" | "error";
 };
 
-const INITIAL_BUBBLE = "你好，我是 Dasi，有什么问题可以问我～";
-
-const RANDOM_BUBBLES = [
-    "累了吗？要不先喝口水。",
-    "卡住也正常，慢慢拆。",
-    "哪里没想通？可以直接问我。",
-    "答案太长？我可以帮你拆结构。",
-    "不确定怎么表达？丢给我看看。",
-    "还是不理解？没关系，我会出手。",
-    "这波可以先稳一手。",
-    "问题不大，我们逐层分析。",
-    "啊，是关中王来了。",
+const GLOBAL_BUBBLES = [
+    "🤓 你好，我是 Dasi，有什么问题可以点击询问哦～",
+    "如果不想看到 Dasi，可以点击左上角的折叠哦（但我会伤心的 😭）",
 ];
+
+const PAGE_BUBBLES: Record<string, string[]> = {
+    "/repository/qa-set": [
+        "看够了嘛？别等了，现在就开始练习吧 📦",
+        "题目有问题？点击题目可以进入详情页修改哦～",
+        "📊 戳一下「练习历史」，看看你的战绩如何～",
+        "随机练习还是顺序练习？选一个喜欢的姿势开始 🎲",
+        "据我观察，多练几次，分数就会慢慢涨上去 🏆",
+    ],
+    "/repository/document": [
+        "⚠️ Dasi 当前只支持 Markdown 格式，不要传错了哦～",
+        "上传后 Dasi 会自动帮你建立专属 RAG 知识库，放心交给我 🔍",
+        "⚠️ 注意哦，资料上传后内容不支持修改，请确认内容无误再上传～",
+        "资料越丰富，生成的题目就越精准，不妨多传几篇。",
+        "资料准备好了，我的出题引擎已经饥渴难耐了 💪",
+    ],
+    "/repository/question": [
+        "🛠️ 点击补全填入问题和答案，剩下的交给 Dasi～",
+        "每一道题目都是知识的凝聚，掌握它们，offer 到手 💎",
+        "Dasi 生成的题目不满意？别骂了别骂了，自己动手改改，我也会进步的 🙇",
+        "给题目加上模块标签和难度，复习的时候更好分类哦 🏷️",
+        "关键词 🔑 设得好，以后检索更方便，别偷懒填个「其他」～",
+    ],
+    "/practice": [
+        "慢慢来不要急，想清楚再写 🧘",
+        "不确定怎么写？没关系，点「提示」看看思路 💡",
+        "每道题都是积累，只要在练习就是在进步！",
+        "这题真有水平，不愧是我出的，把 Dasi 自己都难到了 😤",
+        "Offer 进度 99%，就差这题了 🎯",
+        "先喝口水，换个思路再回来，答案就浮现了 ☕",
+        "慢就是快，每个细节都值得推敲 🐢",
+        "纠结不定？先写下第一反应，回头再改也不迟。",
+        "我觉得你有点进步了～说真的 🌱",
+        "批改中……开个玩笑，Dasi 还没那么智能 ✍️",
+        "偷偷告诉你 🥷，AI 判题也会看走眼，感觉不对可以质疑。",
+        "答完了？看看 Dasi 给你的反馈，每条都值得看 💬",
+    ],
+    "/result": [
+        "🎉 太棒了！本轮已经完成，来看看你的表现吧。",
+        "薄弱模块建议回头再看一眼资料，确保真的记住了～ 🔁",
+        "达标率不理想？别焦虑，Dasi 陪你反复练，直到滚瓜烂熟 📉",
+        "知识记住了不算完，能在题目里用出来才是你的。继续练习，形成肌肉记忆 🧠",
+    ],
+    "/quiz": [
+        "选择一个题集，开始今天的练习吧 🎯",
+        "每次练习都是成长，Dasi 帮你记录每一次进步 🏆",
+        "完成练习后可以在这里看到你的历史表现 📊",
+        "随机练习还是顺序练习？选一个喜欢的姿势开始 🎲",
+        "准备好了吗？刷题才是检验知识的唯一标准 💪",
+    ],
+    "/profile": [
+        "🤖 开始使用系统之前，别忘了配置你的模型参数哦～",
+        "点击「个人记忆」，Dasi 有一份对你的观察报告 👀",
+        "模型参数影响判题和出题质量，建议用最新模型效果更好 ⚙️",
+        "完善个人信息，Dasi 会给你更贴合的题目和反馈 🧩",
+    ],
+    "/create": [
+        "不知道怎么写需求？试试「生成 10 道关于 SpringBoot 的面试题目」",
+        "⚠️ 生成过程可能需要几分钟，请耐心等待哦～",
+        "好需求是高质量题目的关键，花点时间打磨值得 🧠",
+        "📂 先添加资料吧——偷偷告诉你，Dasi 生成的题目都是基于你的资料哦",
+        "丢失进度了？点击时钟图标即可恢复之前的任务 ⏱️",
+        "⚙️ 发送前别忘去设置里配置生成需求，这步很重要！",
+    ],
+};
 
 function createTempChatId() {
     const random = typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -37,19 +93,43 @@ function createMessageId() {
     return `msg_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
-function randomBubbleText() {
-    return RANDOM_BUBBLES[Math.floor(Math.random() * RANDOM_BUBBLES.length)] || RANDOM_BUBBLES[0];
+function shuffleArray<T>(arr: T[]): T[] {
+    const shuffled = [...arr];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+function getPageBubblePool(pathname: string): string[] {
+    const key = Object.keys(PAGE_BUBBLES).find((k) => pathname.startsWith(k)) ?? "";
+    return [...GLOBAL_BUBBLES, ...(PAGE_BUBBLES[key] ?? [])];
+}
+
+let shuffleBuffer: string[] = [];
+let shuffleIndex = 0;
+
+function randomBubbleText(pathname: string): string {
+    const pool = getPageBubblePool(pathname);
+    if (shuffleIndex >= shuffleBuffer.length) {
+        shuffleBuffer = shuffleArray(pool);
+        shuffleIndex = 0;
+    }
+    return shuffleBuffer[shuffleIndex++] ?? GLOBAL_BUBBLES[0];
 }
 
 function randomBubbleDelay() {
-    return 60000 + Math.floor(Math.random() * 120000);
+    return 40000 + Math.floor(Math.random() * 40000);
 }
 
 function shouldShowDasi(pathname: string) {
     if (
         pathname === "/repository/document" ||
         pathname === "/repository/question" ||
-        pathname === "/repository/qa-set"
+        pathname === "/repository/qa-set" ||
+        pathname === "/quiz" ||
+        pathname === "/create"
     ) {
         return true;
     }
@@ -57,6 +137,9 @@ function shouldShowDasi(pathname: string) {
         return true;
     }
     if (pathname.startsWith("/practice/") && !pathname.endsWith("/review")) {
+        return true;
+    }
+    if (pathname.startsWith("/profile")) {
         return true;
     }
     return false;
@@ -72,8 +155,9 @@ export function DasiChatWidget() {
     const [input, setInput] = useState("");
     const [inputError, setInputError] = useState("");
     const [open, setOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
     const [bubbleVisible, setBubbleVisible] = useState(false);
-    const [bubbleText, setBubbleText] = useState(INITIAL_BUBBLE);
+    const [bubbleText, setBubbleText] = useState("");
     const timersRef = useRef<number[]>([]);
     const openRef = useRef(open);
     const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -95,16 +179,16 @@ export function DasiChatWidget() {
             if (openRef.current) {
                 return;
             }
-            setBubbleText(randomBubbleText());
+            setBubbleText(randomBubbleText(location.pathname));
             setBubbleVisible(true);
             const hideTimerId = window.setTimeout(() => {
                 setBubbleVisible(false);
                 scheduleRandomBubble();
-            }, 3000);
+            }, 3900);
             timersRef.current.push(hideTimerId);
         }, randomBubbleDelay());
         timersRef.current.push(timerId);
-    }, []);
+    }, [location.pathname]);
 
     useEffect(() => {
         clearBubbleTimers();
@@ -114,28 +198,35 @@ export function DasiChatWidget() {
         setInputError("");
         setOpen(false);
         setBubbleVisible(false);
-        setBubbleText(INITIAL_BUBBLE);
+        setBubbleText("");
         if (!visible) {
             return undefined;
         }
-        const showTimerId = window.setTimeout(() => {
-            if (openRef.current) {
-                return;
-            }
-            setBubbleVisible(true);
-            const hideTimerId = window.setTimeout(() => {
-                setBubbleVisible(false);
-                scheduleRandomBubble();
-            }, 3000);
-            timersRef.current.push(hideTimerId);
-        }, 500);
-        timersRef.current.push(showTimerId);
+        scheduleRandomBubble();
         return clearBubbleTimers;
     }, [clearBubbleTimers, routeKey, scheduleRandomBubble, visible]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ block: "end" });
     }, [messages, open, tempChatMutation.isPending]);
+
+    // Listen for behavior-triggered bubbles from other components
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const text = (e as CustomEvent<string>).detail;
+            if (!text || openRef.current) return;
+            clearBubbleTimers();
+            setBubbleText(text);
+            setBubbleVisible(true);
+            const hideId = window.setTimeout(() => {
+                setBubbleVisible(false);
+                scheduleRandomBubble();
+            }, 3900);
+            timersRef.current.push(hideId);
+        };
+        window.addEventListener("dasi:bubble", handler);
+        return () => window.removeEventListener("dasi:bubble", handler);
+    }, [clearBubbleTimers, scheduleRandomBubble]);
 
     const toggleOpen = useCallback(() => {
         setOpen((current) => {
@@ -228,8 +319,7 @@ export function DasiChatWidget() {
                 <div className="dasi-chat-panel__body">
                     {messages.length === 0 ? (
                         <div className="dasi-chat-empty">
-                            <strong>可以直接问我。</strong>
-                            <span>我不会读取当前页面；需要我分析的内容，可以粘贴到这里。</span>
+                            <span>临时对话不会持久保存；你在当前页面的对话记录会保留，但刷新页面后将会丢失。请留意重要内容及时备份。</span>
                         </div>
                     ) : null}
                     {messages.map((message) => (
@@ -251,7 +341,7 @@ export function DasiChatWidget() {
                         className="dasi-chat-input"
                         value={input}
                         maxLength={4000}
-                        placeholder="输入问题，按 Enter 发送"
+                        placeholder="给 Dasi 发送消息"
                         rows={1}
                         onChange={(event) => {
                             setInput(event.target.value);
@@ -275,13 +365,30 @@ export function DasiChatWidget() {
                 </div>
             </section>
 
-            <button type="button" className="dasi-mascot" onClick={toggleOpen} aria-label={open ? "关闭临时对话" : "打开临时对话"}>
-                <DasiMascotSvg />
-            </button>
+            {collapsed ? (
+                <button type="button" className="dasi-collapsed-btn" onClick={() => setCollapsed(false)} aria-label="展开 Dasi">
+                    Dasi
+                </button>
+            ) : (
+                <div className="dasi-mascot-area" onMouseEnter={() => {}} onMouseLeave={() => {}}>
+                    <button
+                        type="button"
+                        className="dasi-collapse-btn"
+                        onClick={(e) => { e.stopPropagation(); setCollapsed(true); }}
+                        aria-label="收起 Dasi"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <button type="button" className="dasi-mascot" onClick={toggleOpen} aria-label={open ? "关闭临时对话" : "打开临时对话"}>
+                        <DasiMascotSvg />
+                    </button>
+                    <button type="button" className={bubbleClassName} onClick={openChat} aria-label="打开临时对话">
+                        {bubbleText}
+                    </button>
+                </div>
+            )}
 
-            <button type="button" className={bubbleClassName} onClick={openChat} aria-label="打开临时对话">
-                {bubbleText}
-            </button>
+            {collapsed ? null : null}
         </div>
     );
 }
@@ -347,4 +454,8 @@ function DasiMascotSvg() {
             </g>
         </svg>
     );
+}
+
+export function emitDasiBubble(text: string) {
+    window.dispatchEvent(new CustomEvent("dasi:bubble", { detail: text }));
 }
