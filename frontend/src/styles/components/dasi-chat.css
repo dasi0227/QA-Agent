@@ -5,8 +5,6 @@
   z-index: 80;
   pointer-events: none;
   font-family: var(--font-sans);
-  transform: scale(0.75);
-  transform-origin: left bottom;
 }
 
 .dasi-mascot-area {
@@ -19,8 +17,8 @@
 
 .dasi-collapse-btn {
   position: fixed;
-  left: 14px;
-  bottom: 160px;
+  left: 2px;
+  bottom: 118px;
   display: grid;
   place-items: center;
   width: 26px;
@@ -35,6 +33,8 @@
   pointer-events: auto;
   transition: opacity 180ms ease;
   z-index: 84;
+  transform: scale(0.75);
+  transform-origin: left bottom;
 }
 
 .dasi-collapse-btn svg {
@@ -52,7 +52,7 @@
 .dasi-collapsed-btn {
   position: fixed;
   left: 0;
-  bottom: 40px;
+  bottom: 28px;
   display: grid;
   place-items: center;
   width: 34px;
@@ -72,6 +72,8 @@
   z-index: 82;
   box-shadow: 0 8px 22px rgba(39, 31, 20, 0.1);
   transition: background 180ms ease, border-color 180ms ease;
+  transform: scale(1.1);
+  transform-origin: left bottom;
 }
 
 .dasi-collapsed-btn:hover {
@@ -82,8 +84,8 @@
 
 .dasi-mascot {
   position: fixed;
-  left: 20px;
-  bottom: 6px;
+  left: 4px;
+  bottom: 2px;
   width: 192px;
   height: 180px;
   padding: 0;
@@ -92,6 +94,8 @@
   cursor: pointer;
   pointer-events: auto;
   z-index: 82;
+  transform: scale(0.75);
+  transform-origin: left bottom;
 }
 
 .dasi-mascot__svg {
@@ -144,8 +148,8 @@
 
 .dasi-bubble {
   position: fixed;
-  left: 178px;
-  bottom: 182px;
+  left: 124px;
+  bottom: 128px;
   width: 156px;
   min-height: 44px;
   padding: 8px 12px;
@@ -160,8 +164,9 @@
   text-align: left;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-14px, 12px) scale(0.82);
+  transform: translate(-10px, 10px) scale(0.615);
   z-index: 83;
+  transform-origin: left bottom;
 }
 
 .dasi-bubble::before,
@@ -194,13 +199,13 @@
 
 .dasi-chat-panel {
   position: fixed;
-  left: 44px;
-  bottom: 200px;
+  left: 28px;
+  bottom: 158px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(340px, calc(100vw - 60px));
-  height: min(420px, calc(100vh - 260px));
-  min-height: 320px;
+  width: min(370px, calc(100vw - 60px));
+  height: min(460px, calc(100vh - 240px));
+  min-height: 350px;
   border: 1px solid #dfcfb2;
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(251, 246, 236, 0.98));
@@ -210,6 +215,7 @@
   pointer-events: none;
   transform: translateY(14px) scale(0.98);
   transition: opacity 220ms ease, transform 220ms ease;
+  transform-origin: left bottom;
   z-index: 81;
 }
 
@@ -292,19 +298,21 @@
 }
 
 .dasi-message--assistant {
-  justify-self: start;
+  align-self: flex-start;
   border: 1px solid #ead9bc;
   border-bottom-left-radius: 5px;
   background: #f1e6d3;
   color: #382f23;
+  text-align: left;
 }
 
 .dasi-message--user {
-  justify-self: end;
+  align-self: flex-end;
   border-bottom-right-radius: 5px;
   background: #211c17;
   color: #fff7e8;
   white-space: pre-wrap;
+  text-align: right;
 }
 
 .dasi-message--error {
@@ -400,6 +408,11 @@
   padding: 10px 14px;
   outline: none;
   line-height: 1.5;
+  scrollbar-width: none;
+}
+
+.dasi-chat-input::-webkit-scrollbar {
+  display: none;
 }
 
 .dasi-chat-input:focus {

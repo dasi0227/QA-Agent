@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, CornerDownLeft, Loader2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -13,8 +13,9 @@ type DasiMessage = {
 };
 
 const GLOBAL_BUBBLES = [
-    "🤓 你好，我是 Dasi，有什么问题可以点击询问哦～",
+    "你好，我是 Dasi，有什么问题可以点击询问哦 🤓",
     "如果不想看到 Dasi，可以点击左上角的折叠哦（但我会伤心的 😭）",
+    "🔔 注意点击右上角设置 LLM 参数，你将会赋予 Dasi 生命！",
 ];
 
 const PAGE_BUBBLES: Record<string, string[]> = {
@@ -119,8 +120,16 @@ function randomBubbleText(pathname: string): string {
     return shuffleBuffer[shuffleIndex++] ?? GLOBAL_BUBBLES[0];
 }
 
-function randomBubbleDelay() {
-    return 40000 + Math.floor(Math.random() * 40000);
+function pageBubbleDelay() {
+    return 40000 + Math.floor(Math.random() * 20000);
+}
+
+function globalBubbleDelay() {
+    return 5000;
+}
+
+function randomGlobalBubbleText() {
+    return GLOBAL_BUBBLES[Math.floor(Math.random() * GLOBAL_BUBBLES.length)] ?? GLOBAL_BUBBLES[0];
 }
 
 function shouldShowDasi(pathname: string) {
@@ -160,35 +169,63 @@ export function DasiChatWidget() {
     const [bubbleText, setBubbleText] = useState("");
     const timersRef = useRef<number[]>([]);
     const openRef = useRef(open);
+    const bubbleVisibleRef = useRef(false);
     const bottomRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         openRef.current = open;
     }, [open]);
 
+    useEffect(() => {
+        bubbleVisibleRef.current = bubbleVisible;
+    }, [bubbleVisible]);
+
     const clearBubbleTimers = useCallback(() => {
         timersRef.current.forEach((timerId) => window.clearTimeout(timerId));
         timersRef.current = [];
     }, []);
 
-    const scheduleRandomBubble = useCallback(() => {
-        if (openRef.current) {
-            return;
-        }
-        const timerId = window.setTimeout(() => {
-            if (openRef.current) {
+    const popBubble = useCallback((text: string) => {
+        clearBubbleTimers();
+        setBubbleText(text);
+        setBubbleVisible(true);
+    }, [clearBubbleTimers]);
+
+    const scheduleHideAndNext = useCallback((nextFn: () => void) => {
+        const hideId = window.setTimeout(() => {
+            setBubbleVisible(false);
+            nextFn();
+        }, 3900);
+        timersRef.current.push(hideId);
+    }, []);
+
+    const schedulePageBubble = useCallback(() => {
+        const run = () => {
+            if (openRef.current || bubbleVisibleRef.current) {
+                const retryId = window.setTimeout(run, 2000);
+                timersRef.current.push(retryId);
                 return;
             }
-            setBubbleText(randomBubbleText(location.pathname));
-            setBubbleVisible(true);
-            const hideTimerId = window.setTimeout(() => {
-                setBubbleVisible(false);
-                scheduleRandomBubble();
-            }, 3900);
-            timersRef.current.push(hideTimerId);
-        }, randomBubbleDelay());
+            popBubble(randomBubbleText(location.pathname));
+            scheduleHideAndNext(schedulePageBubble);
+        };
+        const timerId = window.setTimeout(run, pageBubbleDelay());
         timersRef.current.push(timerId);
-    }, [location.pathname]);
+    }, [location.pathname, popBubble, scheduleHideAndNext]);
+
+    const scheduleGlobalBubble = useCallback(() => {
+        const run = () => {
+            if (openRef.current || bubbleVisibleRef.current) {
+                const retryId = window.setTimeout(run, 2000);
+                timersRef.current.push(retryId);
+                return;
+            }
+            popBubble(randomGlobalBubbleText());
+            scheduleHideAndNext(scheduleGlobalBubble);
+        };
+        const timerId = window.setTimeout(run, globalBubbleDelay());
+        timersRef.current.push(timerId);
+    }, [popBubble, scheduleHideAndNext]);
 
     useEffect(() => {
         clearBubbleTimers();
@@ -202,9 +239,10 @@ export function DasiChatWidget() {
         if (!visible) {
             return undefined;
         }
-        scheduleRandomBubble();
+        schedulePageBubble();
+        scheduleGlobalBubble();
         return clearBubbleTimers;
-    }, [clearBubbleTimers, routeKey, scheduleRandomBubble, visible]);
+    }, [clearBubbleTimers, routeKey, schedulePageBubble, scheduleGlobalBubble, visible]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ block: "end" });
@@ -215,18 +253,20 @@ export function DasiChatWidget() {
         const handler = (e: Event) => {
             const text = (e as CustomEvent<string>).detail;
             if (!text || openRef.current) return;
-            clearBubbleTimers();
-            setBubbleText(text);
-            setBubbleVisible(true);
-            const hideId = window.setTimeout(() => {
-                setBubbleVisible(false);
-                scheduleRandomBubble();
-            }, 3900);
-            timersRef.current.push(hideId);
+            popBubble(text);
+            scheduleHideAndNext(() => {
+                schedulePageBubble();
+                scheduleGlobalBubble();
+            });
         };
         window.addEventListener("dasi:bubble", handler);
         return () => window.removeEventListener("dasi:bubble", handler);
-    }, [clearBubbleTimers, scheduleRandomBubble]);
+    }, [popBubble, scheduleHideAndNext, schedulePageBubble, scheduleGlobalBubble]);
+
+    const restartBubbleSchedulers = useCallback(() => {
+        schedulePageBubble();
+        scheduleGlobalBubble();
+    }, [schedulePageBubble, scheduleGlobalBubble]);
 
     const toggleOpen = useCallback(() => {
         setOpen((current) => {
@@ -235,11 +275,11 @@ export function DasiChatWidget() {
                 clearBubbleTimers();
                 setBubbleVisible(false);
             } else {
-                scheduleRandomBubble();
+                restartBubbleSchedulers();
             }
             return next;
         });
-    }, [clearBubbleTimers, scheduleRandomBubble]);
+    }, [clearBubbleTimers, restartBubbleSchedulers]);
 
     const openChat = useCallback(() => {
         clearBubbleTimers();
@@ -249,8 +289,8 @@ export function DasiChatWidget() {
 
     const closeChat = useCallback(() => {
         setOpen(false);
-        scheduleRandomBubble();
-    }, [scheduleRandomBubble]);
+        restartBubbleSchedulers();
+    }, [restartBubbleSchedulers]);
 
     const sendMessage = useCallback(async () => {
         const message = input.trim();
@@ -292,12 +332,6 @@ export function DasiChatWidget() {
         }
     }, [input, tempChatId, tempChatMutation]);
 
-    const handleInputKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            void sendMessage();
-        }
-    }, [sendMessage]);
 
     const panelClassName = useMemo(() => `dasi-chat-panel${open ? " dasi-chat-panel--open" : ""}`, [open]);
     const bubbleClassName = useMemo(() => `dasi-bubble${bubbleVisible && !open ? " dasi-bubble--visible" : ""}`, [bubbleVisible, open]);
@@ -319,7 +353,7 @@ export function DasiChatWidget() {
                 <div className="dasi-chat-panel__body">
                     {messages.length === 0 ? (
                         <div className="dasi-chat-empty">
-                            <span>临时对话不会持久保存；你在当前页面的对话记录会保留，但刷新页面后将会丢失。请留意重要内容及时备份。</span>
+                            <span>⚠️⚠️⚠️ 临时对话不会持久保存，但你在当前页面的对话历史会短暂得保留，刷新页面后将会丢失。请留意重要内容及时备份。</span>
                         </div>
                     ) : null}
                     {messages.map((message) => (
@@ -349,7 +383,6 @@ export function DasiChatWidget() {
                                 setInputError("");
                             }
                         }}
-                        onKeyDown={handleInputKeyDown}
                         disabled={tempChatMutation.isPending}
                     />
                     <button
@@ -374,7 +407,7 @@ export function DasiChatWidget() {
                     <button
                         type="button"
                         className="dasi-collapse-btn"
-                        onClick={(e) => { e.stopPropagation(); setCollapsed(true); }}
+                        onClick={(e) => { e.stopPropagation(); setOpen(false); setCollapsed(true); }}
                         aria-label="收起 Dasi"
                     >
                         <ChevronLeft size={18} />
@@ -438,6 +471,7 @@ function DasiMascotSvg() {
                     <path d="M91 67C96 64 101 64 106 67" stroke="#222721" strokeWidth="4" strokeLinecap="round" />
                     <path d="M115 67C120 64 126 65 130 68" stroke="#222721" strokeWidth="4" strokeLinecap="round" />
                 </g>
+                <text x="110" y="28" textAnchor="middle" fill="#000" fontFamily="-apple-system, sans-serif" fontSize="25" fontWeight="1000" letterSpacing="0.08em">Dasi</text>
                 <path className="dasi-mascot__left-hand" d="M82 164C92 158 100 158 108 166" stroke="#F8F1E5" strokeWidth="8" strokeLinecap="round" />
                 <path className="dasi-mascot__right-hand" d="M110 164C120 157 132 158 138 166" stroke="#F8F1E5" strokeWidth="8" strokeLinecap="round" />
             </g>
