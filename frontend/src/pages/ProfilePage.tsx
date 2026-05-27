@@ -1,9 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { NavLink, Navigate, Outlet, useNavigate, useOutletContext } from "react-router";
 import { z } from "zod";
 import { BaseButton } from "@/components/base/button";
+import { Tag } from "@/components/base/tag";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { Field, TextInput } from "@/components/base/field";
 import { LoadingCard } from "@/components/base/loading-card";
@@ -91,9 +92,9 @@ const defaultPassword: PasswordForm = {
 };
 
 const memoryGroups = [
-    { type: "MASTER", label: "表现稳定", titleLabel: "稳定掌握", tone: "master" },
-    { type: "UNCLEAR", label: "需要巩固", titleLabel: "理解不稳", tone: "unclear" },
-    { type: "AWFUL", label: "明显缺口", titleLabel: "严重薄弱", tone: "awful" },
+    { type: "MASTER", label: "表现稳定", emoji: "✅", tone: "master" },
+    { type: "UNCLEAR", label: "需要巩固", emoji: "⚠️", tone: "unclear" },
+    { type: "AWFUL", label: "明显缺口", emoji: "❌", tone: "awful" },
 ] as const;
 
 type MemoryGroupType = (typeof memoryGroups)[number]["type"];
@@ -452,31 +453,81 @@ export function ProfileInfoPage() {
 export function ProfileMemoryPage() {
     const { data = [], isLoading, isError, error, refetch } = useMemoryListQuery();
     const [selectedMemoryId, setSelectedMemoryId] = useState("");
-    const [selectedMemoryType, setSelectedMemoryType] = useState<MemoryGroupType>("UNCLEAR");
-    const selectedGroupMemories = data.filter((item) => item.memoryType === selectedMemoryType);
-    const selectedMemory = selectedGroupMemories.find((item) => item.id === selectedMemoryId) ?? selectedGroupMemories[0];
+    const [selectedMastery, setSelectedMastery] = useState<Set<string>>(new Set());
+    const [selectedTargetTypes, setSelectedTargetTypes] = useState<Set<string>>(new Set());
+    const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+
+    const masteryOptions = useMemo(() => memoryGroups.map((g) => ({
+        key: g.type,
+        label: g.label,
+        emoji: g.emoji,
+        tone: g.tone,
+        count: data.filter((item) => item.memoryType === g.type).length,
+    })), [data]);
+
+    const targetTypeOptions = useMemo(() => {
+        const seen = new Set<string>();
+        return data.filter((item) => {
+            if (seen.has(item.targetType)) return false;
+            seen.add(item.targetType);
+            return true;
+        }).map((item) => ({
+            key: item.targetType,
+            label: memoryTargetTypeLabel(item.targetType),
+            emoji: "📦",
+            tone: "module" as const,
+            count: data.filter((i) => i.targetType === item.targetType).length,
+        }));
+    }, [data]);
+
+    const isAllMastery = selectedMastery.size === 0;
+    const isAllTargetTypes = selectedTargetTypes.size === 0;
+    const isAllKeys = selectedKeys.size === 0;
+
+    const selectedGroupMemories = useMemo(() => {
+        return data.filter((item) => {
+            if (!isAllMastery && !selectedMastery.has(item.memoryType)) return false;
+            if (!isAllTargetTypes && !selectedTargetTypes.has(item.targetType)) return false;
+            if (!isAllKeys && !selectedKeys.has(item.targetKey)) return false;
+            return true;
+        });
+    }, [data, isAllMastery, selectedMastery, isAllTargetTypes, selectedTargetTypes, isAllKeys, selectedKeys]);
+
+    const keyOptions = useMemo(() => {
+        const base = data.filter((item) => {
+            if (!isAllMastery && !selectedMastery.has(item.memoryType)) return false;
+            if (!isAllTargetTypes && !selectedTargetTypes.has(item.targetType)) return false;
+            return true;
+        });
+        const seen = new Set<string>();
+        return base.filter((item) => {
+            if (!item.targetKey || seen.has(item.targetKey)) return false;
+            seen.add(item.targetKey);
+            return true;
+        }).map((item) => ({
+            key: item.targetKey,
+            count: base.filter((i) => i.targetKey === item.targetKey).length,
+        }));
+    }, [data, isAllMastery, selectedMastery, isAllTargetTypes, selectedTargetTypes]);
+
+    const selectedMemory = selectedGroupMemories.find((item) => item.id === selectedMemoryId) ?? null;
     const detailQuery = useMemoryDetailQuery(selectedMemory?.id ?? "", { enabled: Boolean(selectedMemory?.id) });
     const hideMemoryMutation = useHideMemoryMutation();
     const { showErrorDialog } = useGlobalErrorDialog();
+
+    useEffect(() => {
+        setSelectedMemoryId("");
+    }, [selectedMastery, selectedTargetTypes, selectedKeys]);
 
     useEffect(() => {
         if (!data.length) {
             setSelectedMemoryId("");
             return;
         }
-        const currentGroupHasData = data.some((item) => item.memoryType === selectedMemoryType);
-        const nextType = currentGroupHasData
-            ? selectedMemoryType
-            : memoryGroups.find((group) => data.some((item) => item.memoryType === group.type))?.type ?? selectedMemoryType;
-        if (nextType !== selectedMemoryType) {
-            setSelectedMemoryType(nextType);
-            return;
+        if (!selectedMemoryId || !selectedGroupMemories.some((item) => item.id === selectedMemoryId)) {
+            setSelectedMemoryId("");
         }
-        const groupItems = data.filter((item) => item.memoryType === nextType);
-        if (!selectedMemoryId || !groupItems.some((item) => item.id === selectedMemoryId)) {
-            setSelectedMemoryId(groupItems[0]?.id ?? "");
-        }
-    }, [data, selectedMemoryId, selectedMemoryType]);
+    }, [data, selectedMemoryId, selectedGroupMemories]);
 
     const handleHideMemory = async (memory: UserMemory) => {
         try {
@@ -515,36 +566,90 @@ export function ProfileMemoryPage() {
                 </div>
             ) : (
                 <div className="profile-memory">
-                    <aside className="profile-memory__types" aria-label="学习画像分类">
-                        <div className="profile-memory__types-title">学习画像</div>
-                        {memoryGroups.map((group) => {
-                            const count = data.filter((item) => item.memoryType === group.type).length;
-                            return (
+                    <aside className="profile-memory__types" aria-label="学习画像筛选">
+                        <div className="profile-memory__types-title">筛选</div>
+                        <div className="profile-memory__filter-group">
+                            <div className="profile-memory__filter-label">掌握程度</div>
+                            <div className="profile-memory__filter-chips">
                                 <button
-                                    key={group.type}
                                     type="button"
-                                    className={cn(
-                                        "profile-memory-type",
-                                        `profile-memory-type--${group.tone}`,
-                                        selectedMemoryType === group.type && "profile-memory-type--active",
-                                    )}
-                                    onClick={() => {
-                                        setSelectedMemoryType(group.type);
-                                        setSelectedMemoryId("");
-                                    }}
+                                    className={cn("profile-memory__chip", isAllMastery && "profile-memory__chip--active")}
+                                    onClick={() => setSelectedMastery(new Set())}
                                 >
-                                    <span className="profile-memory-type__dot" />
-                                    <span>{group.label}</span>
-                                    <strong>{count}</strong>
+                                    全部<span className="profile-memory__chip-count">{data.length}</span>
                                 </button>
-                            );
-                        })}
+                                {masteryOptions.map((opt) => (
+                                    <button
+                                        key={opt.key}
+                                        type="button"
+                                        className={cn("profile-memory__chip", selectedMastery.has(opt.key) && "profile-memory__chip--active")}
+                                        onClick={() => {
+                                            const next = new Set(selectedMastery);
+                                            if (next.has(opt.key)) { next.delete(opt.key); } else { next.add(opt.key); }
+                                            setSelectedMastery(next);
+                                        }}
+                                    >
+                                        {opt.emoji} <span className="profile-memory__chip-text">{opt.label}</span><span className="profile-memory__chip-count">{opt.count}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="profile-memory__filter-divider" />
+                        <div className="profile-memory__filter-group">
+                            <div className="profile-memory__filter-label">对象类型</div>
+                            <div className="profile-memory__filter-chips">
+                                <button
+                                    type="button"
+                                    className={cn("profile-memory__chip", isAllTargetTypes && "profile-memory__chip--active")}
+                                    onClick={() => setSelectedTargetTypes(new Set())}
+                                >
+                                    全部<span className="profile-memory__chip-count">{data.length}</span>
+                                </button>
+                                {targetTypeOptions.map((opt) => (
+                                    <button
+                                        key={opt.key}
+                                        type="button"
+                                        className={cn("profile-memory__chip", selectedTargetTypes.has(opt.key) && "profile-memory__chip--active")}
+                                        onClick={() => {
+                                            const next = new Set(selectedTargetTypes);
+                                            if (next.has(opt.key)) { next.delete(opt.key); } else { next.add(opt.key); }
+                                            setSelectedTargetTypes(next);
+                                        }}
+                                    >
+                                        {opt.emoji} <span className="profile-memory__chip-text">{opt.label}</span><span className="profile-memory__chip-count">{opt.count}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="profile-memory__filter-divider" />
+                        <div className="profile-memory__filter-group">
+                            <div className="profile-memory__filter-label">对象名称</div>
+                            <div className="profile-memory__filter-chips">
+                                <button
+                                    type="button"
+                                    className={cn("profile-memory__chip", isAllKeys && "profile-memory__chip--active")}
+                                    onClick={() => setSelectedKeys(new Set())}
+                                >
+                                    全部<span className="profile-memory__chip-count">{selectedGroupMemories.length}</span>
+                                </button>
+                                {keyOptions.map((opt) => (
+                                    <button
+                                        key={opt.key}
+                                        type="button"
+                                        className={cn("profile-memory__chip", selectedKeys.has(opt.key) && "profile-memory__chip--active")}
+                                        onClick={() => {
+                                            const next = new Set(selectedKeys);
+                                            if (next.has(opt.key)) { next.delete(opt.key); } else { next.add(opt.key); }
+                                            setSelectedKeys(next);
+                                        }}
+                                    >
+                                        <span className="profile-memory__chip-text">{opt.key}</span><span className="profile-memory__chip-count">{opt.count}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </aside>
                     <section className="profile-memory__list" aria-label="长期记忆列表">
-                        <div className="profile-memory__list-head">
-                            <h2>{memoryGroups.find((group) => group.type === selectedMemoryType)?.label ?? "学习画像"}</h2>
-                            <p>选择一条画像查看它背后的真实作答证据。</p>
-                        </div>
                         <div className="profile-memory__scroll">
                             {selectedGroupMemories.length === 0 ? (
                                 <div className="profile-empty-state profile-empty-state--compact">
@@ -558,14 +663,11 @@ export function ProfileMemoryPage() {
                                     className={cn("profile-memory-card", selectedMemory?.id === memory.id && "profile-memory-card--active")}
                                     onClick={() => setSelectedMemoryId(memory.id)}
                                 >
-                                    <div className="profile-memory-card__meta">
-                                        <span>{memoryTargetTypeLabel(memory.targetType)}</span>
-                                        <span>{formatDateTime(memory.lastSeenAt)}</span>
-                                    </div>
                                     <strong>{memoryTitle(memory)}</strong>
                                     <p>{memory.content}</p>
                                     <div className="profile-memory-card__stats">
                                         <span>证据 {memory.supportCount}</span>
+                                        <span>{formatDateTime(memory.lastSeenAt)}</span>
                                     </div>
                                 </button>
                             ))}
@@ -577,28 +679,17 @@ export function ProfileMemoryPage() {
                         ) : detailQuery.data?.memory ? (
                             <>
                                 <div className="profile-memory-detail__header">
-                                    <div>
-                                        <div className="profile-memory-card__meta">
-                                            <span>{memoryTargetTypeLabel(detailQuery.data.memory.targetType)}</span>
-                                            <span>{detailQuery.data.memory.targetKey}</span>
-                                        </div>
-                                        <h2>{memoryTitle(detailQuery.data.memory)}</h2>
-                                    </div>
-                                    <BaseButton
-                                        variant="outline"
-                                        type="button"
-                                        disabled={hideMemoryMutation.isPending}
-                                        onClick={() => handleHideMemory(detailQuery.data.memory)}
-                                    >
-                                        隐藏这条记忆
-                                    </BaseButton>
+                                    <h2>{memoryTitle(detailQuery.data.memory)}</h2>
                                 </div>
                                 <p className="profile-memory-detail__summary">{detailQuery.data.memory.content}</p>
-                                <div className="profile-memory-detail__facts">
-                                    <span>类型：{memoryTypeTitleLabel(detailQuery.data.memory.memoryType)}</span>
-                                    <span>证据数：{detailQuery.data.memory.supportCount}</span>
-                                    <span>最近出现：{formatDateTime(detailQuery.data.memory.lastSeenAt)}</span>
-                                </div>
+                                <BaseButton
+                                    variant="outline"
+                                    type="button"
+                                    disabled={hideMemoryMutation.isPending}
+                                    onClick={() => handleHideMemory(detailQuery.data.memory)}
+                                >
+                                    隐藏记忆
+                                </BaseButton>
                                 <section className="profile-section profile-memory-evidence-section">
                                     <div className="profile-section__title">证据记录</div>
                                     <div className="profile-memory-evidence">
@@ -614,7 +705,10 @@ export function ProfileMemoryPage() {
                                                 </div>
                                                 <strong>{evidence.questionSnapshot || "题目快照缺失"}</strong>
                                                 <p>{evidence.evidenceSummary}</p>
-                                                <small>{evidence.moduleTag || "未标记模块"} · {formatDateTime(evidence.createdAt ?? "")}</small>
+                                                <div className="profile-memory-card__stats">
+                                                    <span>{evidence.moduleTag || "未标记模块"}</span>
+                                                    <span>{formatDateTime(evidence.createdAt ?? "")}</span>
+                                                </div>
                                             </div>
                                         );
                                         })}
@@ -622,9 +716,9 @@ export function ProfileMemoryPage() {
                                 </section>
                             </>
                         ) : (
-                            <div className="profile-empty-state">
-                                <strong>请选择一条记忆</strong>
-                                <p>选择左侧画像后查看详情和证据记录。</p>
+                            <div className="profile-memory__placeholder">
+                                <div>📋</div>
+                                <div>请选择一条记忆卡片查看详情</div>
                             </div>
                         )}
                     </div>
@@ -762,13 +856,7 @@ function pickAgentDefaults(profile: Profile): AgentForm {
 }
 
 function memoryTitle(memory: UserMemory) {
-    const target = memory.targetKey || "未命名对象";
-    const type = memoryTypeTitleLabel(memory.memoryType);
-    return `${target} · ${type}`;
-}
-
-function memoryTypeTitleLabel(memoryType: string) {
-    return memoryGroups.find((group) => group.type === memoryType)?.titleLabel ?? (memoryType || "未命名画像");
+    return memory.targetKey || "未命名对象";
 }
 
 function memoryTargetTypeLabel(targetType: string) {
