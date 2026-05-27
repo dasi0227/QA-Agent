@@ -270,7 +270,6 @@
 | `unknown_count` | `INT` | `UNKNOWN` 数量 |
 | `summary` | `LONGTEXT` | 整轮摘要，当前等于 `assessDetail.overallComment` |
 | `assessment_detail_json` | `JSON` | 整轮用户可读评估详情 |
-| `memory_clue_json` | `JSON` | 内部记忆线索，不返回前端 |
 | `started_at` | `DATETIME` | 开始时间 |
 | `finished_at` | `DATETIME` | 首次完成时间 |
 | `created_at` | `DATETIME` | 创建时间 |

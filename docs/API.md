@@ -347,8 +347,9 @@
 4. `/practice/session/submit` 由 `AssessSaver` 写入 `practice_session`，并将 session 标记为 `FINISHED`。
 5. `/practice/session/init` 和 `/practice/session/restart` 支持可选 `itemIds`；传入后只练指定题目，`itemIds` 优先于 `selectedModule`，后端不因 `completeStatus=PROCESSING` 过滤题目。
 6. `/practice/session/history` 只返回当前用户当前题集的 `FINISHED` 会话，响应包含 `perfectCount/correctCount/deficientCount/wrongCount/unknownCount`。
-7. `/practice/session/restart` 会把同题集未完成会话标记为 `ABANDONED` 后创建新会话。
-7. 进度恢复以服务端 `detail` 为准，前端 localStorage 只保存最近 session 快照。
+7. `/practice/session/restart` 会物理删除同题集未完成会话及做题记录后创建新会话。
+8. `/practice/session/abandon` 会物理删除指定会话及做题记录。
+9. 进度恢复以服务端 `detail` 为准，前端 localStorage 只保存最近 session 快照。
 
 ### 6.2 练习会话查询接口
 
