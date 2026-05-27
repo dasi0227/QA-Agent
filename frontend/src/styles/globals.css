@@ -1,6 +1,7 @@
 @import "./foundations.css";
 @import "./layout.css";
 @import "./components.css";
+@import "./components/dasi-chat.css";
 @import "./pages/auth.css";
 @import "./pages/profile.css";
 @import "./pages/repository.css";

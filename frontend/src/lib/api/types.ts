@@ -63,6 +63,16 @@ export type ChangePasswordInput = {
     newPassword: string;
 };
 
+export type TempChatInput = {
+    tempChatId: string;
+    message: string;
+};
+
+export type TempChatResponse = {
+    role: "assistant" | string;
+    content: string;
+};
+
 export type UserMemory = {
     id: string;
     memoryType: "AWFUL" | "UNCLEAR" | "MASTER" | string;

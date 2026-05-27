@@ -1,0 +1,468 @@
+.dasi-widget {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 80;
+  pointer-events: none;
+  font-family: var(--font-sans);
+}
+
+.dasi-mascot {
+  position: fixed;
+  left: 8px;
+  bottom: 4px;
+  width: 228px;
+  height: 214px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 82;
+}
+
+.dasi-mascot__svg {
+  width: 228px;
+  height: 214px;
+  overflow: visible;
+  filter: drop-shadow(0 18px 28px rgba(39, 31, 20, 0.2));
+}
+
+.dasi-mascot__body {
+  animation: dasi-breathe 3.8s ease-in-out infinite;
+  transform-origin: 92px 138px;
+}
+
+.dasi-mascot__head {
+  animation: dasi-nod 5.2s ease-in-out infinite;
+  transform-origin: 92px 72px;
+}
+
+.dasi-mascot__eyes {
+  animation: dasi-blink 4.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.dasi-mascot__left-hand {
+  animation: dasi-type-left 1.15s ease-in-out infinite;
+  transform-origin: 72px 145px;
+}
+
+.dasi-mascot__right-hand {
+  animation: dasi-type-right 1.05s ease-in-out infinite;
+  transform-origin: 118px 145px;
+}
+
+.dasi-mascot__steam-one {
+  animation: dasi-steam 2.8s ease-in-out infinite;
+}
+
+.dasi-mascot__steam-two {
+  animation: dasi-steam 3.2s ease-in-out infinite 0.45s;
+}
+
+.dasi-mascot__screen-glow {
+  animation: dasi-glow 2.4s ease-in-out infinite;
+}
+
+.dasi-mascot:hover .dasi-mascot__head {
+  animation: dasi-look-to-laptop 0.7s ease-out both;
+}
+
+.dasi-bubble {
+  position: fixed;
+  left: 158px;
+  bottom: 190px;
+  width: 238px;
+  min-height: 74px;
+  padding: 16px 19px;
+  border: 4px solid #222721;
+  border-radius: 46px 42px 44px 38px;
+  background: rgba(255, 253, 247, 0.98);
+  box-shadow: 0 18px 38px rgba(39, 31, 20, 0.14);
+  color: #27231d;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.65;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-14px, 12px) scale(0.82);
+  z-index: 83;
+}
+
+.dasi-bubble::before,
+.dasi-bubble::after {
+  content: "";
+  position: absolute;
+  border: 4px solid #222721;
+  background: rgba(255, 253, 247, 0.98);
+  border-radius: 50%;
+}
+
+.dasi-bubble::before {
+  left: -12px;
+  bottom: -18px;
+  width: 24px;
+  height: 18px;
+}
+
+.dasi-bubble::after {
+  left: -38px;
+  bottom: -36px;
+  width: 16px;
+  height: 13px;
+}
+
+.dasi-bubble--visible {
+  pointer-events: auto;
+  animation: dasi-bubble-in 560ms cubic-bezier(0.18, 0.89, 0.32, 1.28) both, dasi-bubble-out 900ms ease 3s forwards;
+}
+
+.dasi-chat-panel {
+  position: fixed;
+  left: 36px;
+  bottom: 216px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(378px, calc(100vw - 48px));
+  height: min(476px, calc(100vh - 260px));
+  min-height: 360px;
+  border: 1px solid #dfcfb2;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(251, 246, 236, 0.98));
+  box-shadow: 0 24px 70px rgba(44, 33, 20, 0.24);
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(14px) scale(0.98);
+  transition: opacity 220ms ease, transform 220ms ease;
+  z-index: 81;
+}
+
+.dasi-chat-panel--open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.dasi-chat-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eadcc5;
+}
+
+.dasi-chat-panel__header strong {
+  color: #222721;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.dasi-chat-panel__close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e2d2b8;
+  border-radius: 50%;
+  background: #fffaf1;
+  color: #7a6850;
+  cursor: pointer;
+}
+
+.dasi-chat-panel__body {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.dasi-chat-empty {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px dashed rgba(34, 39, 33, 0.16);
+  border-radius: 16px;
+  color: #7a6850;
+  background: rgba(255, 250, 241, 0.7);
+}
+
+.dasi-chat-empty strong {
+  color: #2f2a22;
+  font-size: 14px;
+}
+
+.dasi-chat-empty span {
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.dasi-message {
+  max-width: 84%;
+  padding: 11px 13px;
+  border-radius: 15px;
+  font-size: 13px;
+  line-height: 1.65;
+  word-break: break-word;
+}
+
+.dasi-message--assistant {
+  justify-self: start;
+  border: 1px solid #ead9bc;
+  border-bottom-left-radius: 5px;
+  background: #f1e6d3;
+  color: #382f23;
+}
+
+.dasi-message--user {
+  justify-self: end;
+  border-bottom-right-radius: 5px;
+  background: #211c17;
+  color: #fff7e8;
+  white-space: pre-wrap;
+}
+
+.dasi-message--error {
+  border-color: rgba(181, 90, 76, 0.28);
+  background: rgba(181, 90, 76, 0.11);
+  color: #7f392f;
+}
+
+.dasi-message p {
+  margin: 0 0 8px;
+}
+
+.dasi-message p:last-child {
+  margin-bottom: 0;
+}
+
+.dasi-message ul,
+.dasi-message ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.dasi-message pre {
+  max-width: 100%;
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #211c17;
+  color: #fff7e8;
+  overflow-x: auto;
+}
+
+.dasi-message code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.92em;
+}
+
+.dasi-message :not(pre) > code {
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: rgba(34, 39, 33, 0.09);
+  color: #2b251d;
+}
+
+.dasi-message table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.dasi-message th,
+.dasi-message td {
+  padding: 6px;
+  border: 1px solid rgba(34, 39, 33, 0.16);
+  text-align: left;
+}
+
+.dasi-message a {
+  color: #8b642f;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dasi-message__typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #7a6850;
+}
+
+.dasi-message__typing svg {
+  animation: dasi-spin 900ms linear infinite;
+}
+
+.dasi-chat-panel__input-area {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid #eadcc5;
+}
+
+.dasi-chat-input {
+  min-height: 42px;
+  max-height: 108px;
+  resize: none;
+  border: 1px solid #dcc9a9;
+  border-radius: 16px;
+  background: #fffdf7;
+  color: #2b251d;
+  padding: 10px 14px;
+  outline: none;
+  line-height: 1.5;
+}
+
+.dasi-chat-input:focus {
+  border-color: rgba(201, 163, 94, 0.62);
+  box-shadow: 0 0 0 3px rgba(201, 163, 94, 0.12);
+}
+
+.dasi-chat-send {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #222721;
+  color: #f5d17b;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(33, 28, 23, 0.18);
+}
+
+.dasi-chat-send:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  box-shadow: none;
+}
+
+.dasi-chat-error {
+  grid-column: 1 / -1;
+  color: #9b4439;
+  font-size: 12px;
+}
+
+@keyframes dasi-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.012);
+  }
+}
+
+@keyframes dasi-nod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-1.4deg) translateY(-1px);
+  }
+}
+
+@keyframes dasi-blink {
+  0%,
+  44%,
+  49%,
+  100% {
+    transform: scaleY(1);
+  }
+  46% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes dasi-type-left {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(2px) rotate(-2deg);
+  }
+}
+
+@keyframes dasi-type-right {
+  0%,
+  100% {
+    transform: translateY(1px) rotate(0);
+  }
+  50% {
+    transform: translateY(-1px) rotate(2deg);
+  }
+}
+
+@keyframes dasi-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  35% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes dasi-glow {
+  0%,
+  100% {
+    opacity: 0.54;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes dasi-look-to-laptop {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(2deg) translate(2px, 1px);
+  }
+}
+
+@keyframes dasi-bubble-in {
+  0% {
+    opacity: 0;
+    transform: translate(-14px, 12px) scale(0.82);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(0, -3px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes dasi-bubble-out {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(8px, -4px) scale(0.97);
+  }
+}
+
+@keyframes dasi-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

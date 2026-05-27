@@ -38,6 +38,8 @@ import type {
     TaskListItem,
     TaskMessage,
     TaskStatus,
+    TempChatInput,
+    TempChatResponse,
     UserMemory,
     UserMemoryDetail,
     UserMemoryEvidence,
@@ -544,6 +546,18 @@ export function useChangePasswordMutation() {
             method: "POST",
             body: input,
         }),
+    });
+}
+
+export function useTempChatMutation() {
+    return useMutation({
+        mutationFn: async (input: TempChatInput) => apiRequest<TempChatResponse>("/chat/temp", {
+            method: "POST",
+            body: input,
+        }),
+        meta: {
+            errorMode: "silent",
+        } satisfies ErrorHandlingMeta,
     });
 }
 
