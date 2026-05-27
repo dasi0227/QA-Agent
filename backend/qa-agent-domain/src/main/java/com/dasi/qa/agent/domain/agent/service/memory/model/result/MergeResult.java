@@ -11,5 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MergeResult {
 
+    private String summary;
     private String content;
 }

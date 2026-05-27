@@ -342,6 +342,7 @@
 | `memory_type` | `VARCHAR(32)` | `AWFUL` / `UNCLEAR` / `MASTER` |
 | `target_type` | `VARCHAR(32)` | `MODULE_TAG` / `ANSWER_SKILL` |
 | `target_key` | `VARCHAR(120)` | 模块 tag 或回答能力 key |
+| `summary` | `VARCHAR(500)` | 一句话画像要点，用于卡片展示 |
 | `content` | `TEXT` | 客观画像内容 |
 | `support_count` | `INT` | 支撑证据数量 |
 | `status` | `VARCHAR(32)` | `ACTIVE` / `HIDDEN` |

@@ -78,6 +78,7 @@ export type UserMemory = {
     memoryType: "AWFUL" | "UNCLEAR" | "MASTER" | string;
     targetType: "MODULE_TAG" | "ANSWER_SKILL" | string;
     targetKey: string;
+    summary: string;
     content: string;
     supportCount: number;
     status: "ACTIVE" | "HIDDEN" | string;

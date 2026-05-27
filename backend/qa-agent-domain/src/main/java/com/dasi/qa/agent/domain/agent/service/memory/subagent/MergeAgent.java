@@ -8,7 +8,11 @@ public interface MergeAgent {
 
     @SystemMessage(fromResource = "prompt/memory/memory-merge.txt")
     @UserMessage("""
+            已有画像要点：{{existingSummary}}
+
             已有画像内容：{{existingContent}}
+
+            新候选画像要点：{{candidateSummary}}
 
             新候选画像内容：{{candidateContent}}
 
@@ -16,11 +20,13 @@ public interface MergeAgent {
             1. 只输出一个合法 JSON 对象，以 { 开头，以 } 结尾。
             2. 不要输出 Markdown，不要使用 ```json 代码块。
             3. 不要输出解释文字或任何非 JSON 内容。
-            4. 只允许输出 content 字段。
+            4. 只允许输出 summary 和 content 字段。
 
             重试提示（首次为空）：{{retryHint}}
             """)
-    String merge(@V("existingContent") String existingContent,
+    String merge(@V("existingSummary") String existingSummary,
+                 @V("existingContent") String existingContent,
+                 @V("candidateSummary") String candidateSummary,
                  @V("candidateContent") String candidateContent,
                  @V("retryHint") String retryHint);
 }

@@ -157,6 +157,7 @@ export function normalizeUserMemory(raw: unknown): UserMemory {
         memoryType: toStringValue(pick(raw, "memoryType", "memory_type")),
         targetType: toStringValue(pick(raw, "targetType", "target_type")),
         targetKey: toStringValue(pick(raw, "targetKey", "target_key")),
+        summary: toStringValue(pick(raw, "summary")),
         content: toStringValue(pick(raw, "content")),
         supportCount: toNumberValue(pick(raw, "supportCount", "support_count")),
         status: toStringValue(pick(raw, "status"), "ACTIVE"),

@@ -383,6 +383,7 @@ Memory 是基于真实练习评估异步沉淀的用户学习画像。前端只�
 | `memoryType` | `AWFUL` / `UNCLEAR` / `MASTER` |
 | `targetType` | `MODULE_TAG` / `ANSWER_SKILL` |
 | `targetKey` | 模块 tag 或回答能力 key |
+| `summary` | 一句话画像要点（≤100 字），用于卡片展示 |
 | `content` | 用户可读画像内容 |
 | `supportCount` | 支撑证据数量 |
 | `status` | `ACTIVE` / `HIDDEN` |

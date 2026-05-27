@@ -16,6 +16,7 @@ public class InvestResult {
     private String memoryType;
     private String targetType;
     private String targetKey;
+    private String summary;
     private String content;
     private List<String> evidenceRefs;
 }

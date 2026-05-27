@@ -17,6 +17,7 @@ public class UserMemoryResponse extends BaseResponse {
     private String memoryType;
     private String targetType;
     private String targetKey;
+    private String summary;
     private String content;
     private Integer supportCount;
     private String status;

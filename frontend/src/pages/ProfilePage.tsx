@@ -664,7 +664,7 @@ export function ProfileMemoryPage() {
                                     onClick={() => setSelectedMemoryId(memory.id)}
                                 >
                                     <strong>{memoryTitle(memory)}</strong>
-                                    <p>{memory.content}</p>
+                                    <p>{memory.summary || memory.content}</p>
                                     <div className="profile-memory-card__stats">
                                         <span>证据 {memory.supportCount}</span>
                                         <span>{formatDateTime(memory.lastSeenAt)}</span>

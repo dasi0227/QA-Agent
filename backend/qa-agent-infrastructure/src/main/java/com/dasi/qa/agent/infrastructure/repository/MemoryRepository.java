@@ -89,6 +89,7 @@ public class MemoryRepository implements IMemoryRepository {
         response.setMemoryType(entity.getMemoryType());
         response.setTargetType(entity.getTargetType());
         response.setTargetKey(entity.getTargetKey());
+        response.setSummary(entity.getSummary());
         response.setContent(entity.getContent());
         response.setSupportCount(entity.getSupportCount());
         response.setStatus(entity.getStatus());

@@ -149,6 +149,7 @@ public class MemoryAgent implements IMemoryAgent {
                         .memoryType(investResult.getMemoryType())
                         .targetType(investResult.getTargetType())
                         .targetKey(investResult.getTargetKey())
+                        .summary(investResult.getSummary())
                         .content(investResult.getContent())
                         .supportCount(evidenceItems.size())
                         .status(MemoryStatus.ACTIVE.name())
@@ -164,8 +165,12 @@ public class MemoryAgent implements IMemoryAgent {
             // 合并记忆
             else {
                 memory = existing;
-                String content = mergeContent(mergeAgent, existing.getContent(), investResult.getContent(), sessionSource.getSessionId());
-                existing.setContent(content);
+                MergeResult mergeResult = mergeContent(mergeAgent,
+                        existing.getSummary(), existing.getContent(),
+                        investResult.getSummary(), investResult.getContent(),
+                        sessionSource.getSessionId());
+                existing.setSummary(mergeResult.getSummary().trim());
+                existing.setContent(mergeResult.getContent().trim());
                 existing.setSupportCount(existing.getSupportCount() + evidenceItems.size());
                 existing.setLastSeenAt(now);
                 existing.setLatestSessionId(sessionSource.getSessionId());
@@ -200,18 +205,25 @@ public class MemoryAgent implements IMemoryAgent {
     }
 
     /**
-     * 调用 MergeAgent 做语义合并，去重保留更具体的描述
+     * 调用 MergeAgent 做语义合并，去重保留更具体的描述，同时合并 summary 和 content
      */
-    private String mergeContent(MergeAgent mergeAgent, String existingContent, String candidateContent, String sessionId) {
+    private MergeResult mergeContent(MergeAgent mergeAgent,
+                                     String existingSummary, String existingContent,
+                                     String candidateSummary, String candidateContent,
+                                     String sessionId) {
         if (!StringUtils.hasText(existingContent)) {
-            return candidateContent;
+            return MergeResult.builder()
+                    .summary(candidateSummary)
+                    .content(candidateContent)
+                    .build();
         }
+        String safeExistingSummary = existingSummary != null ? existingSummary : "";
+        String safeCandidateSummary = candidateSummary != null ? candidateSummary : "";
         String retryHint = "";
         for (int attempt = 0; attempt <= MAX_RETRY; attempt++) {
             try {
-                String response = mergeAgent.merge(existingContent, candidateContent, retryHint);
-                MergeResult mergeResult = jsonUtil.parseJsonObject(response, MergeResult.class);
-                return mergeResult.getContent().trim();
+                String response = mergeAgent.merge(safeExistingSummary, existingContent, safeCandidateSummary, candidateContent, retryHint);
+                return jsonUtil.parseJsonObject(response, MergeResult.class);
             } catch (Exception exception) {
                 retryHint = exception.getMessage();
                 if (attempt == MAX_RETRY) {
@@ -220,7 +232,10 @@ public class MemoryAgent implements IMemoryAgent {
                 log.warn("【记忆画像】MergeAgent 调用失败，重试: attempt={}, sessionId={}", attempt + 1, sessionId, exception);
             }
         }
-        return existingContent;
+        return MergeResult.builder()
+                .summary(existingSummary)
+                .content(existingContent)
+                .build();
     }
 
 }
