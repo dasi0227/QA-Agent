@@ -125,7 +125,7 @@ function pageBubbleDelay() {
 }
 
 function globalBubbleDelay() {
-    return 5000;
+    return 30000;
 }
 
 function randomGlobalBubbleText() {

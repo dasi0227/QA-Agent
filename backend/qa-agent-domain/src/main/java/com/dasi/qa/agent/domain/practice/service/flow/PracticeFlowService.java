@@ -57,6 +57,10 @@ public class PracticeFlowService implements IPracticeFlowService {
     @Override
     public PracticeDetailResponse init(PracticeInitRequest request) {
         request.setFeedbackMode(PracticeFeedbackMode.fromValue(request.getFeedbackMode()).name());
+        PracticeStateResponse existing = practiceRepository.existPractice(request.getQaSetId(), contextUtil.getUserId());
+        if (existing != null) {
+            return practiceRepository.detailPractice(existing.getId(), contextUtil.getUserId());
+        }
         String sessionId = idUtil.nextId();
         List<String> sessionItemIds = new ArrayList<>();
         int itemCount = practiceRepository.countPracticeItems(request, contextUtil.getUserId());

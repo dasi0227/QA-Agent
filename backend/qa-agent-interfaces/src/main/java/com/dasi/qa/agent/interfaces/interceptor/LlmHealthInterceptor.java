@@ -2,8 +2,8 @@ package com.dasi.qa.agent.interfaces.interceptor;
 
 import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
 import com.dasi.qa.agent.domain.util.IContextUtil;
-import com.dasi.qa.agent.types.enumeration.AgentErrorType;
-import com.dasi.qa.agent.types.exception.AgentException;
+import com.dasi.qa.agent.types.enumeration.ResultCode;
+import com.dasi.qa.agent.types.exception.LlmConfigException;
 import dev.langchain4j.model.chat.ChatModel;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,6 +37,9 @@ public class LlmHealthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
         String userId = contextUtil.getUserId();
         String cacheKey = LLM_HEALTH_KEY + userId;
         if (redisTemplate.opsForValue().get(cacheKey) != null) {
@@ -46,15 +49,15 @@ public class LlmHealthInterceptor implements HandlerInterceptor {
         try {
             String llmResponse = userModel.chat("hi");
             if (!StringUtils.hasText(llmResponse)) {
-                throw new AgentException(AgentErrorType.LLM_NOT_CONFIGURED, "LLM 响应异常，请检查接入配置");
+                throw new LlmConfigException(ResultCode.LLM_NOT_CONFIGURED, "LLM 响应异常，请检查接入配置");
             }
             redisTemplate.opsForValue().set(cacheKey, "1", CACHE_TTL);
             return true;
-        } catch (AgentException exception) {
+        } catch (LlmConfigException exception) {
             throw exception;
         } catch (Exception exception) {
             log.warn("【LLM 健康检查】失败: userId={}", userId, exception);
-            throw new AgentException(AgentErrorType.LLM_NOT_CONFIGURED, "LLM 连接测试失败，请检查接入配置");
+            throw new LlmConfigException(ResultCode.LLM_NOT_CONFIGURED, "LLM 连接测试失败，请检查接入配置");
         }
     }
 }

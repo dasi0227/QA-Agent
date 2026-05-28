@@ -34,6 +34,12 @@ public interface IAgentRepository {
 
     void createGenerationTask(String taskId, String userId, CreateQaSetRequest request, UserProfileAllowVO allow);
 
+    /**
+     * 原子抢占任务：仅当 status = PENDING 时才更新为 PROCESSING。
+     * @return true 表示抢占成功，false 表示任务已被其他线程抢占或已结束
+     */
+    boolean tryClaimTask(String taskId, String userId);
+
     void updateTaskStatus(String taskId, GenerateStatus status, GeneratePhase phase);
 
     default void updateTaskPhase(String taskId, GeneratePhase phase) {

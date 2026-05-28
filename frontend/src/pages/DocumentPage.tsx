@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
@@ -66,6 +66,16 @@ export function DocumentPage() {
     const updateDocumentMutation = useUpdateDocumentMutation();
     const selectedDocumentId = selectedDocumentQuery.data?.id ?? "";
 
+    // Keep previous document data while switching to avoid loading flash
+    const [lastDocument, setLastDocument] = useState<typeof selectedDocumentQuery.data | null>(null);
+    useEffect(() => {
+        if (selectedDocumentQuery.data) {
+            setLastDocument(selectedDocumentQuery.data);
+        }
+    }, [selectedDocumentQuery.data]);
+    const displayDocument = selectedDocumentQuery.data ?? lastDocument;
+    const isDocumentLoading = selectedDocumentQuery.isLoading && !displayDocument;
+
     const hasDocuments = (documentsQuery.data?.length ?? 0) > 0;
     const documentErrorMessage = documentsQuery.error instanceof Error ? documentsQuery.error.message : "";
 
@@ -91,33 +101,33 @@ export function DocumentPage() {
     };
 
     useEffect(() => {
-        if (!selectedDocumentQuery.data) {
+        if (!displayDocument) {
             setDocumentNameDraft("");
             setDocumentEditorMode("view");
             return;
         }
-        setDocumentNameDraft(splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName);
+        setDocumentNameDraft(splitDocumentFileName(displayDocument.fileName).baseName);
         setDocumentEditorMode("view");
     }, [selectedDocumentId]);
 
-    const selectedDocumentUpdatedAt = selectedDocumentQuery.data?.updatedAt || selectedDocumentQuery.data?.createdAt || "";
-    const selectedDocumentUseCount = selectedDocumentQuery.data?.referenceCount ?? 0;
-    const documentBody = selectedDocumentQuery.data?.rawContent || "";
+    const selectedDocumentUpdatedAt = displayDocument?.updatedAt || displayDocument?.createdAt || "";
+    const selectedDocumentUseCount = displayDocument?.referenceCount ?? 0;
+    const documentBody = displayDocument?.rawContent || "";
 
     const handleStartDocumentEdit = () => {
-        if (!selectedDocumentQuery.data) return;
-        setDocumentNameDraft(splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName);
+        if (!displayDocument) return;
+        setDocumentNameDraft(splitDocumentFileName(displayDocument.fileName).baseName);
         setDocumentEditorMode("rename");
     };
 
     const handleCancelDocumentEdit = () => {
-        if (!selectedDocumentQuery.data) return;
-        setDocumentNameDraft(splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName);
+        if (!displayDocument) return;
+        setDocumentNameDraft(splitDocumentFileName(displayDocument.fileName).baseName);
         setDocumentEditorMode("view");
     };
 
     const handleSaveDocumentEdit = async () => {
-        if (!selectedDocumentQuery.data) return;
+        if (!displayDocument) return;
         const nameOnly = documentNameDraft.trim();
         if (!nameOnly) {
             showErrorDialog({
@@ -126,13 +136,13 @@ export function DocumentPage() {
             });
             return;
         }
-        const { baseName, extension } = splitDocumentFileName(selectedDocumentQuery.data.fileName);
+        const { baseName, extension } = splitDocumentFileName(displayDocument.fileName);
         if (nameOnly === baseName) {
             setDocumentEditorMode("view");
             return;
         }
         await updateDocumentMutation.mutateAsync({
-            id: selectedDocumentQuery.data.id,
+            id: displayDocument.id,
             fileName: `${nameOnly}${extension}`,
         });
         setDocumentEditorMode("view");
@@ -212,14 +222,14 @@ export function DocumentPage() {
 
                 <GlassCard className="panel repository-main-panel" style={{ padding: 24 }}>
                     <div className="fade-in">
-                        {selectedDocumentQuery.isLoading ? (
+                        {isDocumentLoading ? (
                             <div className="status-card">
                                 <strong>正在加载资料</strong>
                                 <div className="qa-text">从真实接口读取当前资料详情。</div>
                             </div>
                         ) : null}
 
-                        {selectedDocumentQuery.isError ? (
+                        {selectedDocumentQuery.isError && !displayDocument ? (
                             <div className="status-card">
                                 <strong>资料加载失败</strong>
                                 <div className="qa-text">
@@ -235,7 +245,7 @@ export function DocumentPage() {
                             </div>
                         ) : null}
 
-                        {selectedDocumentQuery.data ? (
+                        {displayDocument ? (
                             <>
                                 <div className="document-detail-view fade-in">
                                     <div className="repository-detail-view__header document-detail-view__header">
@@ -249,14 +259,14 @@ export function DocumentPage() {
                                                 />
                                             ) : (
                                                 <h1 className="hero-title document-detail-view__title">
-                                                    {splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName || selectedDocumentQuery.data.fileName}
+                                                    {splitDocumentFileName(displayDocument.fileName).baseName || displayDocument.fileName}
                                                 </h1>
                                             )}
                                             <div className="document-detail-view__meta">
-                                                <span>添加于 {formatCompactDateTime(selectedDocumentQuery.data.createdAt || selectedDocumentUpdatedAt)}</span>
+                                                <span>添加于 {formatCompactDateTime(displayDocument.createdAt || selectedDocumentUpdatedAt)}</span>
                                                 <span>更新于 {formatCompactDateTime(selectedDocumentUpdatedAt)}</span>
                                                 <span>引用次数 {selectedDocumentUseCount} 次</span>
-                                                <span className={cn("document-index-status-tag", `document-index-status-tag--${(selectedDocumentQuery.data.indexStatus || "UNSOLVED").toLowerCase()}`)}>{(() => { const s = selectedDocumentQuery.data.indexStatus || "UNSOLVED"; return s === "FINISHED" ? "已索引" : s === "INDEXING" ? "索引中" : "未索引"; })()}</span>
+                                                <span className={cn("document-index-status-tag", `document-index-status-tag--${(displayDocument.indexStatus || "UNSOLVED").toLowerCase()}`)}>{(() => { const s = displayDocument.indexStatus || "UNSOLVED"; return s === "FINISHED" ? "已索引" : s === "INDEXING" ? "索引中" : "未索引"; })()}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -302,7 +312,7 @@ export function DocumentPage() {
                             </>
                         ) : null}
 
-                        {!selectedDocumentQuery.isLoading && !selectedDocumentQuery.data ? (
+                        {!selectedDocumentQuery.isLoading && !displayDocument ? (
                             <div className="status-card">
                                 <strong>暂无资料可预览</strong>
                             </div>
@@ -319,8 +329,8 @@ export function DocumentPage() {
                     <>
                         <p style={{ margin: 0 }}>
                             确定要删除资料「
-                            {selectedDocumentQuery.data
-                                ? (splitDocumentFileName(selectedDocumentQuery.data.fileName).baseName || selectedDocumentQuery.data.fileName)
+                            {displayDocument
+                                ? (splitDocumentFileName(displayDocument.fileName).baseName || displayDocument.fileName)
                                 : ""}
                             」吗？
                         </p>
@@ -332,8 +342,8 @@ export function DocumentPage() {
                 confirmLabel="删除"
                 loading={deleteDocumentMutation.isPending}
                 onConfirm={async () => {
-                    if (!selectedDocumentQuery.data) return;
-                    await deleteDocumentMutation.mutateAsync(selectedDocumentQuery.data.id);
+                    if (!displayDocument) return;
+                    await deleteDocumentMutation.mutateAsync(displayDocument.id);
                     emitDasiBubble("资料已移除，相关索引也会同步清理 🗑️");
                     setDeleteDocDialogOpen(false);
                     setActiveDocumentId("");

@@ -142,6 +142,17 @@ public class AgentRepository implements IAgentRepository {
     }
 
     @Override
+    public boolean tryClaimTask(String taskId, String userId) {
+        LambdaUpdateWrapper<QaGenerationTask> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(QaGenerationTask::getId, taskId)
+                .eq(QaGenerationTask::getUserId, userId)
+                .eq(QaGenerationTask::getStatus, GenerateStatus.PENDING.name())
+                .set(QaGenerationTask::getStatus, GenerateStatus.PROCESSING.name())
+                .set(QaGenerationTask::getStartedAt, LocalDateTime.now());
+        return taskMapper.update(wrapper) > 0;
+    }
+
+    @Override
     public void updateTaskStatus(String taskId, GenerateStatus status, GeneratePhase phase) {
         QaGenerationTask entity = requireTask(taskId);
         entity.setStatus(status.name());

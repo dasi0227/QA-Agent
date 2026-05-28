@@ -74,6 +74,9 @@ public class QaItemService implements IQaItemService {
     @Override
     public QaItemResponse createQaItem(CreateQaItemSingleRequest request) {
         String userId = contextUtil.getUserId();
+        if (repository.existsQaItemByQuestion(request.getQaSetId(), request.getQuestion(), userId)) {
+            throw new ApiException(ResultCode.CONFLICT, "该题目已存在于此题集中");
+        }
         QaItemResponse response = repository.createQaItem(idUtil.nextId(), request, userId);
         applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));
         return response;
@@ -96,6 +99,11 @@ public class QaItemService implements IQaItemService {
                 .questions(questions)
                 .build();
         String userId = contextUtil.getUserId();
+        for (String question : questions) {
+            if (repository.existsQaItemByQuestion(normalizedRequest.getQaSetId(), question, userId)) {
+                throw new ApiException(ResultCode.CONFLICT, "题目「" + question + "」已存在于此题集中");
+            }
+        }
         List<String> ids = questions.stream().map(question -> idUtil.nextId()).toList();
         List<QaItemResponse> responses = repository.createQaItems(ids, normalizedRequest, userId);
         for (QaItemResponse response : responses) {

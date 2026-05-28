@@ -8,6 +8,7 @@ import com.dasi.qa.agent.types.dto.request.qa.*;
 import com.dasi.qa.agent.types.dto.response.qa.*;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ import java.util.function.Consumer;
 
 @RestController
 @RequestMapping("/qa")
+@Slf4j
 public class QaController {
 
     private final IQaSetService qaSetService;
@@ -91,6 +93,7 @@ public class QaController {
         emitter.onTimeout(emitter::complete);
         emitter.onError(emitter::completeWithError);
 
+        log.info("【路由追踪】Controller 收到 /qa/set/create 请求: taskId={}", request.getTaskId());
         Consumer<SseEvent> sseEventHandler = new SseEventHandler(emitter);
         qaSetService.createQaSet(request, sseEventHandler);
 

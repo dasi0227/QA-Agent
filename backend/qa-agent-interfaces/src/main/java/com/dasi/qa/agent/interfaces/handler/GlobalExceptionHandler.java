@@ -4,6 +4,7 @@ import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.exception.AgentException;
 import com.dasi.qa.agent.types.exception.ApiException;
 import com.dasi.qa.agent.types.exception.ConvertException;
+import com.dasi.qa.agent.types.exception.LlmConfigException;
 import com.dasi.qa.agent.types.result.Result;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -37,6 +38,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleConvertException(ConvertException exception) {
         log.error("【全局异常】文件转换错误: error={}", exception.getMessage(), exception);
+        return Result.fail(exception.getResultCode().getCode(), exception.getMessage());
+    }
+
+    @ExceptionHandler(LlmConfigException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleLlmConfigException(LlmConfigException exception) {
+        log.error("【全局异常】LLM配置错误: error={}", exception.getMessage(), exception);
         return Result.fail(exception.getResultCode().getCode(), exception.getMessage());
     }
 

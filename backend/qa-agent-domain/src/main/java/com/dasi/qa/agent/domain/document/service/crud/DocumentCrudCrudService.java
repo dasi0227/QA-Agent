@@ -59,6 +59,9 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
         if (!isValidFileType(request.getFileType())) {
             throw new ApiException(ResultCode.FILE_INVALID, "暂不支持该资料类型，请上传 Markdown 资料");
         }
+        if (repository.existsSourceDocumentByFileName(request.getFileName(), userId)) {
+            throw new ApiException(ResultCode.CONFLICT, "同名资料已存在，请勿重复上传");
+        }
         SourceDocumentResponse response = repository.createSourceDocument(request, userId);
         mqUtil.sendIndexMessage(response.getId(), Map.of("documentId", response.getId(), "userId", userId));
         repository.updateIndexStatus(response.getId(), userId, IndexStatus.INDEXING.name());

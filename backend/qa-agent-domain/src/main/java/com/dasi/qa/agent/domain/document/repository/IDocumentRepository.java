@@ -15,6 +15,8 @@ public interface IDocumentRepository {
 
     List<SourceDocumentResponse> querySourceDocument(SourceDocumentRequest request, String userId);
 
+    boolean existsSourceDocumentByFileName(String fileName, String userId);
+
     SourceDocumentResponse createSourceDocument(SourceDocumentRequest request, String userId);
 
     SourceDocumentResponse updateSourceDocument(SourceDocumentRequest request, String userId);

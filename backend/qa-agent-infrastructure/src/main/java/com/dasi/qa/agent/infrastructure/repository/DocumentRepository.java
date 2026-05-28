@@ -89,6 +89,15 @@ public class DocumentRepository implements IDocumentRepository {
     }
 
     @Override
+    public boolean existsSourceDocumentByFileName(String fileName, String userId) {
+        LambdaQueryWrapper<SourceDocument> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SourceDocument::getFileName, fileName)
+                .eq(SourceDocument::getUserId, userId)
+                .eq(SourceDocument::getDeleted, false);
+        return sourceDocumentMapper.selectCount(wrapper) > 0;
+    }
+
+    @Override
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public SourceDocumentResponse createSourceDocument(SourceDocumentRequest request, String userId) {
         return create(sourceDocumentMapper, SourceDocument.class, SourceDocumentResponse.class, request, userId);
@@ -229,6 +238,7 @@ public class DocumentRepository implements IDocumentRepository {
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.DOCUMENT_SOURCE_DOCUMENT_CACHE, allEntries = true)
     public void updateIndexStatus(String documentId, String userId, String indexStatus) {
         SourceDocument entity = new SourceDocument();
         entity.setId(documentId);
@@ -406,6 +416,7 @@ public class DocumentRepository implements IDocumentRepository {
         if (ReflectUtil.getField(entityType, "deleted") != null) {
             queryWrapper.eq(DB_DELETED, false);
         }
+        queryWrapper.orderByDesc("created_at");
         return mapper.selectList(queryWrapper).stream()
                 .map(entity -> toResponse(entity, responseType)).toList();
     }

@@ -973,7 +973,7 @@
 
 
 .qa-set-create-dialog {
-  width: min(680px, 92vw);
+  width: min(440px, 92vw);
   background: #f6f2ea;
   border-radius: 34px;
   padding: 24px;
@@ -985,7 +985,7 @@
 
 .qa-set-create-dialog__body {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 

@@ -85,11 +85,10 @@ public class RagSearchService implements IRagSearchService {
 
     private String rewrite(String query) {
         try {
-            String rewritten = rewriterModel.chat(
+            return rewriterModel.chat(
                     SystemMessage.from(promptUtil.loadRewriterPrompt()),
                     UserMessage.from(query)
             ).aiMessage().text().trim();
-            return rewritten;
         } catch (Exception exception) {
             log.warn("【文本嵌入】查询改写失败，回退原始查询: query={}", query, exception);
             return query;

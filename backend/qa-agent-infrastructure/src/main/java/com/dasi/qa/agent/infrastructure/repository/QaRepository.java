@@ -251,7 +251,15 @@ public class QaRepository implements IQaRepository {
     }
 
     @Override
-    @CacheEvict(cacheNames = {RedisConstant.QA_ITEM_CACHE, RedisConstant.QA_SET_CACHE}, allEntries = true)
+    public boolean existsQaItemByQuestion(String qaSetId, String question, String userId) {
+        LambdaQueryWrapper<QaItem> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(QaItem::getQaSetId, qaSetId)
+                .eq(QaItem::getUserId, userId)
+                .eq(QaItem::getQuestion, question);
+        return qaItemMapper.selectCount(wrapper) > 0;
+    }
+
+    @Override
     public QaItemResponse createQaItem(QaItemRequest request, String userId) {
         return create(qaItemMapper, QaItem.class, QaItemResponse.class, request, userId);
     }
@@ -469,6 +477,7 @@ public class QaRepository implements IQaRepository {
         if (ReflectUtil.getField(entityType, "userId") != null) {
             queryWrapper.eq(DB_USER_ID, userId);
         }
+        queryWrapper.orderByDesc("created_at");
         return mapper.selectList(queryWrapper).stream().map(entity -> toResponse(entity, responseType)).toList();
     }
 

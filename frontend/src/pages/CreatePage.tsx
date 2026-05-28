@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, ArrowUp, History, Loader, Paperclip, Plus, Settings, X } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 
 import { TextArea } from "@/components/base/field";
 import {
@@ -18,56 +18,7 @@ import {
 import type { DocumentRecord, SseEvent, TaskListItem } from "@/lib/api/types";
 import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
-const STORAGE_KEY = "create-page-draft";
 const ACTIVE_TASK_KEY = "qa-agent.active-task-id";
-const TASK_FORM_CACHE_KEY = "qa-agent.task-form-cache";
-
-function loadDraft(): { selectedIds: string[]; userPrompt: string } {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || { selectedIds: [], userPrompt: "" };
-    } catch {
-        return { selectedIds: [], userPrompt: "" };
-    }
-}
-
-function saveDraft(selectedIds: string[], userPrompt: string) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ selectedIds, userPrompt }));
-}
-
-function clearDraft() {
-    localStorage.removeItem(STORAGE_KEY);
-}
-
-type TaskFormCache = {
-    title: string;
-    userPrompt: string;
-    documentIds: string[];
-    requestedCount: number;
-    jobDescription: string;
-    docNames: string[];
-};
-
-function getTaskFormCache(): TaskFormCache | null {
-    try {
-        const raw = sessionStorage.getItem(TASK_FORM_CACHE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed.userPrompt === "string" && Array.isArray(parsed.documentIds)) {
-            return parsed as TaskFormCache;
-        }
-        return null;
-    } catch {
-        return null;
-    }
-}
-
-function setTaskFormCache(cache: TaskFormCache) {
-    sessionStorage.setItem(TASK_FORM_CACHE_KEY, JSON.stringify(cache));
-}
-
-function clearTaskFormCache() {
-    sessionStorage.removeItem(TASK_FORM_CACHE_KEY);
-}
 
 function parseJsonArray(json: string): string[] {
     if (!json) return [];
@@ -123,18 +74,19 @@ function buildTimelineNodes(events: SseEvent[]): TimelineNode[] {
 export function CreatePage() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const location = useLocation();
     const { taskId: urlTaskId } = useParams();
-    const [draft] = useState(loadDraft);
     const documentsQuery = useFinishedDocumentsQuery();
     const createTask = useCreateTaskMutation();
     const createStream = useCreateQuestionSetStream();
-    const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>(draft.selectedIds);
+    const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [qaSetTitle, setQaSetTitle] = useState("未命名问答集");
     const [requestedCount, setRequestedCount] = useState(20);
     const [jobDescription, setJobDescription] = useState("");
+    const submittingRef = useRef(false);
     const { showErrorDialog } = useGlobalErrorDialog();
 
     const [streamState, setStreamState] = useState<"idle" | "streaming">(() => urlTaskId ? "streaming" : "idle");
@@ -196,25 +148,31 @@ export function CreatePage() {
         }
     }, [taskStatusQuery.isError, taskMessagesQuery.isError, recoveryTrigger]);
 
-    // When entering /create/:taskId with cached form data, start SSE stream
+    // When entering /create/:taskId with router state, start SSE stream
     const streamInitiated = useRef(false);
     useEffect(() => {
         if (!urlTaskId || streamInitiated.current) return;
-        const cached = getTaskFormCache();
-        if (!cached) return; // No cache — recovery polling handles it
+        const formState = location.state as {
+            title: string;
+            userPrompt: string;
+            documentIds: string[];
+            requestedCount: number;
+            jobDescription: string;
+            docNames: string[];
+        } | null;
+        if (!formState) return; // No router state — recovery polling handles it
         streamInitiated.current = true;
-        clearTaskFormCache();
-        setSnapshot({ userPrompt: cached.userPrompt, docNames: cached.docNames });
+        setSnapshot({ userPrompt: formState.userPrompt, docNames: formState.docNames });
         setSseEvents([]);
         setStreamError("");
         queryClient.invalidateQueries({ queryKey: apiKeys.taskList });
         createStream.mutateAsync({
             taskId: urlTaskId,
-            title: cached.title,
-            userPrompt: cached.userPrompt,
-            documentIds: cached.documentIds,
-            requestedQuestionCount: cached.requestedCount,
-            jobDescription: cached.jobDescription,
+            title: formState.title,
+            userPrompt: formState.userPrompt,
+            documentIds: formState.documentIds,
+            requestedQuestionCount: formState.requestedCount,
+            jobDescription: formState.jobDescription,
             onEvent: (event: SseEvent) => {
                 if (!sessionStorage.getItem(ACTIVE_TASK_KEY)) {
                     sessionStorage.setItem(ACTIVE_TASK_KEY, event.taskId);
@@ -226,9 +184,13 @@ export function CreatePage() {
         });
     }, [urlTaskId, queryClient, createStream]);
 
-    // Reset streamInitiated ref when urlTaskId changes (same-component route transition)
+    // Reset streamInitiated ref only when urlTaskId genuinely changes (not on mount)
+    const prevUrlTaskId = useRef(urlTaskId);
     useEffect(() => {
-        streamInitiated.current = false;
+        if (prevUrlTaskId.current !== urlTaskId) {
+            streamInitiated.current = false;
+            prevUrlTaskId.current = urlTaskId;
+        }
     }, [urlTaskId]);
 
     // When urlTaskId changes (same-component route transition):
@@ -253,7 +215,7 @@ export function CreatePage() {
 
     const form = useForm({
         defaultValues: {
-            userPrompt: draft.userPrompt,
+            userPrompt: "",
         },
     });
 
@@ -272,14 +234,6 @@ export function CreatePage() {
             sseEvents[sseEvents.length - 1].isCompleted
             || /完成|COMPLETED|失败|FAILED/i.test(sseEvents[sseEvents.length - 1].stage)
         ));
-
-    // Persist draft on changes
-    useEffect(() => {
-        const sub = form.watch((value) => {
-            saveDraft(selectedDocumentIds, value.userPrompt || "");
-        });
-        return () => sub.unsubscribe();
-    }, [selectedDocumentIds, form]);
 
     // Auto-scroll when new events arrive
     useEffect(() => {
@@ -313,6 +267,7 @@ export function CreatePage() {
     };
 
     const handleSubmit = form.handleSubmit(async (values) => {
+        if (submittingRef.current) return;
         if (selectedDocumentIds.length === 0) {
             showErrorDialog({
                 title: "资料未选择",
@@ -324,6 +279,7 @@ export function CreatePage() {
         const docNames = selectedDocuments.map((d) => d.fileName);
         const documentIds = [...selectedDocumentIds];
 
+        submittingRef.current = true;
         try {
             const { taskId } = await createTask.mutateAsync({
                 title: qaSetTitle,
@@ -333,22 +289,24 @@ export function CreatePage() {
                 jobDescription: jobDescription || undefined,
             });
 
-            setTaskFormCache({
-                title: qaSetTitle,
-                userPrompt: values.userPrompt,
-                documentIds,
-                requestedCount,
-                jobDescription: jobDescription,
-                docNames,
-            });
-
             setSelectedDocumentIds([]);
             form.reset({ userPrompt: "" });
-            clearDraft();
 
-            navigate(`/create/${taskId}`, { replace: true });
+            navigate(`/create/${taskId}`, {
+                replace: true,
+                state: {
+                    title: qaSetTitle,
+                    userPrompt: values.userPrompt,
+                    documentIds,
+                    requestedCount,
+                    jobDescription,
+                    docNames,
+                },
+            });
         } catch {
             // error handled by mutation
+        } finally {
+            submittingRef.current = false;
         }
     });
 

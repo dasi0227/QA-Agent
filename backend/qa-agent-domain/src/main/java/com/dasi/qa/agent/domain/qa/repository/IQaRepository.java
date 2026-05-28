@@ -32,6 +32,8 @@ public interface IQaRepository {
 
     List<QaItemResponse> queryQaItem(QaItemRequest request, String userId);
 
+    boolean existsQaItemByQuestion(String qaSetId, String question, String userId);
+
     QaItemResponse createQaItem(QaItemRequest request, String userId);
 
     QaItemResponse createQaItem(String id, CreateQaItemSingleRequest request, String userId);

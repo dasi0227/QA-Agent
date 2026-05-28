@@ -108,6 +108,7 @@ public class GenerateAgent implements IGenerateAgent {
     @Override
     public void execute(String userId, CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler) {
         String taskId = request.getTaskId();
+        log.info("【路由追踪】GenerateAgent 开始执行: taskId={}, thread={}", taskId, Thread.currentThread().getName());
 
         // 读取用户信息
         UserProfileInfoVO info = agentRepository.getUserProfileInfo(userId);

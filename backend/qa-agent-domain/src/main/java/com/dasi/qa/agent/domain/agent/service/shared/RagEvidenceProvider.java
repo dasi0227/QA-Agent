@@ -26,14 +26,14 @@ public class RagEvidenceProvider {
     }
 
     public List<RagEvidenceItem> searchByPlanItem(String userId, List<String> documentIds, PlanItem planItem) {
-        List<String> topics = planItem.getRetrievalQueries() == null ? List.of() : planItem.getRetrievalQueries().stream()
+        List<String> queires = planItem.getRetrievalQueries() == null ? List.of() : planItem.getRetrievalQueries().stream()
                 .filter(StringUtils::hasText)
                 .map(topic -> planItem.getModule() + " " + topic.trim())
                 .toList();
-        if (topics.isEmpty()) {
-            topics = List.of(planItem.getModule());
+        if (queires.isEmpty()) {
+            queires = List.of(planItem.getModule());
         }
-        return search(userId, documentIds, topics);
+        return search(userId, documentIds, queires);
     }
 
     public List<RagEvidenceItem> searchByQuestion(String userId, List<String> documentIds, String question) {
@@ -43,10 +43,10 @@ public class RagEvidenceProvider {
         return search(userId, documentIds, List.of(question));
     }
 
-    private List<RagEvidenceItem> search(String userId, List<String> documentIds, List<String> topics) {
+    private List<RagEvidenceItem> search(String userId, List<String> documentIds, List<String> queries) {
         List<SearchResult> results = new ArrayList<>();
-        for (String topic : topics) {
-            String queryText = topic == null ? "" : topic.trim();
+        for (String query : queries) {
+            String queryText = query == null ? "" : query.trim();
             if (!StringUtils.hasText(queryText)) {
                 continue;
             }
