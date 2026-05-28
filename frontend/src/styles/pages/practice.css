@@ -233,7 +233,7 @@
   color: var(--ink);
   font-family: var(--font-serif);
   font-size: clamp(26px, 3vw, 42px);
-  line-height: 1.18;
+  line-height: 1.28;
   letter-spacing: 0;
 }
 
@@ -763,13 +763,8 @@
 .question-workspace__answer-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
-  color: var(--ink-faint);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
+  margin-top: 10px;
 }
 
 

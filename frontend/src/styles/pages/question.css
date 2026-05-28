@@ -341,7 +341,8 @@
   box-shadow: 0 2px 12px rgba(77, 63, 40, 0.06);
 }
 
-.question-detail-section--card .question-detail-section__body h2 {
+.question-detail-section--card .question-detail-section__body h2,
+.question-detail-section--card .question-evidence-panel__body h2 {
   margin: 0 0 8px;
   color: #8e642d;
   font-family: var(--font-sans);

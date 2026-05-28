@@ -17,6 +17,8 @@ import {
     useSubmitPracticeItemMutation,
     useSubmitPracticeSessionMutation,
 } from "@/lib/api/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { getApiBaseUrl } from "@/lib/api/client";
 import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 
 const RECENT_PRACTICE_KEY = "qa-agent:recent-practice";
@@ -61,6 +63,9 @@ export function PracticePage() {
     const [durationSeconds, setDurationSeconds] = useState(0);
     const durationBaseRef = useRef(0);
     const durationStartedAtRef = useRef<number | null>(null);
+    const durationRef = useRef(0);
+    const saveBeforeUnloadRef = useRef<() => void>(() => {});
+    useEffect(() => { durationRef.current = durationSeconds; }, [durationSeconds]);
 
     const detail = detailQuery.data;
     const items = detail?.items ?? [];
@@ -107,6 +112,35 @@ export function PracticePage() {
         }, 1000);
         return () => window.clearInterval(timer);
     }, [readonly]);
+
+    // Save duration before page unload (refresh / close)
+    useEffect(() => {
+        saveBeforeUnloadRef.current = () => {
+            const token = getAccessToken();
+            if (!token || !currentItem || itemReadonly) return;
+            fetch(`${getApiBaseUrl()}/practice/item/save`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    sessionId,
+                    sessionItemId: currentItem.sessionItemId,
+                    userAnswer: currentItem.userAnswer ?? "",
+                    currentIndex,
+                    durationSeconds: durationRef.current,
+                }),
+                keepalive: true,
+            });
+        };
+    }, [sessionId, currentItem, currentIndex, itemReadonly]);
+
+    useEffect(() => {
+        const handler = () => saveBeforeUnloadRef.current();
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, []);
 
     // Auto-save every 60 seconds
     useEffect(() => {

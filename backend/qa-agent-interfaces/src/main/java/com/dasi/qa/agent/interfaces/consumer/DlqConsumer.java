@@ -10,7 +10,11 @@ import org.springframework.stereotype.Component;
 public class DlqConsumer {
 
 
-    @KafkaListener(topics = "${qa-agent.kafka.topic-document-index-dlq}", groupId = "${spring.kafka.consumer.group-id}-dlq")
+    @KafkaListener(topics = {
+            "${qa-agent.kafka.topic-document-index-dlq}",
+            "${qa-agent.kafka.topic-qa-item-assist-dlq}",
+            "${qa-agent.kafka.topic-memory-ingest-dlq}"
+    }, groupId = "${spring.kafka.consumer.group-id}-dlq")
     public void onDlqMessage(String message) {
         log.error("【消息队列消费者】收到死信消息，暂不处理: message={}", message);
     }

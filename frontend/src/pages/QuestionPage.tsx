@@ -506,9 +506,10 @@ export function QuestionPage() {
 
                                         <section className="question-detail-section question-detail-section--card">
                                             <div className="question-detail-section__header">
-                                                <h2>证据原文</h2>
+                                                <h2>证据切片</h2>
                                             </div>
                                             <div className="question-evidence-panel__body question-evidence-panel__body--expanded">
+                                                <h2>证据切片</h2>
                                                 {sourceChunkIdList.length && evidenceChunksQuery.isLoading ? (
                                                     <div className="question-evidence-panel__empty">证据摘要加载中...</div>
                                                 ) : null}

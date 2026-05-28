@@ -97,12 +97,6 @@ export function QuestionWorkspace({
             </section>
 
             <div className="question-workspace__answer">
-                <div className="question-workspace__answer-toolbar">
-                    <span>作答区</span>
-                    {onVoiceText ? (
-                        <VoiceAnswerButton disabled={readonly || submitted} onText={onVoiceText} />
-                    ) : null}
-                </div>
                 <TextArea
                     className="practice-answer"
                     value={answer}
@@ -110,6 +104,11 @@ export function QuestionWorkspace({
                     onChange={(event) => onAnswerChange(event.target.value)}
                     placeholder="在这里组织你的回答"
                 />
+                {onVoiceText ? (
+                    <div className="question-workspace__answer-toolbar">
+                        <VoiceAnswerButton disabled={readonly || submitted} onText={onVoiceText} />
+                    </div>
+                ) : null}
             </div>
 
             <div className="practice-action-bar">
