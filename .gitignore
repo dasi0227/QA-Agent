@@ -47,6 +47,11 @@ __pycache__/
 .venv/
 venv/
 
+# Project-level instruction files (personal, not for commit)
+TODO.md
+CLAUDE.md
+AGENTS.md
+
 # Project-local brainstorming / temporary artifacts
 .superpowers/
 .claude/
