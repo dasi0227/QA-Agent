@@ -1,21 +1,20 @@
-# OS / file explorer noise
+# OS
 .DS_Store
 Thumbs.db
 
-# Editor / IDE
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# Local env / secrets
+# env
 .env
 .env.*
 !.env.example
-!.env.sample
 
-# Logs
+# log
 logs/
 *.log
 npm-debug.log*
@@ -23,14 +22,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Frontend (React + Vite)
+# Frontend
 node_modules/
 dist/
 coverage/
 .vite/
 *.tsbuildinfo
 
-# Java / Spring Boot
+# Backend
 target/
 build/
 out/
@@ -39,7 +38,7 @@ out/
 *.jar
 *.war
 
-# Python / tooling caches
+# Python
 __pycache__/
 .pytest_cache/
 .mypy_cache/
@@ -47,14 +46,9 @@ __pycache__/
 .venv/
 venv/
 
-# Project-level instruction files (personal, not for commit)
+# Mine
 TODO.md
 CLAUDE.md
 AGENTS.md
-
-# Project-local brainstorming / temporary artifacts
 .superpowers/
 .claude/
-
-# Local object storage fallback
-backend/storage/
