@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -26,4 +28,7 @@ public class QaItemResponse extends BaseResponse {
     private String sourceChunkIdsJson;
     private String completeStatus;
     private Integer sortOrder;
+    private Integer practiceTotalCount;
+    private BigDecimal practiceAverageScore;
+    private BigDecimal practiceCorrectRate;
 }

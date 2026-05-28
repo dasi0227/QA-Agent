@@ -30,6 +30,8 @@ public interface IQaRepository {
 
     QaItemResponse detailQaItem(String id, String userId);
 
+    void fillQaItemPracticeStats(QaItemResponse response, String userId);
+
     List<QaItemResponse> queryQaItem(QaItemRequest request, String userId);
 
     boolean existsQaItemByQuestion(String qaSetId, String question, String userId);

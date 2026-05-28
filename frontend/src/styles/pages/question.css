@@ -128,6 +128,33 @@
   gap: 14px;
 }
 
+.question-info-card__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+
+.question-info-card__stat {
+  display: grid;
+  gap: 2px;
+}
+
+.question-info-card__stat-label {
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.question-info-card__stat-value {
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 800;
+}
+
 
 .question-info-card__item {
   display: grid;

@@ -173,6 +173,9 @@ export type QuestionItem = {
     sourceChunkIdsJson: string;
     completeStatus: "PROCESSING" | "SOLVED" | "UNSOLVED" | string;
     sortOrder: number;
+    practiceTotalCount: number | null;
+    practiceAverageScore: number | null;
+    practiceCorrectRate: number | null;
 };
 
 export type QuestionItemDraft = {

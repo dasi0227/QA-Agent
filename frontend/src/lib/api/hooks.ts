@@ -303,6 +303,9 @@ export function normalizeQuestionItem(raw: unknown): QuestionItem {
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
         completeStatus: toStringValue(pick(raw, "completeStatus", "complete_status"), "SOLVED"),
         sortOrder: toNumberValue(pick(raw, "sortOrder", "sort_order")),
+        practiceTotalCount: pick(raw, "practiceTotalCount", "practice_total_count") == null ? null : toNumberValue(pick(raw, "practiceTotalCount", "practice_total_count")),
+        practiceAverageScore: pick(raw, "practiceAverageScore", "practice_average_score") == null ? null : toNumberValue(pick(raw, "practiceAverageScore", "practice_average_score")),
+        practiceCorrectRate: pick(raw, "practiceCorrectRate", "practice_correct_rate") == null ? null : toNumberValue(pick(raw, "practiceCorrectRate", "practice_correct_rate")),
     };
 }
 

@@ -244,6 +244,27 @@ public class QaRepository implements IQaRepository {
     }
 
     @Override
+    public void fillQaItemPracticeStats(QaItemResponse response, String userId) {
+        LambdaQueryWrapper<PracticeSessionItem> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PracticeSessionItem::getQaItemId, response.getId())
+                .eq(PracticeSessionItem::getUserId, userId)
+                .eq(PracticeSessionItem::getStatus, "SUBMITTED")
+                .isNotNull(PracticeSessionItem::getScore);
+        List<PracticeSessionItem> items = practiceSessionItemMapper.selectList(wrapper);
+        if (items.isEmpty()) {
+            return;
+        }
+        int total = items.size();
+        double avgScore = items.stream().mapToInt(PracticeSessionItem::getScore).average().orElse(0);
+        long correctCount = items.stream()
+                .filter(item -> "CORRECT".equals(item.getResult()) || "PERFECT".equals(item.getResult()))
+                .count();
+        response.setPracticeTotalCount(total);
+        response.setPracticeAverageScore(BigDecimal.valueOf(Math.round(avgScore * 10) / 10.0));
+        response.setPracticeCorrectRate(BigDecimal.valueOf(Math.round((double) correctCount / total * 1000) / 10.0));
+    }
+
+    @Override
     @Cacheable(cacheNames = RedisConstant.QA_ITEM_CACHE,
             key = "@redisUtil.query(T(com.dasi.qa.agent.types.constant.RedisConstant).QA_ITEM_QUERY_KEY, #userId, #request)")
     public List<QaItemResponse> queryQaItem(QaItemRequest request, String userId) {

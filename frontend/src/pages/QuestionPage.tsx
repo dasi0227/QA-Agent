@@ -552,6 +552,22 @@ export function QuestionPage() {
                                                     ) : null}
                                                 </div>
                                                 <div className="question-info-card__body">
+                                                    {activeItem.practiceTotalCount != null ? (
+                                                        <div className="question-info-card__stats">
+                                                            <div className="question-info-card__stat">
+                                                                <span className="question-info-card__stat-label">作答次数</span>
+                                                                <strong className="question-info-card__stat-value">{activeItem.practiceTotalCount}</strong>
+                                                            </div>
+                                                            <div className="question-info-card__stat">
+                                                                <span className="question-info-card__stat-label">平均分</span>
+                                                                <strong className="question-info-card__stat-value">{activeItem.practiceAverageScore}</strong>
+                                                            </div>
+                                                            <div className="question-info-card__stat">
+                                                                <span className="question-info-card__stat-label">正确率</span>
+                                                                <strong className="question-info-card__stat-value">{activeItem.practiceCorrectRate}%</strong>
+                                                            </div>
+                                                        </div>
+                                                    ) : null}
                                                     <div className="question-info-card__item">
                                                         <span>难度</span>
                                                         <strong>{activeItem.difficulty || "未标注"}</strong>

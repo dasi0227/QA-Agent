@@ -45,7 +45,9 @@ public class QaItemService implements IQaItemService {
 
     @Override
     public QaItemResponse detailQaItem(String id) {
-        return repository.detailQaItem(id, contextUtil.getUserId());
+        QaItemResponse response = repository.detailQaItem(id, contextUtil.getUserId());
+        repository.fillQaItemPracticeStats(response, contextUtil.getUserId());
+        return response;
     }
 
     @Override
