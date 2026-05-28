@@ -1153,6 +1153,24 @@ export function useCreateTaskMutation() {
     });
 }
 
+export function useAbortTaskMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        meta: {
+            errorMode: "silent",
+        } satisfies ErrorHandlingMeta,
+        mutationFn: async (taskId: string) => {
+            return apiRequest<unknown>("/qa/set/abort", {
+                method: "POST",
+                body: { taskId },
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: apiKeys.taskList });
+        },
+    });
+}
+
 export function useCreateQuestionSetStream() {
     const queryClient = useQueryClient();
     return useMutation({

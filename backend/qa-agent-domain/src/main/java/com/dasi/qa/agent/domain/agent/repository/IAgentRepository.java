@@ -52,6 +52,8 @@ public interface IAgentRepository {
 
     void markTaskCanceled(String taskId);
 
+    boolean isTaskCanceled(String taskId);
+
     void appendTaskMessage(String taskId, String userId, String stage, String message, String content);
 
     TaskStatusResponse getTaskStatus(String taskId, String userId);

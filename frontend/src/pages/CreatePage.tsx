@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, ArrowUp, History, Loader, Paperclip, Plus, Settings, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, History, Loader, Paperclip, Plus, Settings, StopCircle, X } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 
 import { TextArea } from "@/components/base/field";
@@ -9,6 +9,7 @@ import {
     apiKeys,
     useFinishedDocumentsQuery,
     useCreateTaskMutation,
+    useAbortTaskMutation,
     useCreateQuestionSetStream,
     useTaskStatusQuery,
     useTaskMessagesQuery,
@@ -79,6 +80,7 @@ export function CreatePage() {
     const documentsQuery = useFinishedDocumentsQuery();
     const createTask = useCreateTaskMutation();
     const createStream = useCreateQuestionSetStream();
+    const abortTask = useAbortTaskMutation();
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -89,8 +91,11 @@ export function CreatePage() {
     const submittingRef = useRef(false);
     const { showErrorDialog } = useGlobalErrorDialog();
 
-    const [streamState, setStreamState] = useState<"idle" | "streaming">(() => urlTaskId ? "streaming" : "idle");
+    const [streamState, setStreamState] = useState<"idle" | "streaming" | "interrupted">(() => urlTaskId ? "streaming" : "idle");
     const isStreaming = streamState === "streaming";
+    const isInterrupted = streamState === "interrupted";
+    const interruptedRef = useRef(false);
+    const currentTaskIdRef = useRef<string>("");
     const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
     const [streamError, setStreamError] = useState("");
     const [snapshot, setSnapshot] = useState<{
@@ -163,6 +168,8 @@ export function CreatePage() {
         } | null;
         if (!formState) return; // No router state — recovery polling handles it
         streamInitiatedFor.current = urlTaskId;
+        currentTaskIdRef.current = urlTaskId;
+        interruptedRef.current = false;
         setSnapshot({ userPrompt: formState.userPrompt, docNames: formState.docNames });
         setSseEvents([]);
         setStreamError("");
@@ -175,12 +182,14 @@ export function CreatePage() {
             requestedQuestionCount: formState.requestedCount,
             jobDescription: formState.jobDescription,
             onEvent: (event: SseEvent) => {
+                if (interruptedRef.current) return;
                 if (!sessionStorage.getItem(ACTIVE_TASK_KEY)) {
                     sessionStorage.setItem(ACTIVE_TASK_KEY, event.taskId);
                 }
                 setSseEvents((prev) => [...prev, event]);
             },
         }).catch((err) => {
+            if (interruptedRef.current) return;
             setStreamError(err instanceof Error ? err.message : "生成失败，请重试");
         });
     }, [urlTaskId]);
@@ -197,6 +206,7 @@ export function CreatePage() {
             setRecoveryTrigger((n) => n + 1);
         } else {
             setStreamState("idle");
+            interruptedRef.current = false;
             setSseEvents([]);
             setStreamError("");
             setSnapshot(null);
@@ -301,6 +311,18 @@ export function CreatePage() {
             submittingRef.current = false;
         }
     });
+
+    const handleAbort = async () => {
+        const taskId = currentTaskIdRef.current;
+        if (!taskId) return;
+        interruptedRef.current = true;
+        try {
+            await abortTask.mutateAsync(taskId);
+        } catch {
+            // error handled by mutation
+        }
+        setStreamState("interrupted");
+    };
 
     const timelineNodes = buildTimelineNodes(sseEvents);
     const lastPhaseIsEmpty = timelineNodes.length > 0
@@ -442,8 +464,16 @@ export function CreatePage() {
                             </div>
                         ) : null}
 
+                        {/* Interrupted state */}
+                        {isInterrupted ? (
+                            <div className="status-card status-card--interrupted fade-in" style={{ maxWidth: 720, width: "100%", margin: "0 auto" }}>
+                                <strong>生成任务已中断</strong>
+                                <div className="qa-text">本轮生成已停止，可重新发起新任务。</div>
+                            </div>
+                        ) : null}
+
                         {/* Error state */}
-                        {streamError ? (
+                        {!isInterrupted && streamError ? (
                             <div className="status-card fade-in" style={{ maxWidth: 720, width: "100%", margin: "0 auto" }}>
                                 <strong>生成失败</strong>
                                 <div className="qa-text">{streamError}</div>
@@ -512,15 +542,27 @@ export function CreatePage() {
                                     <History size={18} />
                                 </button>
                             </div>
-                            <button
-                                type="submit"
-                                className="create-page__send-btn"
-                                aria-label="发送"
-                                disabled={isStreaming || createTask.isPending || createStream.isPending}
-                                style={{ opacity: (isStreaming || createTask.isPending || createStream.isPending) ? 0.5 : undefined }}
-                            >
-                                <ArrowUp size={20} strokeWidth={2.5} />
-                            </button>
+                            {isStreaming ? (
+                                <button
+                                    type="button"
+                                    className="create-page__send-btn create-page__send-btn--abort"
+                                    aria-label="中断生成"
+                                    disabled={abortTask.isPending}
+                                    onClick={handleAbort}
+                                >
+                                    <StopCircle size={20} strokeWidth={2.5} />
+                                </button>
+                            ) : (
+                                <button
+                                    type="submit"
+                                    className="create-page__send-btn"
+                                    aria-label="发送"
+                                    disabled={isStreaming || isInterrupted || createTask.isPending || createStream.isPending}
+                                    style={{ opacity: (isStreaming || isInterrupted || createTask.isPending || createStream.isPending) ? 0.5 : undefined }}
+                                >
+                                    <ArrowUp size={20} strokeWidth={2.5} />
+                                </button>
+                            )}
                         </div>
                     </form>
                 </div>

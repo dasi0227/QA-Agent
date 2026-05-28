@@ -248,6 +248,25 @@
   opacity: 0.7;
 }
 
+.create-page__send-btn--abort {
+  background: #ef4444;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 180ms ease;
+  flex-shrink: 0;
+}
+
+.create-page__send-btn--abort:hover {
+  opacity: 0.8;
+}
+
 
 /* ── SSE Timeline ── */
 

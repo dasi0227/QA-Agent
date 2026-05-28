@@ -125,6 +125,11 @@ public class QaSetService implements IQaSetService {
     }
 
     @Override
+    public void abortTask(String taskId, String userId) {
+        agentRepository.markTaskCanceled(taskId);
+    }
+
+    @Override
     public void createQaSet(CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler) {
         if (!StringUtils.hasText(request.getTaskId())) {
             throw new ApiException(ResultCode.BAD_REQUEST, "生成任务 ID 不能为空，请先创建生成任务");

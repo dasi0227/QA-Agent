@@ -33,6 +33,8 @@ public interface IQaSetService {
 
     TaskCreateResponse createTask(CreateQaSetRequest request);
 
+    void abortTask(String taskId, String userId);
+
     void createQaSet(CreateQaSetRequest request, Consumer<SseEvent> sseEventHandler);
 
     TaskStatusResponse getTaskStatus(String taskId);

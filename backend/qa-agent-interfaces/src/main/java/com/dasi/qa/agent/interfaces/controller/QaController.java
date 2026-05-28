@@ -3,6 +3,7 @@ package com.dasi.qa.agent.interfaces.controller;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.qa.service.item.IQaItemService;
 import com.dasi.qa.agent.domain.qa.service.set.IQaSetService;
+import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.interfaces.handler.SseEventHandler;
 import com.dasi.qa.agent.types.dto.request.qa.*;
 import com.dasi.qa.agent.types.dto.response.qa.*;
@@ -30,11 +31,14 @@ public class QaController {
 
     private final IQaSetService qaSetService;
     private final IQaItemService qaItemService;
+    private final IContextUtil contextUtil;
 
     public QaController(IQaSetService qaSetService,
-                        IQaItemService qaItemService) {
+                        IQaItemService qaItemService,
+                        IContextUtil contextUtil) {
         this.qaSetService = qaSetService;
         this.qaItemService = qaItemService;
+        this.contextUtil = contextUtil;
     }
 
     @GetMapping("/set/detail")
@@ -91,13 +95,22 @@ public class QaController {
     public SseEmitter qaSetCreate(@RequestBody @Valid CreateQaSetRequest request) {
         SseEmitter emitter = new SseEmitter(600000L);
         emitter.onTimeout(emitter::complete);
-        emitter.onError(emitter::completeWithError);
+        emitter.onError(throwable -> {
+            qaSetService.abortTask(request.getTaskId(), contextUtil.getUserId());
+            emitter.completeWithError(throwable);
+        });
 
         log.info("【路由追踪】Controller 收到 /qa/set/create 请求: taskId={}", request.getTaskId());
         Consumer<SseEvent> sseEventHandler = new SseEventHandler(emitter);
         qaSetService.createQaSet(request, sseEventHandler);
 
         return emitter;
+    }
+
+    @PostMapping("/set/abort")
+    public Result<Void> qaSetAbort(@RequestBody @Valid AbortTaskRequest request) {
+        qaSetService.abortTask(request.getTaskId(), contextUtil.getUserId());
+        return Result.success();
     }
 
     @GetMapping("/set/task-status")

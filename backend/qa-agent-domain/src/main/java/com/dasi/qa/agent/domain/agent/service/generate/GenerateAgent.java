@@ -246,7 +246,8 @@ public class GenerateAgent implements IGenerateAgent {
      * DecideAgent 负责判断用户需求是否符合问答集生成场景，输出 valid 判定结果写入 scope。
      */
     private void doDecide(AgenticScope scope, DecideAgent decideAgent, DecideContext decideContext) {
-        // 1. 更新状态
+        // 1. 判断并更新状态
+        if (agentRepository.isTaskCanceled(decideContext.getTaskId())) return;
         agentRepository.updateTaskPhase(decideContext.getTaskId(), GeneratePhase.DECIDE);
         decideContext.getEventPublisher().publishProgress("💭 需求分析", "正在分析需求是否符合生成场景...");
 
@@ -274,7 +275,8 @@ public class GenerateAgent implements IGenerateAgent {
      * AbortAgent 负责根据判定原因生成用户可读的终止说明，并以 CANCELED 状态发布失败事件。
      */
     private void doAbort(AgenticScope scope, AbortAgent abortAgent, AbortContext abortContext) {
-        // 1. 更新状态
+        // 1. 判断并更新状态
+        if (agentRepository.isTaskCanceled(abortContext.getTaskId())) return;
         agentRepository.updateTaskPhase(abortContext.getTaskId(), GeneratePhase.ABORT);
 
         // 2. 拿到决策结果
@@ -298,7 +300,8 @@ public class GenerateAgent implements IGenerateAgent {
      * PlanAgent 负责分析资料目录结构并规划模块化题集方案，输出 planResult 写入 scope。
      */
     private void doPlan(AgenticScope scope, PlanAgent planAgent, PlanContext planContext) {
-        // 1. 更新状态
+        // 1. 判断并更新状态
+        if (agentRepository.isTaskCanceled(planContext.getTaskId())) return;
         agentRepository.updateTaskPhase(planContext.getTaskId(), GeneratePhase.PLAN);
         planContext.getEventPublisher().publishProgress("🧭 模块规划", "正在分析资料结构，规划模块分配...");
 
@@ -351,6 +354,7 @@ public class GenerateAgent implements IGenerateAgent {
      * WriteAgent 负责按模块并行执行 RAG 检索与 DraftAgent 出题，输出 draftResult 写入 scope。
      */
     private void doWrite(AgenticScope scope, DraftAgent draftAgent, WriteContext writeContext) {
+        if (agentRepository.isTaskCanceled(writeContext.getTaskId())) return;
         agentRepository.updateTaskPhase(writeContext.getTaskId(), GeneratePhase.WRITE);
 
         PlanResult planResult = readPlanResult(scope);
@@ -362,6 +366,7 @@ public class GenerateAgent implements IGenerateAgent {
         Map<String, List<String>> chunkIdsMap = Collections.synchronizedMap(new LinkedHashMap<>());
 
         for (int g = 0; g < planItems.size(); g += GROUP_SIZE) {
+            if (agentRepository.isTaskCanceled(writeContext.getTaskId())) return;
             List<PlanResult.PlanItem> group = planItems.subList(g, Math.min(g + GROUP_SIZE, planItems.size()));
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             for (PlanResult.PlanItem planItem : group) {
@@ -453,6 +458,7 @@ public class GenerateAgent implements IGenerateAgent {
         int remaining = draftContext.getPlanItem().getQuestionCount();
         List<DraftResult> draftResults = new ArrayList<>();
         while (remaining > 0) {
+            if (agentRepository.isTaskCanceled(draftContext.getTaskId())) break;
             // 当前批次题数
             int batchCount = Math.min(BATCH_SIZE, remaining);
             String previousQuestions = jsonUtil.toJsonString(draftResults.stream()
@@ -513,7 +519,8 @@ public class GenerateAgent implements IGenerateAgent {
      * ValidateAgent 负责审校 draftResult 中的题目并修订可修复项，输出 validatedResult 写入 scope。
      */
     private void doValidate(AgenticScope scope, EvaluateAgent evaluateAgent, AmendAgent amendAgent, ValidateContext validateContext) {
-        // 1. 更新状态
+        // 1. 判断并更新状态
+        if (agentRepository.isTaskCanceled(validateContext.getTaskId())) return;
         agentRepository.updateTaskPhase(validateContext.getTaskId(), GeneratePhase.VALIDATE);
         validateContext.getEventPublisher().publishProgress("🔬 审校修订", "开始审校已生成的题目...");
 
@@ -571,6 +578,10 @@ public class GenerateAgent implements IGenerateAgent {
                 .subAgents(
                         // 校验
                         AgenticServices.agentAction(scope -> {
+                            if (agentRepository.isTaskCanceled(taskId)) {
+                                flag.set(true);
+                                return;
+                            }
                             List<EvaluateResult> evaluates = doEvaluate(taskId,
                                     evaluateAgent,
                                     EvaluateContext.builder()
@@ -682,7 +693,8 @@ public class GenerateAgent implements IGenerateAgent {
      * SummarizeAgent 负责生成完成说明并写入 scope。
      */
     private void doSummarize(AgenticScope scope, SummarizeAgent summarizeAgent, SummarizeContext summarizeContext) {
-        // 1. 更新状态
+        // 1. 判断并更新状态
+        if (agentRepository.isTaskCanceled(summarizeContext.getTaskId())) return;
         agentRepository.updateTaskPhase(summarizeContext.getTaskId(), GeneratePhase.SUMMARIZE);
         summarizeContext.getEventPublisher().publishEvent(GeneratePhase.SUMMARIZE, GenerateStatus.PROCESSING, "正在生成完成摘要...");
 
