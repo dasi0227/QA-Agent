@@ -90,6 +90,7 @@ export function CreatePage() {
     const { showErrorDialog } = useGlobalErrorDialog();
 
     const [streamState, setStreamState] = useState<"idle" | "streaming">(() => urlTaskId ? "streaming" : "idle");
+    const isStreaming = streamState === "streaming";
     const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
     const [streamError, setStreamError] = useState("");
     const [snapshot, setSnapshot] = useState<{
@@ -149,9 +150,9 @@ export function CreatePage() {
     }, [taskStatusQuery.isError, taskMessagesQuery.isError, recoveryTrigger]);
 
     // When entering /create/:taskId with router state, start SSE stream
-    const streamInitiated = useRef(false);
+    const streamInitiatedFor = useRef<string | undefined>(undefined);
     useEffect(() => {
-        if (!urlTaskId || streamInitiated.current) return;
+        if (!urlTaskId || streamInitiatedFor.current === urlTaskId) return;
         const formState = location.state as {
             title: string;
             userPrompt: string;
@@ -161,7 +162,7 @@ export function CreatePage() {
             docNames: string[];
         } | null;
         if (!formState) return; // No router state — recovery polling handles it
-        streamInitiated.current = true;
+        streamInitiatedFor.current = urlTaskId;
         setSnapshot({ userPrompt: formState.userPrompt, docNames: formState.docNames });
         setSseEvents([]);
         setStreamError("");
@@ -182,15 +183,6 @@ export function CreatePage() {
         }).catch((err) => {
             setStreamError(err instanceof Error ? err.message : "生成失败，请重试");
         });
-    }, [urlTaskId, queryClient, createStream]);
-
-    // Reset streamInitiated ref only when urlTaskId genuinely changes (not on mount)
-    const prevUrlTaskId = useRef(urlTaskId);
-    useEffect(() => {
-        if (prevUrlTaskId.current !== urlTaskId) {
-            streamInitiated.current = false;
-            prevUrlTaskId.current = urlTaskId;
-        }
     }, [urlTaskId]);
 
     // When urlTaskId changes (same-component route transition):
@@ -461,13 +453,13 @@ export function CreatePage() {
                         {/* Completion */}
                         {isCompleted ? (
                             <div className="sse-timeline fade-in">
+                                <div className="sse-timeline__divider">
+                                    <span>生成完成</span>
+                                </div>
                                 <div className="sse-timeline__completed-link">
                                     <Link to="/repository/qa-set" className="btn btn--soft">
                                         查看问答集
                                     </Link>
-                                </div>
-                                <div className="sse-timeline__divider">
-                                    <span>生成完成</span>
                                 </div>
                             </div>
                         ) : null}
@@ -491,19 +483,21 @@ export function CreatePage() {
                         <div className="create-page__input-area">
                             <TextArea
                                 {...form.register("userPrompt")}
-                                placeholder="输入你的需求..."
+                                placeholder={isStreaming ? "当前对话仅支持一次任务处理，返回首页可新建任务" : "输入你的需求..."}
+                                disabled={isStreaming}
                                 className="create-page__input"
                             />
                         </div>
 
                         <div className="create-page__actions">
                             <div className="create-page__actions-left">
-                                <button type="button" className="create-page__action-btn create-page__action-btn--icon" onClick={() => setSettingsOpen(true)}>
+                                <button type="button" className="create-page__action-btn create-page__action-btn--icon" disabled={isStreaming} onClick={() => setSettingsOpen(true)}>
                                     <Settings size={18} />
                                 </button>
                                 <button
                                     type="button"
                                     className="create-page__action-btn create-page__action-btn--icon"
+                                    disabled={isStreaming}
                                     onClick={openDialog}
                                     aria-label="添加资料"
                                     title="添加资料"
@@ -522,8 +516,8 @@ export function CreatePage() {
                                 type="submit"
                                 className="create-page__send-btn"
                                 aria-label="发送"
-                                disabled={createTask.isPending || createStream.isPending}
-                                style={{ opacity: (createTask.isPending || createStream.isPending) ? 0.5 : undefined }}
+                                disabled={isStreaming || createTask.isPending || createStream.isPending}
+                                style={{ opacity: (isStreaming || createTask.isPending || createStream.isPending) ? 0.5 : undefined }}
                             >
                                 <ArrowUp size={20} strokeWidth={2.5} />
                             </button>

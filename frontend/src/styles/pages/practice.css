@@ -503,6 +503,10 @@
   line-height: 1.6;
 }
 
+.practice-feedback__grid article p {
+  white-space: pre-wrap;
+}
+
 
 .review-workspace__eyebrow {
   display: inline-flex;

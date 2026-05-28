@@ -381,8 +381,12 @@ public class DocumentRepository implements IDocumentRepository {
      */
     private String toTsquery(String queryText) {
         if (!StringUtils.hasText(queryText)) return "";
-        String[] words = queryText.trim().split("\\s+");
-        return String.join(" & ", words);
+        String cleaned = queryText.trim()
+                .replaceAll("[{}\\[\\]\":,]", " ")
+                .replaceAll("\\s+", " ");
+        if (!StringUtils.hasText(cleaned)) return "";
+        String[] words = cleaned.split(" ");
+        return String.join(" | ", words);
     }
 
     // ======================== generic helpers (existing) ========================

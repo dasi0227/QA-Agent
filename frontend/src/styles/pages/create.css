@@ -351,6 +351,7 @@
 .sse-timeline__message-text {
   flex: 1;
   min-width: 0;
+  white-space: pre-wrap;
 }
 
 
@@ -433,6 +434,7 @@
   line-height: 1.7;
   font-family: var(--font-serif);
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
 

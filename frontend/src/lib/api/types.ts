@@ -135,7 +135,7 @@ export type DocumentChunkRecord = {
     documentId: string;
     fileName: string;
     chunkIndex: number;
-    titlePath: string;
+    headingPath: string;
     content: string;
     summary: string;
     moduleTagsJson: string;

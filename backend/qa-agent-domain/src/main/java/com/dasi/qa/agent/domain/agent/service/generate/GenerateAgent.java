@@ -367,7 +367,7 @@ public class GenerateAgent implements IGenerateAgent {
             for (PlanResult.PlanItem planItem : group) {
                 futures.add(CompletableFuture.runAsync(() -> {
                     try {
-                        List<RagEvidenceProvider.RagEvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().searchByPlanItem(writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem);
+                        List<RagEvidenceProvider.RagEvidenceItem> ragEvidence = writeContext.getRagEvidenceProvider().searchByPlanItem(writeContext.getUserId(), writeContext.getRequest().getDocumentIds(), planItem, writeContext.getRequest().getUserPrompt(), writeContext.getRequest().getJobDescription());
                         String evidenceJson;
                         if (writeContext.getWebEvidenceProvider() != null) {
                             String webSearchQuery = String.format("搜索 %s %s %s 面试面经", writeContext.getTargetCompany(), writeContext.getTargetRole(), planItem.getModule());

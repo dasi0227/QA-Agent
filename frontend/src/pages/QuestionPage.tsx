@@ -1059,7 +1059,7 @@ export function QuestionPage() {
                                     </div>
                                     <div className="question-evidence-dialog__meta">
                                         <span className="question-evidence-dialog__label">标题路径</span>
-                                        <div className="question-evidence-dialog__value">{selectedEvidenceChunk.titlePath || "暂无标题路径"}</div>
+                                        <div className="question-evidence-dialog__value">{selectedEvidenceChunk.headingPath || "暂无标题路径"}</div>
                                     </div>
                                     <div className="question-evidence-dialog__meta">
                                         <span className="question-evidence-dialog__label">正文</span>
