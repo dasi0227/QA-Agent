@@ -65,7 +65,7 @@
 .question-detail-title {
   font-size: clamp(26px, 3.4vw, 42px);
   margin: 0;
-  line-height: 1.08;
+  line-height: 1.30;
   letter-spacing: -0.045em;
 }
 
@@ -149,6 +149,15 @@
   font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.4;
+}
+
+.question-info-card__item > p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 
@@ -291,6 +300,31 @@
   font-size: 15px;
   line-height: 1.92;
   white-space: pre-wrap;
+}
+
+
+/* ── 统一卡片容器（标准回答 / 知识点 / 答前提示 / 证据原文）── */
+
+.question-detail-section--card .question-detail-section__body,
+.question-detail-section--card .question-evidence-panel__body {
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.92);
+  border: 1px solid rgba(23, 22, 20, 0.08);
+  box-shadow: 0 2px 12px rgba(77, 63, 40, 0.06);
+}
+
+.question-detail-section--card .question-detail-section__body h2 {
+  margin: 0 0 8px;
+  color: #8e642d;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.question-detail-section--card .question-detail-section__header {
+  display: none;
 }
 
 
@@ -804,6 +838,62 @@
   display: none;
 }
 
+.question-practice-dialog__title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.question-practice-dialog__select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.question-practice-dialog__select-all input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.question-practice-dialog__select-all-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(23, 22, 20, 0.2);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.question-practice-dialog__select-all input:checked + .question-practice-dialog__select-all-mark {
+  background: #8e642d;
+  border-color: #8e642d;
+}
+
+.question-practice-dialog__select-all input:checked + .question-practice-dialog__select-all-mark::after {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.question-practice-dialog__select-all:hover .question-practice-dialog__select-all-mark {
+  border-color: rgba(23, 22, 20, 0.35);
+}
+
 
 .question-practice-dialog__item {
   display: grid;
@@ -827,7 +917,8 @@
 }
 
 
-.question-practice-dialog__item--selected {
+.question-practice-dialog__item--selected,
+.question-practice-dialog__item--selected:hover {
   border-color: #8e642d;
   background: rgba(142, 100, 45, 0.06);
 }

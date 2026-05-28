@@ -325,7 +325,7 @@ export function QASetPage() {
 
                                 <div className="repository-header__actions" style={{ marginTop: 24, marginBottom: 28 }}>
                                     <LinkButton to={`/quiz?questionSetId=${selectedSetQuery.data.id}`} variant="primary">
-                                        开始练习
+                                        前往练习
                                     </LinkButton>
                                     <LinkButton to={`/repository/qa-set/history?qaSetId=${selectedSetQuery.data.id}`} variant="soft">
                                         练习历史

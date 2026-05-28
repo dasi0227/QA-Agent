@@ -798,7 +798,9 @@
 
 
 .repository-item-card--active,
-.repository-qaSetEntry-card--active {
+.repository-qaSetEntry-card--active,
+.repository-item-card--active:hover,
+.repository-qaSetEntry-card--active:hover {
   border-color: rgba(23, 22, 20, 0.22);
   box-shadow: var(--shadow-soft);
 }
@@ -1165,7 +1167,8 @@
 }
 
 
-.doc-select-dialog__item--selected {
+.doc-select-dialog__item--selected,
+.doc-select-dialog__item--selected:hover {
   border-color: #8e642d;
   background: rgba(142, 100, 45, 0.06);
 }

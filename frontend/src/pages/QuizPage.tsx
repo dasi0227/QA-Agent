@@ -196,7 +196,7 @@ export function QuizPage() {
                     ) : null}
 
                     {!questionSetsQuery.isLoading && !questionSetsQuery.isError && !activeSet ? (
-                        <section className="quiz-carousel" aria-label="测试集轮播">
+                        <section className="quiz-carousel" aria-label="练习集轮播">
                             <div className="quiz-carousel__stage" style={{ overflow: "visible" }}>
                                 <button
                                     type="button"
@@ -220,12 +220,12 @@ export function QuizPage() {
 
                     {activeSet ? (
                         <>
-                            <section className="quiz-carousel" aria-label="测试集轮播">
+                            <section className="quiz-carousel" aria-label="练习集轮播">
                                 <button
                                     className="quiz-carousel__arrow quiz-carousel__arrow--left"
                                     type="button"
                                     onClick={() => handleCarouselMove(-1)}
-                                    aria-label="切换到上一个测试集"
+                                    aria-label="切换到上一个练习集"
                                     disabled={!hasCarouselNavigation || isAnimating}
                                 >
                                     <ChevronLeft size={28} strokeWidth={1.8} />
@@ -328,7 +328,7 @@ export function QuizPage() {
                                     className="quiz-carousel__arrow quiz-carousel__arrow--right"
                                     type="button"
                                     onClick={() => handleCarouselMove(1)}
-                                    aria-label="切换到下一个测试集"
+                                    aria-label="切换到下一个练习集"
                                     disabled={!hasCarouselNavigation || isAnimating}
                                 >
                                     <ChevronRight size={28} strokeWidth={1.8} />
@@ -373,7 +373,7 @@ export function QuizPage() {
                                             disabled={!existingPractice || practiceLoading}
                                             onClick={handleContinuePractice}
                                         >
-                                            继续测试
+                                            继续练习
                                         </BaseButton>
                                     </div>
                                 </div>

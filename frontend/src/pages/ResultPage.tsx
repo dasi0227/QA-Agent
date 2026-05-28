@@ -154,9 +154,9 @@ export function ResultPage() {
             <div className="page-frame">
                 <div className="status-card">
                     <strong>结果加载失败</strong>
-                    <div className="qa-text">请返回测试页重新进入。</div>
+                    <div className="qa-text">请返回练习页重新进入。</div>
                 </div>
-                <LinkButton to="/quiz" variant="primary">返回测试页</LinkButton>
+                <LinkButton to="/quiz" variant="primary">返回练习页</LinkButton>
             </div>
         );
     }
@@ -170,7 +170,7 @@ export function ResultPage() {
                 </div>
                 <div className="result-actions">
                     <LinkButton to={`/practice/${session.id || sessionId}`} variant="primary">返回练习</LinkButton>
-                    <LinkButton to="/quiz" variant="ghost">返回测试页</LinkButton>
+                    <LinkButton to="/quiz" variant="ghost">返回练习页</LinkButton>
                 </div>
             </div>
         );

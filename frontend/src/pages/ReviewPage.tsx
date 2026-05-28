@@ -58,7 +58,7 @@ export function ReviewPage() {
                 <div className="practice-shell__center">
                     <strong>回看加载失败</strong>
                     <BaseButton variant="primary" type="button" onClick={() => detailQuery.refetch()}>重试</BaseButton>
-                    <BaseButton variant="link" type="button" onClick={() => navigate("/quiz")}>返回测试页</BaseButton>
+                    <BaseButton variant="link" type="button" onClick={() => navigate("/quiz")}>返回练习页</BaseButton>
                 </div>
                 <SiteFooter />
             </div>

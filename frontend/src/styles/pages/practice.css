@@ -288,7 +288,9 @@
 
 
 .question-workspace__keyword-toggle--open,
-.question-workspace__pre-hint--open {
+.question-workspace__pre-hint--open,
+.question-workspace__keyword-toggle--open:hover,
+.question-workspace__pre-hint--open:hover {
   border-color: rgba(183, 133, 74, 0.2);
   background: rgba(255, 244, 229, 0.98);
 }

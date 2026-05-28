@@ -75,7 +75,7 @@ const delay = <T,>(value: T, ms = 120) => new Promise<T>((resolve) => {
 
 export const navigationItems: Array<{ key: NavigationKey; label: string; to: string }> = [
   { key: "repository", label: "仓库", to: "/repository/qa-set" },
-  { key: "quiz", label: "测试", to: "/quiz" },
+  { key: "quiz", label: "练习", to: "/quiz" },
   { key: "create", label: "创建", to: "/create" },
 ];
 
@@ -195,7 +195,7 @@ export async function fetchOverview() {
   return delay({
     title: "把资料变成高可信技术面试问答集",
     copy:
-      "上传项目资料和技术笔记，生成可长期练习的问答集，并在持续测试中发现薄弱点。",
+      "上传项目资料和技术笔记，生成可长期练习的问答集，并在持续练习中发现薄弱点。",
     cta: "登录并开始",
     stats: overviewStats,
   });
@@ -211,7 +211,7 @@ export async function fetchRepository() {
 
 export async function fetchQuizContext() {
   return delay({
-    title: "先设定这一轮测试，再从已有问答集里抽取最值得练的题。",
+    title: "先设定这一轮练习，再从已有问答集里抽取最值得练的题。",
     copy:
       "这里不堆叠后台信息，只保留开始练习前必须做的配置，确保用户能快速进入正式作答。",
     modes: ["顺序练习", "随机练习", "按模块练习"],

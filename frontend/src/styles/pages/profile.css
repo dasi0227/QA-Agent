@@ -101,7 +101,8 @@
   transform: translateX(2px);
 }
 
-.profile-settings__nav-item--active {
+.profile-settings__nav-item--active,
+.profile-settings__nav-item--active:hover {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.72);
   border-color: rgba(23, 22, 20, 0.08);
@@ -483,7 +484,8 @@
   color: var(--ink);
 }
 
-.profile-memory__chip--active {
+.profile-memory__chip--active,
+.profile-memory__chip--active:hover {
   background: rgba(23, 22, 20, 0.06);
   border-color: rgba(23, 22, 20, 0.12);
   color: var(--ink);
@@ -611,7 +613,8 @@
   background: rgba(255, 255, 255, 0.62);
 }
 
-.profile-memory-card--active {
+.profile-memory-card--active,
+.profile-memory-card--active:hover {
   border-color: rgba(215, 185, 87, 0.32);
   background: rgba(255, 248, 232, 0.92);
 }

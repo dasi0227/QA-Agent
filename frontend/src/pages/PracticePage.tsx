@@ -342,7 +342,7 @@ export function PracticePage() {
                 <div className="practice-shell__center">
                     <strong>练习加载失败</strong>
                     <BaseButton variant="primary" onClick={() => detailQuery.refetch()}>重试</BaseButton>
-                    <BaseButton variant="link" onClick={() => navigate("/quiz")}>返回测试页</BaseButton>
+                    <BaseButton variant="link" onClick={() => navigate("/quiz")}>返回练习页</BaseButton>
                 </div>
                 <SiteFooter />
             </div>

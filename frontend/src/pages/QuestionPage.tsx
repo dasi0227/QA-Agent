@@ -295,6 +295,17 @@ export function QuestionPage() {
         ));
     };
 
+    const toggleSelectAllPracticeItems = () => {
+        if (!itemList.length) return;
+        if (selectedPracticeItemIds.length === itemList.length) {
+            setSelectedPracticeItemIds([]);
+        } else {
+            setSelectedPracticeItemIds(itemList.map((qaSetEntry) => qaSetEntry.id));
+        }
+    };
+
+    const allPracticeItemsSelected = itemList.length > 0 && selectedPracticeItemIds.length === itemList.length;
+
     const startPracticeWithItems = async (itemIds: string[]) => {
         const normalized = itemIds.filter(Boolean);
         if (!qaSetId || !normalized.length) {
@@ -473,36 +484,27 @@ export function QuestionPage() {
                                             </div>
                                         </div>
 
-                                        <section className="question-detail-section">
+                                        <section className="question-detail-section question-detail-section--card">
                                             <div className="question-detail-section__header">
                                                 <h2>标准回答</h2>
                                             </div>
                                             <div className="question-detail-section__body question-detail-section__body--expanded">
+                                                <h2>标准回答</h2>
                                                 <p>{activeItem.answer || "暂无标准回答"}</p>
                                             </div>
                                         </section>
 
-                                        <section className="question-detail-section">
+                                        <section className="question-detail-section question-detail-section--card">
                                             <div className="question-detail-section__header">
                                                 <h2>知识点</h2>
                                             </div>
                                             <div className="question-detail-section__body question-detail-section__body--expanded">
+                                                <h2>知识点</h2>
                                                 <p>{activeItem.knowledgeNote || "暂无知识点"}</p>
                                             </div>
                                         </section>
 
-                                        {activeItem.hint ? (
-                                            <section className="question-detail-section">
-                                                <div className="question-detail-section__header">
-                                                    <h2>答前提示</h2>
-                                                </div>
-                                                <div className="question-detail-section__body question-detail-section__body--expanded">
-                                                    <p>{activeItem.hint}</p>
-                                                </div>
-                                            </section>
-                                        ) : null}
-
-                                        <section className="question-detail-section">
+                                        <section className="question-detail-section question-detail-section--card">
                                             <div className="question-detail-section__header">
                                                 <h2>证据原文</h2>
                                             </div>
@@ -576,6 +578,12 @@ export function QuestionPage() {
                                                             </ul>
                                                         ) : <span className="question-info-card__empty">暂无关键字</span>}
                                                     </div>
+                                                    {activeItem.hint ? (
+                                                        <div className="question-info-card__item">
+                                                            <span>提示</span>
+                                                            <p>{activeItem.hint}</p>
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                             <div className="question-side-rail__divider" />
@@ -587,7 +595,7 @@ export function QuestionPage() {
                                                     disabled={startSelectedPracticeMutation.isPending || itemList.length === 0}
                                                     onClick={openPracticeDialog}
                                                 >
-                                                    {startSelectedPracticeMutation.isPending ? "启动中" : "开始测试"}
+                                                    {startSelectedPracticeMutation.isPending ? "启动中" : "开始练习"}
                                                 </BaseButton>
                                                 <BaseButton
                                                     variant="soft"
@@ -773,9 +781,20 @@ export function QuestionPage() {
 
             {practiceDialogOpen ? (
                 <div className="doc-select-dialog" role="presentation" onClick={closePracticeDialog}>
-                    <div className="question-practice-dialog" role="dialog" aria-modal="true" aria-label="选择测试题目" onClick={(event) => event.stopPropagation()}>
+                    <div className="question-practice-dialog" role="dialog" aria-modal="true" aria-label="选择练习题目" onClick={(event) => event.stopPropagation()}>
                         <div className="doc-select-dialog__header">
-                            <h3 className="doc-select-dialog__title">选择测试题目</h3>
+                            <div className="question-practice-dialog__title-row">
+                                <h3 className="doc-select-dialog__title">选择练习题目</h3>
+                                <label className="question-practice-dialog__select-all">
+                                    <input
+                                        type="checkbox"
+                                        checked={allPracticeItemsSelected}
+                                        onChange={toggleSelectAllPracticeItems}
+                                    />
+                                    <span className="question-practice-dialog__select-all-mark" aria-hidden="true" />
+                                    <span>全选</span>
+                                </label>
+                            </div>
                             <button type="button" className="doc-select-dialog__close" onClick={closePracticeDialog}>
                                 <X size={16} />
                             </button>
@@ -818,7 +837,7 @@ export function QuestionPage() {
                                         disabled={startSelectedPracticeMutation.isPending || selectedPracticeItemIds.length === 0}
                                         onClick={() => startPracticeWithItems(selectedPracticeItemIds)}
                                     >
-                                        {startSelectedPracticeMutation.isPending ? "启动中" : "开始测试"}
+                                        {startSelectedPracticeMutation.isPending ? "启动中" : "开始练习"}
                                     </BaseButton>
                                     <BaseButton variant="ghost" type="button" onClick={closePracticeDialog}>
                                         取消

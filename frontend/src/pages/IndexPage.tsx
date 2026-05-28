@@ -19,7 +19,7 @@ export function IndexPage() {
     },
     {
       index: "03",
-      title: "开始测试复习",
+      title: "开始练习复习",
       copy: "用同一份问答集反复练习，在反馈里持续修正薄弱点。",
     },
   ];
