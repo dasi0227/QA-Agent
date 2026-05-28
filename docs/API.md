@@ -155,7 +155,7 @@
 1. 生成问答集分两步：先 `POST /qa/set/task` 创建空任务拿到 `taskId`，再 `POST /qa/set/create` 携带 `taskId` 启动生成。
 2. `/qa/set/create` 返回 `text/event-stream`，不包 `Result<T>`。
 3. `/qa/set/task` 返回 `{ code: 0, data: { taskId: "..." } }`。
-4. `requestedQuestionCount` 当前限制为 `10 ~ 100`。
+4. `requestedQuestionCount` 当前限制为 `10 ~ 50`。
 5. 删除 `qa_set` 时会级联删除 `qa_item`、`practice_session`、`practice_session_item`、`qa_set_document_ref`。
 6. `/qa/set/export` 和 `/qa/set/import` 只处理题集资产，不导出练习历史、生成任务历史、资料引用和 RAG 切片 ID。
 7. `/qa/set/empty` 只创建题集框架，不创建 `qa_set_document_ref`，`documentCount=0`，后续可手动新增题目。

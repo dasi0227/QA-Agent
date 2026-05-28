@@ -87,6 +87,7 @@ export function CreatePage() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [qaSetTitle, setQaSetTitle] = useState("未命名问答集");
     const [requestedCount, setRequestedCount] = useState(20);
+    const [countDraft, setCountDraft] = useState("20");
     const [jobDescription, setJobDescription] = useState("");
     const submittingRef = useRef(false);
     const { showErrorDialog } = useGlobalErrorDialog();
@@ -589,10 +590,11 @@ export function CreatePage() {
             {settingsOpen ? (
                 <SettingsDialog
                     title={qaSetTitle}
-                    requestedCount={requestedCount}
+                    countDraft={countDraft}
                     jobDescription={jobDescription}
                     onChangeTitle={setQaSetTitle}
-                    onChangeCount={setRequestedCount}
+                    onChangeCountDraft={(v) => setCountDraft(v)}
+                    onCommitCount={(n) => { setCountDraft(String(n)); setRequestedCount(n); }}
                     onChangeJobDesc={setJobDescription}
                     onClose={() => setSettingsOpen(false)}
                 />
@@ -666,18 +668,20 @@ function HistoryDialog({
 
 function SettingsDialog({
     title,
-    requestedCount,
+    countDraft,
     jobDescription,
     onChangeTitle,
-    onChangeCount,
+    onChangeCountDraft,
+    onCommitCount,
     onChangeJobDesc,
     onClose,
 }: {
     title: string;
-    requestedCount: number;
+    countDraft: string;
     jobDescription: string;
     onChangeTitle: (v: string) => void;
-    onChangeCount: (v: number) => void;
+    onChangeCountDraft: (v: string) => void;
+    onCommitCount: (v: number) => void;
     onChangeJobDesc: (v: string) => void;
     onClose: () => void;
 }) {
@@ -705,11 +709,15 @@ function SettingsDialog({
                         <span className="field__label">题目数量</span>
                         <input
                             className="input"
-                            type="number"
-                            min={10}
-                            max={100}
-                            value={requestedCount}
-                            onChange={(e) => onChangeCount(Number(e.target.value))}
+                            inputMode="numeric"
+                            value={countDraft}
+                            onChange={(e) => onChangeCountDraft(e.target.value)}
+                            onBlur={() => {
+                                const n = parseInt(countDraft, 10);
+                                if (isNaN(n) || n < 10) onCommitCount(10);
+                                else if (n > 50) onCommitCount(50);
+                                else onCommitCount(n);
+                            }}
                         />
                     </label>
                     <label className="field">
