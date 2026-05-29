@@ -16,7 +16,7 @@ import com.dasi.qa.agent.domain.agent.service.feedback.subagent.JudgeAgent;
 import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackAgentFactory;
 import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackSaver;
 import com.dasi.qa.agent.domain.agent.service.feedback.support.FeedbackScoreCorrector;
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.dto.request.practice.FeedbackRequest;
@@ -45,7 +45,7 @@ public class FeedbackAgent implements IFeedbackAgent {
     private final IJsonUtil jsonUtil;
     private final IAgentRepository agentRepository;
     private final FeedbackAgentFactory feedbackAgentFactory;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final FeedbackScoreCorrector feedbackScoreCorrector;
     private final FeedbackSaver feedbackSaver;
 
@@ -53,14 +53,14 @@ public class FeedbackAgent implements IFeedbackAgent {
                          IJsonUtil jsonUtil,
                          IAgentRepository agentRepository,
                          FeedbackAgentFactory feedbackAgentFactory,
-                         UserLlmModelProvider userLlmModelProvider,
+                         IModelUtil modelUtil,
                          FeedbackScoreCorrector feedbackScoreCorrector,
                          FeedbackSaver feedbackSaver) {
         this.contextUtil = contextUtil;
         this.jsonUtil = jsonUtil;
         this.agentRepository = agentRepository;
         this.feedbackAgentFactory = feedbackAgentFactory;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.feedbackScoreCorrector = feedbackScoreCorrector;
         this.feedbackSaver = feedbackSaver;
     }
@@ -69,7 +69,7 @@ public class FeedbackAgent implements IFeedbackAgent {
     public FeedbackResponse execute(FeedbackRequest request) {
         // 1. 构建用户模型
         String userId = contextUtil.getUserId();
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
+        ChatModel userModel = modelUtil.getAgentModel(userId);
 
         // 2. 读取 DB 数据快照并处理请求输入
         String sessionItemId = request.getSessionItemId();

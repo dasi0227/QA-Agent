@@ -13,7 +13,7 @@ import com.dasi.qa.agent.domain.agent.service.memory.subagent.InvestAgent;
 import com.dasi.qa.agent.domain.agent.service.memory.subagent.MergeAgent;
 import com.dasi.qa.agent.domain.agent.service.memory.support.MemoryAgentFactory;
 import com.dasi.qa.agent.domain.agent.service.memory.support.MemoryResultCleaner;
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
@@ -41,20 +41,20 @@ public class MemoryAgent implements IMemoryAgent {
     private static final int MAX_RETRY = 2;
 
     private final IAgentRepository agentRepository;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final IIdUtil idUtil;
     private final IJsonUtil jsonUtil;
     private final MemoryAgentFactory memoryAgentFactory;
     private final MemoryResultCleaner memoryResultCleaner;
 
     public MemoryAgent(IAgentRepository agentRepository,
-                       UserLlmModelProvider userLlmModelProvider,
+                       IModelUtil modelUtil,
                        IIdUtil idUtil,
                        IJsonUtil jsonUtil,
                        MemoryAgentFactory memoryAgentFactory,
                        MemoryResultCleaner memoryResultCleaner) {
         this.agentRepository = agentRepository;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.idUtil = idUtil;
         this.jsonUtil = jsonUtil;
         this.memoryAgentFactory = memoryAgentFactory;
@@ -72,7 +72,7 @@ public class MemoryAgent implements IMemoryAgent {
             return;
         }
 
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
+        ChatModel userModel = modelUtil.getAgentModel(userId);
         MemoryContext memoryContext = MemoryContext.builder()
                 .userModel(userModel)
                 .investStep((scope, investAgent) -> doInvest(scope, investAgent, sessionSource))

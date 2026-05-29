@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.domain.chat.service;
 
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.dto.request.chat.TempChatRequest;
 import com.dasi.qa.agent.types.dto.response.chat.TempChatResponse;
@@ -20,14 +20,14 @@ import org.springframework.stereotype.Service;
 public class ChatService implements IChatService {
 
     private final IContextUtil contextUtil;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final ChatMemoryProvider chatMemoryProvider;
 
     public ChatService(IContextUtil contextUtil,
-                       UserLlmModelProvider userLlmModelProvider,
+                       IModelUtil modelUtil,
                        ChatMemoryProvider chatMemoryProvider) {
         this.contextUtil = contextUtil;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.chatMemoryProvider = chatMemoryProvider;
     }
 
@@ -40,7 +40,7 @@ public class ChatService implements IChatService {
     public TempChatResponse tempChat(TempChatRequest request) {
         String userId = contextUtil.getUserId();
         try {
-            ChatModel userModel = userLlmModelProvider.getUserLlmModel4Chat(userId);
+            ChatModel userModel = modelUtil.getChatModel(userId);
             TempChatBot agent = AiServices.builder(TempChatBot.class)
                     .chatModel(userModel)
                     .chatMemoryProvider(chatMemoryProvider)

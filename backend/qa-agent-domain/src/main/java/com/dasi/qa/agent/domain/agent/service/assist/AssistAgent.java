@@ -5,7 +5,7 @@ import com.dasi.qa.agent.domain.agent.service.assist.model.context.AssistContext
 import com.dasi.qa.agent.domain.agent.service.assist.model.exception.AssistException;
 import com.dasi.qa.agent.domain.agent.service.assist.model.result.AssistResult;
 import com.dasi.qa.agent.domain.agent.service.assist.subagent.AssistSubAgent;
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
 import dev.langchain4j.service.AiServices;
@@ -20,14 +20,14 @@ public class AssistAgent implements IAssistAgent {
     private static final int MAX_RETRY = 2;
 
     private final IAgentRepository agentRepository;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final IJsonUtil jsonUtil;
 
     public AssistAgent(IAgentRepository agentRepository,
-                       UserLlmModelProvider userLlmModelProvider,
+                       IModelUtil modelUtil,
                        IJsonUtil jsonUtil) {
         this.agentRepository = agentRepository;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.jsonUtil = jsonUtil;
     }
 
@@ -47,7 +47,7 @@ public class AssistAgent implements IAssistAgent {
     }
 
     private AssistResult doAssist(AssistContext context, String userId) {
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
+        ChatModel userModel = modelUtil.getAgentModel(userId);
         AssistSubAgent assistAgent = AiServices.builder(AssistSubAgent.class)
                 .chatModel(userModel)
                 .build();

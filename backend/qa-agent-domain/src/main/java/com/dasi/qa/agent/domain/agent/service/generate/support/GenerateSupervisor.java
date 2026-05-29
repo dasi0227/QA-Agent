@@ -22,18 +22,18 @@ public class GenerateSupervisor {
 
     private final String taskId;
     private final IPromptUtil promptUtil;
-    private final ChatModel supervisorChatModel;
+    private final ChatModel chatModel;
     private final EventPublisher eventPublisher;
     private final AtomicInteger totalTokens;
 
     public GenerateSupervisor(String taskId,
                               IPromptUtil promptUtil,
-                              ChatModel supervisorChatModel,
+                              ChatModel chatModel,
                               EventPublisher eventPublisher,
                               AtomicInteger totalTokens) {
         this.taskId = taskId;
         this.promptUtil = promptUtil;
-        this.supervisorChatModel = supervisorChatModel;
+        this.chatModel = chatModel;
         this.eventPublisher = eventPublisher;
         this.totalTokens = totalTokens;
     }
@@ -46,7 +46,7 @@ public class GenerateSupervisor {
         try {
             String systemPrompt = promptUtil.loadSupervisorPrompt();
             String userPrompt = "阶段：" + phase.getGenerateStage() + "\n产出：" + reference;
-            ChatResponse response = supervisorChatModel.chat(
+            ChatResponse response = chatModel.chat(
                     SystemMessage.from(systemPrompt),
                     UserMessage.from(userPrompt)
             );

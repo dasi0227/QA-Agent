@@ -23,7 +23,7 @@ import com.dasi.qa.agent.domain.agent.service.memory.model.dto.Memory;
 import com.dasi.qa.agent.domain.agent.service.memory.model.dto.MemoryEvidence;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GeneratePhase;
 import com.dasi.qa.agent.domain.agent.service.generate.model.enumeration.GenerateStatus;
-import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
+
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
@@ -287,15 +287,6 @@ public class AgentRepository implements IAgentRepository {
                         .createdAt(format(entity.getCreatedAt()))
                         .build())
                 .toList();
-    }
-
-    @Override
-    public UserLlmModelVO getUserLlmModel(String userId) {
-        UserProfile profile = userProfileMapper.selectById(userId);
-        if (profile == null) {
-            return null;
-        }
-        return new UserLlmModelVO(profile.getLlmBaseUrl(), profile.getLlmApiKey(), profile.getLlmModelName());
     }
 
     @Override

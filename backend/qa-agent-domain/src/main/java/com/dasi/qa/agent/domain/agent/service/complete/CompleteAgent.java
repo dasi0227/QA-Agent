@@ -8,7 +8,7 @@ import com.dasi.qa.agent.domain.agent.service.complete.model.result.CompleteResu
 import com.dasi.qa.agent.domain.agent.service.complete.subagent.CompleteSubAgentWithAnswer;
 import com.dasi.qa.agent.domain.agent.service.complete.subagent.CompleteSubAgentWithoutAnswer;
 import com.dasi.qa.agent.domain.agent.service.shared.RagEvidenceProvider;
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
 import com.dasi.qa.agent.types.enumeration.AgentErrorType;
@@ -28,18 +28,18 @@ public class CompleteAgent implements ICompleteAgent {
     private static final int MAX_RETRY = 2;
 
     private final IAgentRepository agentRepository;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final RagEvidenceProvider ragEvidenceProvider;
     private final IJsonUtil jsonUtil;
     private final IMqUtil mqUtil;
 
     public CompleteAgent(IAgentRepository agentRepository,
-                         UserLlmModelProvider userLlmModelProvider,
+                         IModelUtil modelUtil,
                          RagEvidenceProvider ragEvidenceProvider,
                          IJsonUtil jsonUtil,
                          IMqUtil mqUtil) {
         this.agentRepository = agentRepository;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.ragEvidenceProvider = ragEvidenceProvider;
         this.jsonUtil = jsonUtil;
         this.mqUtil = mqUtil;
@@ -70,7 +70,7 @@ public class CompleteAgent implements ICompleteAgent {
 
     private CompleteResult doComplete(CompleteContext context, String userId) {
         // 1. 拿到用户模型
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
+        ChatModel userModel = modelUtil.getAgentModel(userId);
 
         // 2. 根据问题搜索相关资料。空引用题集不扩大到用户全部资料。
         List<RagEvidenceProvider.RagEvidenceItem> ragEvidenceItems = context.getDocumentIds() == null || context.getDocumentIds().isEmpty()

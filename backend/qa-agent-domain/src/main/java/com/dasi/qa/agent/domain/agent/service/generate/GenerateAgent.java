@@ -18,7 +18,7 @@ import com.dasi.qa.agent.domain.agent.service.shared.RagEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.shared.WebEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.shared.EventPublisher;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.agent.service.shared.UserMemoryProvider;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
@@ -64,32 +64,29 @@ public class GenerateAgent implements IGenerateAgent {
     private final GenerateAgentFactory generateAgentFactory;
     private final RagEvidenceProvider ragEvidenceProvider;
     private final WebEvidenceProvider webEvidenceProvider;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final UserMemoryProvider userMemoryProvider;
-    private final ChatModel supervisorChatModel;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
     private final GenerateSaver generateSaver;
 
     public GenerateAgent(IJsonUtil jsonUtil,
                          IPromptUtil promptUtil,
                          IAgentRepository agentRepository,
-                         UserLlmModelProvider userLlmModelProvider,
+                         IModelUtil modelUtil,
                          UserMemoryProvider userMemoryProvider,
                          GenerateAgentFactory generateAgentFactory,
                          RagEvidenceProvider ragEvidenceProvider,
                          WebEvidenceProvider webEvidenceProvider,
-                         @Qualifier("supervisorModel") ChatModel supervisorModel,
                          @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor,
                          GenerateSaver generateSaver) {
         this.jsonUtil = jsonUtil;
         this.promptUtil = promptUtil;
         this.agentRepository = agentRepository;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.userMemoryProvider = userMemoryProvider;
         this.generateAgentFactory = generateAgentFactory;
         this.ragEvidenceProvider = ragEvidenceProvider;
         this.webEvidenceProvider = webEvidenceProvider;
-        this.supervisorChatModel = supervisorModel;
         this.applicationTaskExecutor = applicationTaskExecutor;
         this.generateSaver = generateSaver;
     }
@@ -142,10 +139,10 @@ public class GenerateAgent implements IGenerateAgent {
                     }
                 }
             };
-            ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId, tokenListener);
+            ChatModel userModel = modelUtil.getAgentModel(userId, tokenListener);
 
             // 创建阶段总结器，负责在每个 Agent 调用成功后生成进度消息并推送 SSE
-            GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, supervisorChatModel, eventPublisher, totalTokens);
+            GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, userModel, eventPublisher, totalTokens);
 
             // 构建各阶段执行上下文
             PlanContext planContext = PlanContext.builder()

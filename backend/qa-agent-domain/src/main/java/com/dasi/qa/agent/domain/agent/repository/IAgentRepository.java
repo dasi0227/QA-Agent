@@ -17,7 +17,7 @@ import com.dasi.qa.agent.domain.agent.service.assess.model.command.AssessSaveCom
 import com.dasi.qa.agent.domain.agent.service.assess.model.context.SessionContext;
 import com.dasi.qa.agent.domain.agent.service.feedback.model.command.FeedbackSaveCommand;
 import com.dasi.qa.agent.domain.agent.model.vo.PracticeVO;
-import com.dasi.qa.agent.domain.agent.model.vo.UserLlmModelVO;
+
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileAllowVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileInfoVO;
 import com.dasi.qa.agent.domain.agent.model.vo.UserProfileStyleVO;
@@ -62,7 +62,6 @@ public interface IAgentRepository {
 
     List<TaskListItemResponse> getTaskList(String userId);
 
-    UserLlmModelVO getUserLlmModel(String userId);
 
     UserProfileInfoVO getUserProfileInfo(String userId);
 

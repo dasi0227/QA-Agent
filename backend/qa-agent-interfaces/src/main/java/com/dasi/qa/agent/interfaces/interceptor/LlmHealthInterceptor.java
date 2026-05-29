@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.interfaces.interceptor;
 
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
 import com.dasi.qa.agent.types.exception.LlmConfigException;
@@ -24,14 +24,14 @@ public class LlmHealthInterceptor implements HandlerInterceptor {
     private static final Duration CACHE_TTL = Duration.ofMinutes(60);
 
     private final StringRedisTemplate redisTemplate;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final IContextUtil contextUtil;
 
     public LlmHealthInterceptor(StringRedisTemplate redisTemplate,
-                                UserLlmModelProvider userLlmModelProvider,
+                                IModelUtil modelUtil,
                                 IContextUtil contextUtil) {
         this.redisTemplate = redisTemplate;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.contextUtil = contextUtil;
     }
 
@@ -45,7 +45,7 @@ public class LlmHealthInterceptor implements HandlerInterceptor {
         if (redisTemplate.opsForValue().get(cacheKey) != null) {
             return true;
         }
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Chat(userId);
+        ChatModel userModel = modelUtil.getChatModel(userId);
         try {
             String llmResponse = userModel.chat("hi");
             if (!StringUtils.hasText(llmResponse)) {

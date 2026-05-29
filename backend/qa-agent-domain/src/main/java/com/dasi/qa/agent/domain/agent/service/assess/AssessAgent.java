@@ -17,7 +17,7 @@ import com.dasi.qa.agent.domain.agent.service.assess.support.AssessAgentFactory;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessResultCleaner;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessSaver;
 import com.dasi.qa.agent.domain.agent.service.assess.support.AssessStatCalculator;
-import com.dasi.qa.agent.domain.agent.service.shared.UserLlmModelProvider;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
@@ -47,7 +47,7 @@ public class AssessAgent implements IAssessAgent {
     private final IJsonUtil jsonUtil;
     private final IAgentRepository agentRepository;
     private final AssessAgentFactory assessAgentFactory;
-    private final UserLlmModelProvider userLlmModelProvider;
+    private final IModelUtil modelUtil;
     private final AssessStatCalculator assessStatCalculator;
     private final AssessResultCleaner assessResultCleaner;
     private final AssessSaver assessSaver;
@@ -57,7 +57,7 @@ public class AssessAgent implements IAssessAgent {
                        IJsonUtil jsonUtil,
                        IAgentRepository agentRepository,
                        AssessAgentFactory assessAgentFactory,
-                       UserLlmModelProvider userLlmModelProvider,
+                       IModelUtil modelUtil,
                        AssessStatCalculator assessStatCalculator,
                        AssessResultCleaner assessResultCleaner,
                        AssessSaver assessSaver,
@@ -66,7 +66,7 @@ public class AssessAgent implements IAssessAgent {
         this.jsonUtil = jsonUtil;
         this.agentRepository = agentRepository;
         this.assessAgentFactory = assessAgentFactory;
-        this.userLlmModelProvider = userLlmModelProvider;
+        this.modelUtil = modelUtil;
         this.assessStatCalculator = assessStatCalculator;
         this.assessResultCleaner = assessResultCleaner;
         this.assessSaver = assessSaver;
@@ -77,7 +77,7 @@ public class AssessAgent implements IAssessAgent {
     public AssessResponse execute(AssessRequest request) {
         // 1. 构建用户模型
         String userId = contextUtil.getUserId();
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
+        ChatModel userModel = modelUtil.getAgentModel(userId);
 
         // 2. 读取 DB 数据快照
         SessionContext sessionContext = agentRepository.getAssessContext(request.getSessionId(), userId);

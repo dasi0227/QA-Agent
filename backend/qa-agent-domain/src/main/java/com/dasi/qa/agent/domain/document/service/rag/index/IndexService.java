@@ -8,6 +8,7 @@ import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.dashscope.IDashScopeService;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.types.dto.request.document.SourceDocumentRequest;
 import com.dasi.qa.agent.types.dto.response.document.SourceDocumentResponse;
 import com.dasi.qa.agent.types.enumeration.ResultCode;
@@ -15,7 +16,6 @@ import com.dasi.qa.agent.types.exception.ApiException;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -33,7 +33,7 @@ public class IndexService implements IIndexService {
     private final IDocumentRepository documentRepository;
     private final MarkdownChunker markdownChunker;
     private final IDashScopeService IDashScopeService;
-    private final ChatModel summarizerModel;
+    private final IModelUtil modelUtil;
     private final IPromptUtil promptUtil;
     private final IJsonUtil jsonUtil;
     private final IIdUtil idUtil;
@@ -41,14 +41,14 @@ public class IndexService implements IIndexService {
     public IndexService(IDocumentRepository documentRepository,
                         MarkdownChunker markdownChunker,
                         IDashScopeService IDashScopeService,
-                        @Qualifier("summarizerModel") ChatModel summarizerModel,
+                        IModelUtil modelUtil,
                         IPromptUtil promptUtil,
                         IJsonUtil jsonUtil,
                         IIdUtil idUtil) {
         this.documentRepository = documentRepository;
         this.markdownChunker = markdownChunker;
         this.IDashScopeService = IDashScopeService;
-        this.summarizerModel = summarizerModel;
+        this.modelUtil = modelUtil;
         this.promptUtil = promptUtil;
         this.jsonUtil = jsonUtil;
         this.idUtil = idUtil;
@@ -86,7 +86,8 @@ public class IndexService implements IIndexService {
         // 批量生成所有切片的摘要
         try {
             List<String> chunkContents = drafts.stream().map(ChunkDraft::getContent).toList();
-            String response = summarizerModel.chat(
+            ChatModel userModel = modelUtil.getChatModel(userId);
+            String response = userModel.chat(
                     SystemMessage.from(promptUtil.loadPrompt("prompt/external/chunk-summarize.txt")),
                     UserMessage.from(jsonUtil.toJsonString(chunkContents))
             ).aiMessage().text().trim();

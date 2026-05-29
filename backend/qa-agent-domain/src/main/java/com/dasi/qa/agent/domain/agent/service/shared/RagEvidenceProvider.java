@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.agent.service.shared;
 
 import com.dasi.qa.agent.domain.agent.service.generate.model.result.PlanResult.PlanItem;
 import com.dasi.qa.agent.domain.document.service.rag.search.IRagSearchService;
+import com.dasi.qa.agent.domain.util.IModelUtil;
 import com.dasi.qa.agent.domain.util.IPromptUtil;
 import com.dasi.qa.agent.types.dto.request.document.RagSearchRequest;
 import com.dasi.qa.agent.types.dto.response.document.SearchResult;
@@ -13,7 +14,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -27,14 +27,14 @@ import java.util.stream.Collectors;
 public class RagEvidenceProvider {
 
     private final IRagSearchService searchService;
-    private final ChatModel rewriterModel;
+    private final IModelUtil modelUtil;
     private final IPromptUtil promptUtil;
 
     public RagEvidenceProvider(IRagSearchService searchService,
-                               @Qualifier("rewriterModel") ChatModel rewriterModel,
+                               IModelUtil modelUtil,
                                IPromptUtil promptUtil) {
         this.searchService = searchService;
-        this.rewriterModel = rewriterModel;
+        this.modelUtil = modelUtil;
         this.promptUtil = promptUtil;
     }
 
@@ -47,20 +47,21 @@ public class RagEvidenceProvider {
         if (queries.isEmpty()) {
             queries = List.of(planItem.getModule());
         }
-        List<String> userKeywords = rewriteUserInput(userPrompt, jobDescription);
+        List<String> userKeywords = rewriteUserInput(userId, userPrompt, jobDescription);
         List<String> topics = new ArrayList<>(queries);
         topics.addAll(userKeywords);
         return search(userId, documentIds, topics);
     }
 
-    private List<String> rewriteUserInput(String userPrompt, String jobDescription) {
+    private List<String> rewriteUserInput(String userId, String userPrompt, String jobDescription) {
         if (!StringUtils.hasText(userPrompt) && !StringUtils.hasText(jobDescription)) {
             return List.of();
         }
         try {
             String input = (StringUtils.hasText(userPrompt) ? userPrompt : "")
                     + (StringUtils.hasText(jobDescription) ? " " + jobDescription : "");
-            String rewritten = rewriterModel.chat(
+            ChatModel userModel = modelUtil.getChatModel(userId);
+            String rewritten = userModel.chat(
                     SystemMessage.from(promptUtil.loadRewriterPrompt()),
                     UserMessage.from(input.trim())
             ).aiMessage().text().trim();
