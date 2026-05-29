@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AlertTriangle, Info, Plus, Trash2, X } from "lucide-react";
 import { BaseButton, ChoiceButton } from "@/components/base/button";
+import { TypeToConfirmDialog } from "@/components/base/type-to-confirm-dialog";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea, TextInput } from "@/components/base/field";
@@ -13,6 +14,7 @@ import {
     useDocumentChunksQuery,
     useQuestionItemQuery,
     useQuestionSetItemsQuery,
+    useDeleteQuestionItemMutation,
     useRetryCompleteQuestionItemMutation,
     useRestartPracticeMutation,
     useUpdateQuestionItemMutation,
@@ -78,6 +80,7 @@ export function QuestionPage() {
     const createSmartQuestionItemMutation = useCreateSmartQuestionItemMutation();
     const createSmartQuestionItemsBatchMutation = useCreateSmartQuestionItemsBatchMutation();
     const retryCompleteQuestionItemMutation = useRetryCompleteQuestionItemMutation();
+    const deleteQuestionItemMutation = useDeleteQuestionItemMutation();
     const startSelectedPracticeMutation = useRestartPracticeMutation();
 
     const itemList = selectedSetItemsQuery.data ?? [];
@@ -90,6 +93,7 @@ export function QuestionPage() {
 
     const [itemDraft, setItemDraft] = useState<QuestionItemDraft>(emptyItemDraft);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [deleteItemDialogOpen, setDeleteItemDialogOpen] = useState(false);
     const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
     const [completeQuestionDraft, setCompleteQuestionDraft] = useState("");
     const [completeAnswerDraft, setCompleteAnswerDraft] = useState("");
@@ -225,6 +229,23 @@ export function QuestionPage() {
         setCompleteQuestionDraft("");
         setCompleteAnswerDraft("");
         setCompleteDialogOpen(false);
+    };
+
+    const handleDeleteItem = async () => {
+        if (!activeItem) return;
+        const deletedQaSetId = activeItem.qaSetId;
+        const deletedId = activeItem.id;
+        await deleteQuestionItemMutation.mutateAsync({
+            qaSetId: deletedQaSetId,
+            questionItemId: deletedId,
+        });
+        emitDasiBubble("题目已删除");
+        setDeleteItemDialogOpen(false);
+        const remaining = itemList.filter((item) => item.id !== deletedId);
+        navigate(remaining[0]
+            ? `/repository/question?qaSetId=${deletedQaSetId}&itemId=${remaining[0].id}`
+            : `/repository/qa-set?qaSetId=${deletedQaSetId}`,
+            { replace: true });
     };
 
     const openPracticeDialog = () => {
@@ -638,6 +659,14 @@ export function QuestionPage() {
                                                     onClick={openCompleteDialog}
                                                 >
                                                     {retryCompleteQuestionItemMutation.isPending ? "补全中" : "重新补全"}
+                                                </BaseButton>
+                                                <BaseButton
+                                                    variant="soft"
+                                                    type="button"
+                                                    className="question-side-rail__action-btn"
+                                                    onClick={() => setDeleteItemDialogOpen(true)}
+                                                >
+                                                    删除题目
                                                 </BaseButton>
                                                 <BaseButton
                                                     variant="soft"
@@ -1129,6 +1158,17 @@ export function QuestionPage() {
                     </div>
                 </div>
             ) : null}
+
+            <TypeToConfirmDialog
+                open={deleteItemDialogOpen}
+                title="删除题目"
+                message="确定要删除该题目吗？相关练习记录和记忆证据将同步清除。"
+                confirmText="我确认删除题目"
+                confirmLabel="删除"
+                loading={deleteQuestionItemMutation.isPending}
+                onConfirm={handleDeleteItem}
+                onCancel={() => setDeleteItemDialogOpen(false)}
+            />
         </>
     );
 }

@@ -51,6 +51,8 @@ public class QaRepository implements IQaRepository {
     private final PracticeSessionItemMapper practiceSessionItemMapper;
     private final QaSetDocumentRefMapper qaSetDocumentRefMapper;
     private final SourceDocumentMapper sourceDocumentMapper;
+    private final UserMemoryEvidenceMapper userMemoryEvidenceMapper;
+    private final MessageJobMapper messageJobMapper;
     private final IIdUtil idUtil;
 
     public QaRepository(QaSetMapper qaSetMapper, QaItemMapper qaItemMapper,
@@ -58,6 +60,8 @@ public class QaRepository implements IQaRepository {
                         PracticeSessionItemMapper practiceSessionItemMapper,
                         QaSetDocumentRefMapper qaSetDocumentRefMapper,
                         SourceDocumentMapper sourceDocumentMapper,
+                        UserMemoryEvidenceMapper userMemoryEvidenceMapper,
+                        MessageJobMapper messageJobMapper,
                         IIdUtil idUtil) {
         this.qaSetMapper = qaSetMapper;
         this.qaItemMapper = qaItemMapper;
@@ -65,6 +69,8 @@ public class QaRepository implements IQaRepository {
         this.practiceSessionItemMapper = practiceSessionItemMapper;
         this.qaSetDocumentRefMapper = qaSetDocumentRefMapper;
         this.sourceDocumentMapper = sourceDocumentMapper;
+        this.userMemoryEvidenceMapper = userMemoryEvidenceMapper;
+        this.messageJobMapper = messageJobMapper;
         this.idUtil = idUtil;
     }
 
@@ -519,9 +525,18 @@ public class QaRepository implements IQaRepository {
     }
 
     @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
     @CacheEvict(cacheNames = {RedisConstant.QA_ITEM_CACHE, RedisConstant.QA_SET_CACHE}, allEntries = true)
     public void deleteQaItem(String id, String userId) {
         QaItem item = requireQaItem(id, userId);
+        practiceSessionItemMapper.delete(new LambdaQueryWrapper<PracticeSessionItem>()
+                .eq(PracticeSessionItem::getQaItemId, id)
+                .eq(PracticeSessionItem::getUserId, userId));
+        userMemoryEvidenceMapper.delete(new LambdaQueryWrapper<UserMemoryEvidence>()
+                .eq(UserMemoryEvidence::getQaItemId, id)
+                .eq(UserMemoryEvidence::getUserId, userId));
+        messageJobMapper.delete(new LambdaQueryWrapper<MessageJob>()
+                .eq(MessageJob::getJobId, "assist_" + id));
         qaItemMapper.delete(new LambdaQueryWrapper<QaItem>()
                 .eq(QaItem::getId, id)
                 .eq(QaItem::getUserId, userId));
