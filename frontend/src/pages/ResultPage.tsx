@@ -267,10 +267,10 @@ export function ResultPage() {
                     <span className="result-soft-badge">最近 {trendData.length} 次</span>
                 </div>
                 {trendData.length > 1 ? (
-                    <ResponsiveContainer width="100%" height={220}>
-                        <LineChart data={trendData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                    <ResponsiveContainer width="100%" height={220} style={{ overflow: "visible" }}>
+                        <LineChart data={trendData} margin={{ top: 12, right: 8, bottom: 0, left: 8 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-                            <XAxis dataKey="date" tick={{ fill: "rgba(41,37,32,0.4)", fontSize: 12, fontFamily: "-apple-system, sans-serif" }} axisLine={false} tickLine={false} />
+                            <XAxis dataKey="date" padding={{ left: 30, right: 30 }} tick={{ fill: "rgba(41,37,32,0.4)", fontSize: 12, fontFamily: "-apple-system, sans-serif" }} axisLine={false} tickLine={false} />
                             <YAxis hide domain={[0, 100]} />
                             <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid rgba(67,59,48,0.1)", backgroundColor: "#fffcf7", fontFamily: "-apple-system, sans-serif", fontSize: 13 }} cursor={{ stroke: "rgba(0,0,0,0.08)", strokeDasharray: "3 3" }} />
                             <Line type="monotone" dataKey="score" name="分数" stroke={CHART_COLORS.correct} strokeWidth={2.5} dot={{ r: 4, fill: "#fff", stroke: CHART_COLORS.correct, strokeWidth: 2 }} activeDot={{ r: 6, fill: CHART_COLORS.correct, stroke: "#fff", strokeWidth: 2 }} />

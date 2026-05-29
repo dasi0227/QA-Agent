@@ -324,7 +324,7 @@ function normalizeJudgeDetail(raw: unknown) {
         missingPoints: normalizeList(pick(raw, "missingPoints", "missing_points")),
         wrongPoints: normalizeList(pick(raw, "wrongPoints", "wrong_points")),
         improvementAdvice: toStringValue(pick(raw, "improvementAdvice", "improvement_advice")),
-        betterAnswer: toStringValue(pick(raw, "betterAnswer", "better_answer")),
+        commonPitfall: toStringValue(pick(raw, "commonPitfall", "common_pitfall")),
     };
 }
 
@@ -600,6 +600,9 @@ export function useHideMemoryMutation() {
 export function useLoginMutation() {
     const queryClient = useQueryClient();
     return useMutation({
+        meta: {
+            errorMode: "silent",
+        } satisfies ErrorHandlingMeta,
         mutationFn: async (input: LoginInput) => {
             const session = await apiRequest<AuthSession>("/auth/login", {
                 method: "POST",

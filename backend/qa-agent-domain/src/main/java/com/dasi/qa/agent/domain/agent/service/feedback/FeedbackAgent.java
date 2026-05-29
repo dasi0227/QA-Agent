@@ -199,7 +199,7 @@ public class FeedbackAgent implements IFeedbackAgent {
                 .missingPoints(List.of())
                 .wrongPoints(List.of())
                 .improvementAdvice("")
-                .betterAnswer("")
+                .commonPitfall("")
                 .build();
     }
 

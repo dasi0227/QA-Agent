@@ -94,7 +94,7 @@ public class FeedbackSaver {
                         .missingPoints(result.getMissingPoints() != null ? result.getMissingPoints() : List.of())
                         .wrongPoints(result.getWrongPoints() != null ? result.getWrongPoints() : List.of())
                         .improvementAdvice(result.getImprovementAdvice())
-                        .betterAnswer(result.getBetterAnswer())
+                        .commonPitfall(result.getCommonPitfall())
                         .build())
                 .build();
     }

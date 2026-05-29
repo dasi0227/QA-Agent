@@ -123,6 +123,13 @@ export function QuestionWorkspace({
                 )}
             </div>
 
+            {showFeedback && item.standardAnswer ? (
+                <section className="review-answer-block">
+                    <span>参考答案</span>
+                    <p>{item.standardAnswer}</p>
+                </section>
+            ) : null}
+
             {showFeedback ? <QuestionFeedbackPanel item={item} /> : null}
         </main>
     );

@@ -13,7 +13,6 @@ export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
 
     const missingPoints = item.judgeDetail?.missingPoints ?? [];
     const wrongPoints = item.judgeDetail?.wrongPoints ?? [];
-    const referenceAnswer = item.judgeDetail?.betterAnswer || item.standardAnswer;
 
     return (
         <section className="practice-feedback">
@@ -23,39 +22,11 @@ export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
                         {item.result || "UNKNOWN"}
                     </span>
                     <strong>{`${item.score ?? 0} / 100 分`}</strong>
+                    {item.feedbackSummary ? (
+                        <span className="practice-feedback__summary">{item.feedbackSummary}</span>
+                    ) : null}
                 </div>
             </div>
-
-            {referenceAnswer ? (
-                <article className="practice-feedback__answer">
-                    <span>参考答案</span>
-                    <p>{referenceAnswer}</p>
-                </article>
-            ) : null}
-
-            {item.judgeDetail?.improvementAdvice ? (
-                <article className="practice-feedback__answer">
-                    <span>改进建议</span>
-                    <p>{item.judgeDetail.improvementAdvice}</p>
-                </article>
-            ) : null}
-
-            {item.hintDetail ? (
-                <div className="practice-feedback__grid">
-                    {item.hintDetail.memoryTip ? (
-                        <article>
-                            <span>记忆提示</span>
-                            <p>{item.hintDetail.memoryTip}</p>
-                        </article>
-                    ) : null}
-                    {item.hintDetail.encouragement ? (
-                        <article>
-                            <span>鼓励</span>
-                            <p>{item.hintDetail.encouragement}</p>
-                        </article>
-                    ) : null}
-                </div>
-            ) : null}
 
             {item.judgeDetail ? (
                 <div className="practice-feedback__grid">
@@ -79,6 +50,51 @@ export function QuestionFeedbackPanel({ item }: QuestionFeedbackPanelProps) {
                             <p>无</p>
                         )}
                     </article>
+                </div>
+            ) : null}
+
+            {item.judgeDetail?.improvementAdvice && item.judgeDetail?.commonPitfall ? (
+                <div className="practice-feedback__grid">
+                    <article>
+                        <span>改进建议</span>
+                        <p>{item.judgeDetail.improvementAdvice}</p>
+                    </article>
+                    <article>
+                        <span>常见误区</span>
+                        <p>{item.judgeDetail.commonPitfall}</p>
+                    </article>
+                </div>
+            ) : (
+                <>
+                    {item.judgeDetail?.improvementAdvice ? (
+                        <article className="practice-feedback__answer">
+                            <span>改进建议</span>
+                            <p>{item.judgeDetail.improvementAdvice}</p>
+                        </article>
+                    ) : null}
+                    {item.judgeDetail?.commonPitfall ? (
+                        <article className="practice-feedback__answer">
+                            <span>常见误区</span>
+                            <p>{item.judgeDetail.commonPitfall}</p>
+                        </article>
+                    ) : null}
+                </>
+            )}
+
+            {item.hintDetail ? (
+                <div className="practice-feedback__grid">
+                    {item.hintDetail.memoryTip ? (
+                        <article>
+                            <span>记忆提示</span>
+                            <p>{item.hintDetail.memoryTip}</p>
+                        </article>
+                    ) : null}
+                    {item.hintDetail.encouragement ? (
+                        <article>
+                            <span>鼓励</span>
+                            <p>{item.hintDetail.encouragement}</p>
+                        </article>
+                    ) : null}
                 </div>
             ) : null}
         </section>

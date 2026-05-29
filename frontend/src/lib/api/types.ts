@@ -324,7 +324,7 @@ export type JudgeDetail = {
     missingPoints?: string[];
     wrongPoints?: string[];
     improvementAdvice?: string;
-    betterAnswer?: string;
+    commonPitfall?: string;
 };
 
 export type HintDetail = {

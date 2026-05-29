@@ -22,5 +22,5 @@ public class JudgeResult {
     private List<String> missingPoints;
     private List<String> wrongPoints;
     private String improvementAdvice;
-    private String betterAnswer;
+    private String commonPitfall;
 }

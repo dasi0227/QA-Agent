@@ -106,14 +106,16 @@ export function ReviewPage() {
             </section>
 
             <section className="review-answer-block">
-                <span>我的答案</span>
+                <span>我的回答</span>
                 <p>{currentItem.userAnswer || (currentItem.unknown ? "已标记不会" : "未作答")}</p>
             </section>
 
-            <section className="review-answer-block review-answer-block--standard">
-                <span>标准答案</span>
-                <p>{currentItem.standardAnswer || "暂无标准答案"}</p>
-            </section>
+            {currentItem.standardAnswer ? (
+                <section className="review-answer-block">
+                    <span>参考答案</span>
+                    <p>{currentItem.standardAnswer}</p>
+                </section>
+            ) : null}
 
             <QuestionFeedbackPanel item={currentItem} />
 

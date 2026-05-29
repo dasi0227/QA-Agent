@@ -16,6 +16,7 @@
   --btn-secondary-border: rgba(183, 133, 74, 0.16);
   --btn-secondary-ink: #9b7341;
   --btn-secondary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 14px rgba(168, 116, 56, 0.05);
+  --feedback-card-bg: rgba(255, 250, 242, 0.78);
   --shadow: 0 28px 90px rgba(77, 63, 40, 0.08);
   --shadow-soft: 0 16px 42px rgba(77, 63, 40, 0.05);
   --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
