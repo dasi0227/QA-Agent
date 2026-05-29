@@ -46,5 +46,13 @@ public interface IQaRepository {
 
     QaItemResponse markQaItemCompleteProcessing(QaItemCompleteRequest request, String userId);
 
+    List<String> getDocumentIdsByQaSetId(String qaSetId);
+
+    List<QaItemResponse> getSolvableQaItemsBySetId(String qaSetId, String userId);
+
+    void syncQaSetDocumentRefs(String qaSetId, List<String> documentIds);
+
+    void updateQaItemEvidenceFields(String itemId, String userId, List<String> chunkIds, boolean hasEvidence);
+
     void deleteQaItem(String id, String userId);
 }

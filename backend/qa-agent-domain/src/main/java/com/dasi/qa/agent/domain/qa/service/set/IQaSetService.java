@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.qa.service.set;
 
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaSetReindexRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetImportRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
@@ -40,6 +41,8 @@ public interface IQaSetService {
     TaskStatusResponse getTaskStatus(String taskId);
 
     List<TaskMessageResponse> getTaskMessages(String taskId);
+
+    void reindexQaSet(QaSetReindexRequest request);
 
     List<TaskListItemResponse> getTaskList();
 }

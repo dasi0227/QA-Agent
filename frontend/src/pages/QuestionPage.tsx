@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Info, Plus, Trash2, X } from "lucide-react";
 import { BaseButton, ChoiceButton } from "@/components/base/button";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { GlassCard } from "@/components/base/card";
@@ -547,7 +547,12 @@ export function QuestionPage() {
                                             <div className="question-info-card">
                                                 <div className="question-info-card__header">
                                                     <h3 className="question-info-card__title">题目信息</h3>
-                                                    {!activeItem.sourceReliable ? (
+                                                    {activeItem.isImported ? (
+                                                        <div className="question-reliability-indicator question-reliability-indicator--info" aria-label="导入题集，暂无证据切片">
+                                                            <Info size={14} />
+                                                            <span className="question-reliability-indicator__tooltip">导入题集，暂无证据切片</span>
+                                                        </div>
+                                                    ) : !activeItem.sourceReliable ? (
                                                         <div className="question-reliability-indicator" aria-label="与资料不一致，请注意甄别">
                                                             <AlertTriangle size={14} />
                                                             <span className="question-reliability-indicator__tooltip">与资料不一致，请注意甄别</span>

@@ -219,6 +219,7 @@
 | `keywords` | `LONGTEXT` | AssistAgent 异步补全的答题关键词，逗号分隔 |
 | `hint` | `LONGTEXT` | AssistAgent 异步补全的答前轻提示 |
 | `source_reliable` | `TINYINT(1)` | 资料证据是否足以支撑主要答案，默认 `1` |
+| `is_imported` | `TINYINT(1)` | 是否来自 .dasi 导入，默认 `0` |
 | `source_chunk_ids_json` | `JSON` | 来源切片 ID 数组 |
 | `complete_status` | `VARCHAR(32)` | 手动题智能补全状态：`PROCESSING` / `SOLVED` / `UNSOLVED` |
 | `sort_order` | `INT` | 题目顺序 |

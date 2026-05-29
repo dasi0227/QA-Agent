@@ -216,7 +216,7 @@
 2. `app` 必须是 `QA_Agent`，`schemaVersion` 必须是 `1`。
 3. `qaSet.title` 必填，`items` 至少包含 1 道题。
 4. 每道题的 `question` 必填，`difficulty` 只能是 `EASY` / `MEDIUM` / `HARD` 或空。
-5. 导入后生成新的题集和题目 ID；练习统计归零；`completeStatus=SOLVED`；`sourceChunkIdsJson=[]`。
+5. 导入后生成新的题集和题目 ID；练习统计归零；`completeStatus=SOLVED`；`sourceChunkIdsJson=[]`；`isImported=true`。
 6. 导入失败返回业务错误，不创建残缺题集。
 
 ### 5.3 `/qa/set/create` SSE 事件
@@ -291,6 +291,7 @@
 | POST | `/qa/item/create/batch` | 是 | `qaSetId`, `questions[]`，有效题目最多 50 道 |
 | POST | `/qa/item/create` | 是 | `qaSetId`, `question`，兼容旧单题入口 |
 | POST | `/qa/item/complete` | 是 | `id`, `question`, `answer?` |
+| POST | `/qa/set/reindex` | 是 | `qaSetId`, `documentIds[]` |
 | POST | `/qa/item/delete` | 是 | `id` |
 
 说明：
@@ -301,6 +302,7 @@
 4. `/qa/item/complete` 用于把 `UNSOLVED` 或需要重跑的题目重新置为 `PROCESSING` 并触发 CompleteAgent；`answer` 为空时由 AI 自动补全标准答案，`answer` 非空时作为用户指定标准答案，AI 只补齐知识点、难度、模块和来源信息。
 5. 空资料题集手动新增题目时，CompleteAgent 不执行 RAG 全资料检索，证据输入为空数组。
 6. `keywords` 和 `hint` 由 AssistAgent 异步补全；前端不查询 `message_job`。
+7. `/qa/set/reindex` 题集级重建证据切片关联，同步资料关联后批量 RAG 检索所有题目（组间串行、组内并发），不调 LLM；有匹配切片时设 `sourceReliable=true`、`isImported=false`。
 
 ## 6. Practice
 

@@ -37,7 +37,9 @@ public class QaItem {
     private String hint;
 
     private Boolean sourceReliable;
-    
+
+    private Boolean isImported;
+
     private String sourceChunkIdsJson;
 
     private String completeStatus;

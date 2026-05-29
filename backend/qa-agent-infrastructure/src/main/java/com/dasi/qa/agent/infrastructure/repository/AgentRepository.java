@@ -389,6 +389,7 @@ public class AgentRepository implements IAgentRepository {
             item.setKeywords("");
             item.setHint("");
             item.setSourceReliable(draftResult.getSourceReliable() == null ? Boolean.FALSE : draftResult.getSourceReliable());
+            item.setIsImported(Boolean.FALSE);
             item.setSourceChunkIdsJson(JSON.toJSONString(draftResult.getSourceChunkIds() != null ? draftResult.getSourceChunkIds() : List.of()));
             item.setCompleteStatus(CompleteStatus.SOLVED.name());
             item.setSortOrder(sortOrder++);

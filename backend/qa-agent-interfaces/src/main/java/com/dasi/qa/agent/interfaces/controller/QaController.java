@@ -86,6 +86,12 @@ public class QaController {
         return Result.success(qaSetService.createEmptyQaSet(request));
     }
 
+    @PostMapping("/set/reindex")
+    public Result<Void> qaSetReindex(@RequestBody @Valid QaSetReindexRequest request) {
+        qaSetService.reindexQaSet(request);
+        return Result.success();
+    }
+
     @PostMapping("/set/task")
     public Result<TaskCreateResponse> taskCreate(@RequestBody @Valid CreateQaSetRequest request) {
         return Result.success(qaSetService.createTask(request));

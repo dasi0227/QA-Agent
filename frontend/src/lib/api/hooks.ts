@@ -300,6 +300,7 @@ export function normalizeQuestionItem(raw: unknown): QuestionItem {
         keywords: toStringValue(pick(raw, "keywords")),
         hint: toStringValue(pick(raw, "hint")),
         sourceReliable: toBooleanValue(pick(raw, "sourceReliable", "source_reliable"), true),
+        isImported: toBooleanValue(pick(raw, "isImported", "is_imported"), false),
         sourceChunkIdsJson: toStringValue(pick(raw, "sourceChunkIdsJson", "source_chunk_ids_json")),
         completeStatus: toStringValue(pick(raw, "completeStatus", "complete_status"), "SOLVED"),
         sortOrder: toNumberValue(pick(raw, "sortOrder", "sort_order")),
@@ -945,6 +946,23 @@ export function useRetryCompleteQuestionItemMutation() {
         onSuccess: async (result) => {
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(result.qaSetId) });
             await queryClient.invalidateQueries({ queryKey: apiKeys.questionItem(result.id) });
+        },
+    });
+}
+
+export function useReindexQuestionSetMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: { qaSetId: string; documentIds: string[] }) => {
+            await apiRequest<void>("/qa/set/reindex", {
+                method: "POST",
+                body: input,
+            });
+        },
+        onSuccess: async (_result, variables) => {
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSetItems(variables.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSet(variables.qaSetId) });
+            await queryClient.invalidateQueries({ queryKey: apiKeys.questionSets });
         },
     });
 }

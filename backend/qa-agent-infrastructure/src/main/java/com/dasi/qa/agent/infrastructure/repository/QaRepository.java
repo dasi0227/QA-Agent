@@ -225,6 +225,7 @@ public class QaRepository implements IQaRepository {
                     .keywords(qaSetEntry.getKeywords())
                     .hint(qaSetEntry.getHint())
                     .sourceReliable(qaSetEntry.getSourceReliable() != null ? qaSetEntry.getSourceReliable() : Boolean.FALSE)
+                    .isImported(true)
                     .sourceChunkIdsJson("[]")
                     .completeStatus(CompleteStatus.SOLVED.name())
                     .sortOrder(qaSetEntry.getSortOrder() != null ? qaSetEntry.getSortOrder() : i + 1)
@@ -366,6 +367,7 @@ public class QaRepository implements IQaRepository {
                     .keywords("")
                     .hint("")
                     .sourceReliable(Boolean.TRUE)
+                    .isImported(false)
                     .sourceChunkIdsJson("[]")
                     .completeStatus(CompleteStatus.PROCESSING.name())
                     .sortOrder(maxSortOrder + i + 1)
@@ -436,6 +438,49 @@ public class QaRepository implements IQaRepository {
         item.setCompleteStatus(CompleteStatus.PROCESSING.name());
         item.setUpdatedAt(now);
         return toResponse(item, QaItemResponse.class);
+    }
+
+    @Override
+    public List<String> getDocumentIdsByQaSetId(String qaSetId) {
+        return qaSetDocumentRefMapper.selectList(
+                new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getQaSetId, qaSetId))
+                .stream().map(QaSetDocumentRef::getDocumentId).toList();
+    }
+
+    @Override
+    public List<QaItemResponse> getSolvableQaItemsBySetId(String qaSetId, String userId) {
+        List<QaItem> items = qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
+                .eq(QaItem::getQaSetId, qaSetId)
+                .eq(QaItem::getUserId, userId)
+                .eq(QaItem::getCompleteStatus, CompleteStatus.SOLVED.name()));
+        return items.stream().map(item -> toResponse(item, QaItemResponse.class)).toList();
+    }
+
+    @Override
+    @Transactional(transactionManager = "mysqlTransactionManager")
+    public void syncQaSetDocumentRefs(String qaSetId, List<String> documentIds) {
+        qaSetDocumentRefMapper.delete(new LambdaQueryWrapper<QaSetDocumentRef>()
+                .eq(QaSetDocumentRef::getQaSetId, qaSetId));
+        if (documentIds != null) {
+            for (String docId : documentIds) {
+                QaSetDocumentRef ref = new QaSetDocumentRef();
+                ref.setQaSetId(qaSetId);
+                ref.setDocumentId(docId);
+                qaSetDocumentRefMapper.insert(ref);
+            }
+        }
+    }
+
+    @Override
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
+    public void updateQaItemEvidenceFields(String itemId, String userId, List<String> chunkIds, boolean hasEvidence) {
+        qaItemMapper.update(null, new LambdaUpdateWrapper<QaItem>()
+                .set(QaItem::getSourceChunkIdsJson, JSON.toJSONString(chunkIds))
+                .set(QaItem::getSourceReliable, hasEvidence)
+                .set(QaItem::getIsImported, false)
+                .set(QaItem::getUpdatedAt, LocalDateTime.now())
+                .eq(QaItem::getId, itemId)
+                .eq(QaItem::getUserId, userId));
     }
 
     @Override

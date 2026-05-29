@@ -170,6 +170,7 @@ export type QuestionItem = {
     keywords: string;
     hint: string;
     sourceReliable: boolean;
+    isImported: boolean;
     sourceChunkIdsJson: string;
     completeStatus: "PROCESSING" | "SOLVED" | "UNSOLVED" | string;
     sortOrder: number;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { FileUp, FolderPlus, Sparkles, X } from "lucide-react";
+import type { DocumentRecord } from "@/lib/api/types";
 import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
@@ -15,6 +16,8 @@ import {
     useQuestionSetItemsQuery,
     useQuestionSetQuery,
     useQuestionSetsQuery,
+    useFinishedDocumentsQuery,
+    useReindexQuestionSetMutation,
     useUpdateQuestionSetMutation,
     parseModuleTags,
 } from "@/lib/api/hooks";
@@ -53,6 +56,8 @@ export function QASetPage() {
     const [setTitleDraft, setSetTitleDraft] = useState("");
     const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
     const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false);
+    const [reindexDialogOpen, setReindexDialogOpen] = useState(false);
+    const [reindexDocumentIds, setReindexDocumentIds] = useState<string[]>([]);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [createSetDialogOpen, setCreateSetDialogOpen] = useState(false);
     const [emptySetFormOpen, setEmptySetFormOpen] = useState(false);
@@ -69,6 +74,8 @@ export function QASetPage() {
     const selectedSetItemsQuery = useQuestionSetItemsQuery(selectedSetId);
     const deleteQuestionSetMutation = useDeleteQuestionSetMutation();
     const updateQuestionSetMutation = useUpdateQuestionSetMutation();
+    const reindexQuestionSetMutation = useReindexQuestionSetMutation();
+    const finishedDocumentsQuery = useFinishedDocumentsQuery();
     const importQuestionSetMutation = useImportQuestionSetMutation();
     const exportQuestionSetMutation = useExportQuestionSetMutation();
     const createEmptyQuestionSetMutation = useCreateEmptyQuestionSetMutation();
@@ -182,6 +189,26 @@ export function QASetPage() {
         }
     };
 
+    const openReindexDialog = () => {
+        setReindexDocumentIds([]);
+        setReindexDialogOpen(true);
+    };
+
+    const toggleReindexDocument = (docId: string) => {
+        setReindexDocumentIds((prev) =>
+            prev.includes(docId) ? prev.filter((id) => id !== docId) : [...prev, docId]
+        );
+    };
+
+    const handleReindexConfirm = async () => {
+        if (!selectedSetQuery.data) return;
+        await reindexQuestionSetMutation.mutateAsync({
+            qaSetId: selectedSetQuery.data.id,
+            documentIds: reindexDocumentIds,
+        });
+        setReindexDialogOpen(false);
+    };
+
     const exportSelectedSet = async () => {
         if (!selectedSetQuery.data) return;
         const exportedFile = await exportQuestionSetMutation.mutateAsync(selectedSetQuery.data.id);
@@ -195,6 +222,8 @@ export function QASetPage() {
         window.URL.revokeObjectURL(url);
         emitDasiBubble("导出成功！.dasi 文件可以分享给朋友一起练习，一起进步～ ✅");
     };
+
+    const finishedDocuments: DocumentRecord[] = finishedDocumentsQuery.data ?? [];
 
     return (
         <div className="page-frame">
@@ -341,6 +370,14 @@ export function QASetPage() {
                                     </LinkButton>
                                     <BaseButton variant="soft" type="button" onClick={openEditDialog}>
                                         编辑信息
+                                    </BaseButton>
+                                    <BaseButton
+                                        variant="soft"
+                                        type="button"
+                                        disabled={reindexQuestionSetMutation.isPending}
+                                        onClick={openReindexDialog}
+                                    >
+                                        {reindexQuestionSetMutation.isPending ? "索引中" : "重建索引"}
                                     </BaseButton>
                                     <BaseButton
                                         variant="soft"
@@ -645,6 +682,77 @@ export function QASetPage() {
                     </div>
                 </div>
             ) : null}
+
+            {reindexDialogOpen ? (
+                <div className="doc-select-dialog" onClick={() => setReindexDialogOpen(false)}>
+                    <div className="doc-select-dialog__card" onClick={(e) => e.stopPropagation()}>
+                        <div className="doc-select-dialog__header">
+                            <h3 className="doc-select-dialog__title">选择资料</h3>
+                            <button className="doc-select-dialog__close" onClick={() => setReindexDialogOpen(false)} aria-label="关闭">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="doc-select-dialog__body">
+                            {finishedDocuments.length === 0 ? (
+                                <p style={{ gridColumn: "1/-1", textAlign: "center", color: "var(--ink-faint)", fontSize: 14, margin: 0, padding: 24 }}>
+                                    资料库为空，请先上传资料
+                                </p>
+                            ) : (
+                                finishedDocuments.map((doc) => {
+                                    const selected = reindexDocumentIds.includes(doc.id);
+                                    return (
+                                        <button
+                                            key={doc.id}
+                                            type="button"
+                                            className={`doc-select-dialog__item ${selected ? "doc-select-dialog__item--selected" : ""}`}
+                                            onClick={() => toggleReindexDocument(doc.id)}
+                                        >
+                                            <span className="doc-select-dialog__check">
+                                                {selected ? <CheckSmall /> : null}
+                                            </span>
+                                            <span className="doc-select-dialog__item-info">
+                                                <span className="doc-select-dialog__item-name">{formatDocumentDisplayName(doc.fileName)}</span>
+                                            </span>
+                                        </button>
+                                    );
+                                })
+                            )}
+                        </div>
+                        <div className="modal-card__footer">
+                            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                <BaseButton
+                                    variant="primary"
+                                    type="button"
+                                    disabled={reindexQuestionSetMutation.isPending}
+                                    onClick={handleReindexConfirm}
+                                >
+                                    {reindexQuestionSetMutation.isPending ? "索引中" : "确认重建索引"}
+                                </BaseButton>
+                                <BaseButton
+                                    variant="ghost"
+                                    type="button"
+                                    onClick={() => setReindexDialogOpen(false)}
+                                >
+                                    取消
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
+    );
+}
+
+function formatDocumentDisplayName(fileName: string) {
+    const dotIndex = fileName.lastIndexOf(".");
+    return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+}
+
+function CheckSmall() {
+    return (
+        <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
     );
 }

@@ -2,6 +2,7 @@ package com.dasi.qa.agent.domain.qa.service.set;
 
 import com.dasi.qa.agent.domain.agent.repository.IAgentRepository;
 import com.dasi.qa.agent.domain.agent.service.generate.IGenerateAgent;
+import com.dasi.qa.agent.domain.agent.service.shared.RagEvidenceProvider;
 import com.dasi.qa.agent.domain.agent.service.shared.SseEvent;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
@@ -12,6 +13,7 @@ import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetImportRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaSetReindexRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.response.qa.QaItemResponse;
 import com.dasi.qa.agent.types.dto.response.qa.QaSetExportResponse;
@@ -30,8 +32,10 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -46,6 +50,7 @@ public class QaSetService implements IQaSetService {
     private final IAgentRepository agentRepository;
     private final IDocumentRepository documentRepository;
     private final IGenerateAgent generateAgent;
+    private final RagEvidenceProvider ragEvidenceProvider;
     private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
     public QaSetService(IQaRepository repository,
@@ -55,6 +60,7 @@ public class QaSetService implements IQaSetService {
                         IAgentRepository agentRepository,
                         IDocumentRepository documentRepository,
                         IGenerateAgent generateAgent,
+                        RagEvidenceProvider ragEvidenceProvider,
                         @Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
         this.repository = repository;
         this.contextUtil = contextUtil;
@@ -63,6 +69,7 @@ public class QaSetService implements IQaSetService {
         this.agentRepository = agentRepository;
         this.documentRepository = documentRepository;
         this.generateAgent = generateAgent;
+        this.ragEvidenceProvider = ragEvidenceProvider;
         this.applicationTaskExecutor = applicationTaskExecutor;
     }
 
@@ -155,6 +162,55 @@ public class QaSetService implements IQaSetService {
             if (!finishedIds.contains(docId)) {
                 throw new ApiException(ResultCode.BAD_REQUEST, "资料尚未完成索引，请稍后重试");
             }
+        }
+    }
+
+    @Override
+    public void reindexQaSet(QaSetReindexRequest request) {
+        String userId = contextUtil.getUserId();
+        String qaSetId = request.getQaSetId();
+        QaSetResponse qaSet = repository.detailQaSet(qaSetId, userId);
+
+        List<String> documentIds = request.getDocumentIds() != null ? request.getDocumentIds() : List.of();
+        validateDocumentFinished(documentIds, userId);
+
+        repository.syncQaSetDocumentRefs(qaSetId, documentIds);
+
+        if (documentIds.isEmpty()) {
+            return;
+        }
+
+        List<QaItemResponse> items = repository.getSolvableQaItemsBySetId(qaSetId, userId);
+        if (items.isEmpty()) {
+            return;
+        }
+
+        int groupSize = 3;
+        List<List<QaItemResponse>> groups = new ArrayList<>();
+        for (int i = 0; i < items.size(); i += groupSize) {
+            groups.add(items.subList(i, Math.min(i + groupSize, items.size())));
+        }
+
+        for (List<QaItemResponse> group : groups) {
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            for (QaItemResponse item : group) {
+                futures.add(CompletableFuture.runAsync(() -> {
+                    try {
+                        String searchText = (item.getQuestion() != null ? item.getQuestion() : "")
+                                + " " + (item.getAnswer() != null ? item.getAnswer() : "");
+                        List<RagEvidenceProvider.RagEvidenceItem> evidence =
+                                ragEvidenceProvider.searchByQuestion(userId, documentIds, searchText.trim());
+                        List<String> chunkIds = evidence.stream()
+                                .map(RagEvidenceProvider.RagEvidenceItem::getChunkId)
+                                .filter(StringUtils::hasText)
+                                .collect(Collectors.toList());
+                        repository.updateQaItemEvidenceFields(item.getId(), userId, chunkIds, !chunkIds.isEmpty());
+                    } catch (Exception e) {
+                        log.warn("【重新索引】单题索引失败: qaItemId={}", item.getId(), e);
+                    }
+                }, applicationTaskExecutor));
+            }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         }
     }
 
