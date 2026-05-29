@@ -7,5 +7,7 @@ import java.util.List;
 
 public interface IRagSearchService {
 
-    List<SearchResult> execute(RagSearchRequest request);
+    List<SearchResult> search(RagSearchRequest request);
+
+    List<SearchResult> rerank(String queryText, List<SearchResult> results);
 }

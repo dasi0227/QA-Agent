@@ -18,9 +18,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -83,31 +83,34 @@ public class RagEvidenceProvider {
     }
 
     private List<RagEvidenceItem> search(String userId, List<String> documentIds, List<String> topics) {
-        List<SearchResult> results = new ArrayList<>();
+        List<SearchResult> allResults = new ArrayList<>();
+        List<String> validTopics = new ArrayList<>();
         for (String topic : topics) {
             String queryText = topic == null ? "" : topic.trim();
             if (!StringUtils.hasText(queryText)) {
                 continue;
             }
+            validTopics.add(queryText);
             RagSearchRequest request = RagSearchRequest.builder()
                     .queryText(queryText)
                     .userId(userId)
                     .filterDocumentIds(documentIds)
                     .build();
-            results.addAll(searchService.execute(request));
+            List<SearchResult> searchResults = searchService.search(request);
+            allResults.addAll(searchResults);
         }
-        return results.stream()
-                .filter(result -> result.getChunkId() != null)
-                .collect(Collectors.toMap(
-                        SearchResult::getChunkId,
-                        result -> result,
-                        (left, right) -> left,
-                        LinkedHashMap::new
-                ))
-                .values()
-                .stream()
-                .map(RagEvidenceItem::from)
+
+        if (allResults.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> exist = new HashSet<>();
+        List<SearchResult> deduplicated = allResults.stream()
+                .filter(r -> r.getChunkId() != null && exist.add(r.getChunkId()))
                 .toList();
+        String mergedQuery = String.join(" ", validTopics);
+        List<SearchResult> rerankResults = searchService.rerank(mergedQuery, deduplicated);
+        return rerankResults.stream().map(RagEvidenceItem::from).toList();
     }
 
     @Data
