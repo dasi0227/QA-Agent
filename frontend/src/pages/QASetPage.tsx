@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/base/card";
 import { Field, TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 import {
     useCreateEmptyQuestionSetMutation,
     useDeleteQuestionSetMutation,
@@ -17,6 +18,7 @@ import {
     useQuestionSetQuery,
     useQuestionSetsQuery,
     useFinishedDocumentsQuery,
+    useLlmHealth,
     useReindexQuestionSetMutation,
     useUpdateQuestionSetMutation,
     parseModuleTags,
@@ -76,6 +78,8 @@ export function QASetPage() {
     const updateQuestionSetMutation = useUpdateQuestionSetMutation();
     const reindexQuestionSetMutation = useReindexQuestionSetMutation();
     const finishedDocumentsQuery = useFinishedDocumentsQuery();
+    const llmHealthQuery = useLlmHealth();
+    const { showErrorDialog } = useGlobalErrorDialog();
     const importQuestionSetMutation = useImportQuestionSetMutation();
     const exportQuestionSetMutation = useExportQuestionSetMutation();
     const createEmptyQuestionSetMutation = useCreateEmptyQuestionSetMutation();
@@ -241,8 +245,16 @@ export function QASetPage() {
                                 variant="soft"
                                 type="button"
                                 className="sidebar__upload-btn"
-                                onClick={() => {
+                                onClick={async () => {
                                     setImportError("");
+                                    const result = await llmHealthQuery.refetch();
+                                    if (result.isError) {
+                                        showErrorDialog({
+                                            title: "LLM 接入未配置",
+                                            message: "请先在个人设置中填写 LLM 配置信息。",
+                                        });
+                                        return;
+                                    }
                                     setCreateSetDialogOpen(true);
                                 }}
                             >

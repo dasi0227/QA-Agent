@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
+import static com.dasi.qa.agent.types.constant.RedisConstant.LLM_HEALTH_KEY;
 import static com.dasi.qa.agent.types.constant.StringConstant.DB_USER_ID;
 
 import cn.hutool.core.bean.BeanUtil;
@@ -12,6 +13,7 @@ import com.dasi.qa.agent.types.constant.RedisConstant;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import com.dasi.qa.agent.domain.identity.repository.IIdentityRepository;
+import com.dasi.qa.agent.domain.util.IRedisUtil;
 import com.dasi.qa.agent.domain.identity.model.enumeration.AccountStatus;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserAccount;
 import com.dasi.qa.agent.infrastructure.persistent.entity.UserProfile;
@@ -35,10 +37,14 @@ public class IdentityRepository implements IIdentityRepository {
 
     private final UserAccountMapper userAccountMapper;
     private final UserProfileMapper userProfileMapper;
+    private final IRedisUtil redisUtil;
 
-    public IdentityRepository(UserAccountMapper userAccountMapper, UserProfileMapper userProfileMapper) {
+    public IdentityRepository(UserAccountMapper userAccountMapper,
+                              UserProfileMapper userProfileMapper,
+                              IRedisUtil redisUtil) {
         this.userAccountMapper = userAccountMapper;
         this.userProfileMapper = userProfileMapper;
+        this.redisUtil = redisUtil;
     }
 
     @Override
@@ -161,6 +167,7 @@ public class IdentityRepository implements IIdentityRepository {
         UserProfile entity = toEntity(request, UserProfile.class);
         entity.setUserId(userId);
         userProfileMapper.updateById(entity);
+        redisUtil.delete(LLM_HEALTH_KEY + userId);
         return toUserProfileResponse(entity);
     }
 

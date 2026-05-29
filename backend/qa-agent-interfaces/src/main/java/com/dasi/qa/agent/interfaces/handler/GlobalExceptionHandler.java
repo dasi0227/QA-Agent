@@ -123,7 +123,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AsyncRequestNotUsableException.class)
     @ResponseStatus(HttpStatus.OK)
     public Result<Void> handleAsyncRequestNotUsable(AsyncRequestNotUsableException exception) {
-        log.warn("【全局异常】客户端已断开: error={}", exception.getMessage());
+        // 不处理
         return null;
     }
 

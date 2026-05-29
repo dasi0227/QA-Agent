@@ -708,6 +708,16 @@ export function useDocumentChunksQuery(chunkIds: string[]) {
     });
 }
 
+export function useLlmHealth() {
+    return useQuery({
+        queryKey: ["llm-health"],
+        queryFn: () => apiRequest<unknown>("/function/llm/health"),
+        staleTime: 10 * 60 * 1000,
+        retry: false,
+        enabled: false,
+    });
+}
+
 export function useUpdateDocumentMutation() {
     const queryClient = useQueryClient();
     return useMutation({

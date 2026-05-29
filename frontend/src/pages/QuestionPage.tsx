@@ -4,6 +4,7 @@ import { AlertTriangle, Info, Pencil, Plus, Trash2, X } from "lucide-react";
 import { BaseButton, ChoiceButton } from "@/components/base/button";
 import { TypeToConfirmDialog } from "@/components/base/type-to-confirm-dialog";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
+import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea, TextInput } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
@@ -15,6 +16,7 @@ import {
     useQuestionItemQuery,
     useQuestionSetItemsQuery,
     useDeleteQuestionItemMutation,
+    useLlmHealth,
     useRetryCompleteQuestionItemMutation,
     useRestartPracticeMutation,
     useUpdateQuestionItemMutation,
@@ -74,12 +76,14 @@ export function QuestionPage() {
     const itemIdParam = searchParams.get("itemId") || "";
 
     const selectedSetItemsQuery = useQuestionSetItemsQuery(qaSetId);
+    const { showErrorDialog } = useGlobalErrorDialog();
     const refetchSelectedSetItems = selectedSetItemsQuery.refetch;
     const updateQuestionItemMutation = useUpdateQuestionItemMutation();
     const createSmartQuestionItemMutation = useCreateSmartQuestionItemMutation();
     const createSmartQuestionItemsBatchMutation = useCreateSmartQuestionItemsBatchMutation();
     const retryCompleteQuestionItemMutation = useRetryCompleteQuestionItemMutation();
     const deleteQuestionItemMutation = useDeleteQuestionItemMutation();
+    const llmHealthQuery = useLlmHealth();
     const startSelectedPracticeMutation = useRestartPracticeMutation();
 
     const itemList = selectedSetItemsQuery.data ?? [];
@@ -442,7 +446,17 @@ export function QuestionPage() {
                                 <button
                                     type="button"
                                     className="sidebar__upload-btn"
-                                    onClick={() => setCreateDialogOpen(true)}
+                                    onClick={async () => {
+                                        const result = await llmHealthQuery.refetch();
+                                        if (result.isError) {
+                                            showErrorDialog({
+                                                title: "LLM 接入未配置",
+                                                message: "AI 补全功能需要配置 LLM，请先在个人设置中填写 Base URL、API Key 和 Model Name。",
+                                            });
+                                            return;
+                                        }
+                                        setCreateDialogOpen(true);
+                                    }}
                                 >
                                     新增题目
                                 </button>

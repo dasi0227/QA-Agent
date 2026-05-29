@@ -56,6 +56,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
 
         registry.addInterceptor(llmHealthInterceptor)
                 .addPathPatterns(
+                        "/function/llm/health",
                         "/qa/set/task",
                         "/qa/set/create",
                         "/qa/item/create/single",
