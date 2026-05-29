@@ -254,9 +254,17 @@ export function CreatePage() {
         if (isCompleted && !completionBubbleFired.current) {
             completionBubbleFired.current = true;
             sessionStorage.removeItem(ACTIVE_TASK_KEY);
+            setStreamState("idle");
             emitDasiBubble("🎉 问答集生成完成！点击查看结果吧～");
         }
     }, [isCompleted]);
+
+    // Switch to idle when stream errors out
+    useEffect(() => {
+        if (streamError) {
+            setStreamState("idle");
+        }
+    }, [streamError]);
 
     const handleDialogToggle = (id: string) => {
         setSelectedDocumentIds((current) => {

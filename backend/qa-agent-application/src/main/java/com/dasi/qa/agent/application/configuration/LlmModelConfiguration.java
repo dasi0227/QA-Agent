@@ -17,7 +17,7 @@ public class LlmModelConfiguration {
 
     @Bean("webSearchModel")
     public ChatModel webSearchChatModel(WebSearchLlmProperties properties) {
-        log.info("【配置】系统模型 WebSearchModel: baseUrl={}, model={}", properties.getBaseUrl(), properties.getModel());
+        log.info("【配置】WebSearchModel: baseUrl={}, model={}", properties.getBaseUrl(), properties.getModel());
         return build(properties.getBaseUrl(), properties.getApiKey(), properties.getModel());
     }
 

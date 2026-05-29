@@ -16,7 +16,7 @@ public class ThreadPoolConfiguration {
 
     @Bean(name = "applicationTaskExecutor")
     public ThreadPoolTaskExecutor applicationTaskExecutor(ThreadPoolProperties properties) {
-        log.info("【配置】线程池: corePoolSize={}, maxPoolSize={}, queueCapacity={}",
+        log.info("【配置】ThreadPool: corePoolSize={}, maxPoolSize={}, queueCapacity={}",
                 properties.getCorePoolSize(), properties.getMaxPoolSize(), properties.getQueueCapacity());
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(properties.getCorePoolSize());

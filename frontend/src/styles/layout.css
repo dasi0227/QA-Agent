@@ -34,8 +34,8 @@
 
 
 .site-footer {
-  display: grid;
-  place-items: center;
+  display: block;
+  text-align: center;
   flex-shrink: 0;
   width: 100%;
   min-height: 30px;
@@ -46,7 +46,18 @@
   font-weight: 500;
   letter-spacing: 0.04em;
   line-height: 1.25;
-  text-align: center;
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(95, 90, 82, 0.28);
+  transition: text-decoration-color 180ms ease;
+}
+
+.site-footer a:hover {
+  text-decoration-color: rgba(95, 90, 82, 0.56);
 }
 
 

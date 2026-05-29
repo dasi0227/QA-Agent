@@ -21,14 +21,14 @@ public class DataSourceConfiguration {
     @Primary
     public DataSource mysqlDataSource(DatasourceProperties properties) {
         var node = properties.getMysql();
-        log.info("【配置】MySQL 数据源: host={}, port={}, database={}, maxPoolSize={}", node.getHost(), node.getPort(), node.getDatabase(), node.getMaximumPoolSize());
+        log.info("【配置】MySQL DataSource: host={}, port={}, database={}, maxPoolSize={}", node.getHost(), node.getPort(), node.getDatabase(), node.getMaximumPoolSize());
         return buildDataSource("qa-agent-mysql", node);
     }
 
     @Bean(name = "postgresDataSource")
     public DataSource postgresDataSource(DatasourceProperties properties) {
         var node = properties.getPostgres();
-        log.info("【配置】PostgreSQL 数据源: host={}, port={}, database={}, maxPoolSize={}", node.getHost(), node.getPort(), node.getDatabase(), node.getMaximumPoolSize());
+        log.info("【配置】PostgreSQL DataSource: host={}, port={}, database={}, maxPoolSize={}", node.getHost(), node.getPort(), node.getDatabase(), node.getMaximumPoolSize());
         return buildDataSource("qa-agent-postgres", node);
     }
 
