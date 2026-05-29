@@ -6,8 +6,6 @@ import { BaseButton } from "@/components/base/button";
 import { TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
 import { QuestionFeedbackPanel } from "./QuestionFeedbackPanel";
-import { VoiceAnswerButton } from "./VoiceAnswerButton";
-
 type QuestionWorkspaceProps = {
     item: PracticeFlowItem;
     index: number;
@@ -18,7 +16,6 @@ type QuestionWorkspaceProps = {
     submitting?: boolean;
     readonly?: boolean;
     onAnswerChange: (value: string) => void;
-    onVoiceText?: (value: string) => void;
     onPrev: () => void;
     onNext: () => void;
     onUnknown: () => void;
@@ -36,7 +33,6 @@ export function QuestionWorkspace({
     submitting,
     readonly,
     onAnswerChange,
-    onVoiceText,
     onPrev,
     onNext,
     onUnknown,
@@ -104,11 +100,6 @@ export function QuestionWorkspace({
                     onChange={(event) => onAnswerChange(event.target.value)}
                     placeholder="在这里组织你的回答"
                 />
-                {onVoiceText ? (
-                    <div className="question-workspace__answer-toolbar">
-                        <VoiceAnswerButton disabled={readonly || submitted} onText={onVoiceText} />
-                    </div>
-                ) : null}
             </div>
 
             <div className="practice-action-bar">

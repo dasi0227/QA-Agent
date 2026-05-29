@@ -45,7 +45,7 @@ public class LlmHealthInterceptor implements HandlerInterceptor {
         if (redisTemplate.opsForValue().get(cacheKey) != null) {
             return true;
         }
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Chat(userId);
         try {
             String llmResponse = userModel.chat("hi");
             if (!StringUtils.hasText(llmResponse)) {

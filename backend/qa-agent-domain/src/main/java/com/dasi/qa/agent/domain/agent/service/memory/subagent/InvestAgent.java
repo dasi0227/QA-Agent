@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.memory.subagent;
 
+import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -20,6 +21,7 @@ public interface InvestAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
+    @Agent
     String extract(@V("itemsJson") String itemsJson,
                    @V("retryHint") String retryHint);
 }

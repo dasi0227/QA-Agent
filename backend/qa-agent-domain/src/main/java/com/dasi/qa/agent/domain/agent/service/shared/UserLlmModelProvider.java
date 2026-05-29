@@ -25,15 +25,19 @@ public class UserLlmModelProvider {
         this.agentRepository = agentRepository;
     }
 
-    public ChatModel getUserLlmModel(String userId) {
-        return buildUserLlmModel(userId, null);
+    public ChatModel getUserLlmModel4Agent(String userId) {
+        return buildUserLlmModel(userId, null, true);
     }
 
-    public ChatModel getUserLlmModel(String userId, ChatModelListener tokenListener) {
-        return buildUserLlmModel(userId, tokenListener);
+    public ChatModel getUserLlmModel4Agent(String userId, ChatModelListener tokenListener) {
+        return buildUserLlmModel(userId, tokenListener, true);
     }
 
-    private ChatModel buildUserLlmModel(String userId, ChatModelListener tokenListener) {
+    public ChatModel getUserLlmModel4Chat(String userId) {
+        return buildUserLlmModel(userId, null, false);
+    }
+
+    private ChatModel buildUserLlmModel(String userId, ChatModelListener tokenListener, boolean jsonMode) {
         UserLlmModelVO userLlmModelVO = agentRepository.getUserLlmModel(userId);
         if (isNotValid(userLlmModelVO)) {
             throw new LlmConfigException(ResultCode.LLM_NOT_CONFIGURED, "用户未配置 LLM 接入信息，请先在 Profile 中填写 base_url、api_key 和 model_name");
@@ -44,7 +48,8 @@ public class UserLlmModelProvider {
                 .apiKey(userLlmModelVO.getApiKey())
                 .modelName(userLlmModelVO.getModelName())
                 .timeout(Duration.ofSeconds(60))
-                .maxRetries(1);
+                .maxRetries(1)
+                .responseFormat(jsonMode ? "json_object" : "text");
         if (tokenListener != null) {
             builder.listeners(List.of(tokenListener));
         }

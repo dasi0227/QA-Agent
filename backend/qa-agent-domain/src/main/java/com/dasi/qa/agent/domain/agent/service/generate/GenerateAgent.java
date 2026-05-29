@@ -142,7 +142,7 @@ public class GenerateAgent implements IGenerateAgent {
                     }
                 }
             };
-            ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId, tokenListener);
+            ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId, tokenListener);
 
             // 创建阶段总结器，负责在每个 Agent 调用成功后生成进度消息并推送 SSE
             GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, supervisorChatModel, eventPublisher, totalTokens);

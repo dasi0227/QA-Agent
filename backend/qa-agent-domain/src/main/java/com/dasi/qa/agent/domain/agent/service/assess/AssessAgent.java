@@ -77,7 +77,7 @@ public class AssessAgent implements IAssessAgent {
     public AssessResponse execute(AssessRequest request) {
         // 1. 构建用户模型
         String userId = contextUtil.getUserId();
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
 
         // 2. 读取 DB 数据快照
         SessionContext sessionContext = agentRepository.getAssessContext(request.getSessionId(), userId);

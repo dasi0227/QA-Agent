@@ -3,7 +3,7 @@ package com.dasi.qa.agent.infrastructure.util;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONException;
 import com.dasi.qa.agent.domain.util.IJsonUtil;
-import io.github.haibiiin.json.repair.JSONRepair;
+import org.jsonrepairj.JsonRepair;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -43,7 +43,7 @@ public class JsonUtil implements IJsonUtil {
             return JSON.parseArray(json, clazz);
         } catch (JSONException e) {
             try {
-                String repaired = new JSONRepair().handle(json);
+                String repaired = JsonRepair.repairJson(json);
                 return JSON.parseArray(repaired, clazz);
             } catch (Exception ignored) {
                 throw e;
@@ -58,7 +58,7 @@ public class JsonUtil implements IJsonUtil {
             return JSON.parseObject(json, clazz);
         } catch (JSONException e) {
             try {
-                String repaired = new JSONRepair().handle(json);
+                String repaired = JsonRepair.repairJson(json);
                 return JSON.parseObject(repaired, clazz);
             } catch (Exception ignored) {
                 throw e;

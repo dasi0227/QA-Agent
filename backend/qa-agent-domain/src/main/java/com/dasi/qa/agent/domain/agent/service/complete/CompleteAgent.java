@@ -70,7 +70,7 @@ public class CompleteAgent implements ICompleteAgent {
 
     private CompleteResult doComplete(CompleteContext context, String userId) {
         // 1. 拿到用户模型
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
 
         // 2. 根据问题搜索相关资料。空引用题集不扩大到用户全部资料。
         List<RagEvidenceProvider.RagEvidenceItem> ragEvidenceItems = context.getDocumentIds() == null || context.getDocumentIds().isEmpty()

@@ -1,5 +1,6 @@
 package com.dasi.qa.agent.domain.agent.service.memory.subagent;
 
+import dev.langchain4j.agentic.Agent;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -24,6 +25,7 @@ public interface MergeAgent {
 
             重试提示（首次为空）：{{retryHint}}
             """)
+    @Agent
     String merge(@V("existingSummary") String existingSummary,
                  @V("existingContent") String existingContent,
                  @V("candidateSummary") String candidateSummary,

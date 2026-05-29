@@ -40,7 +40,7 @@ public class ChatService implements IChatService {
     public TempChatResponse tempChat(TempChatRequest request) {
         String userId = contextUtil.getUserId();
         try {
-            ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+            ChatModel userModel = userLlmModelProvider.getUserLlmModel4Chat(userId);
             TempChatBot agent = AiServices.builder(TempChatBot.class)
                     .chatModel(userModel)
                     .chatMemoryProvider(chatMemoryProvider)

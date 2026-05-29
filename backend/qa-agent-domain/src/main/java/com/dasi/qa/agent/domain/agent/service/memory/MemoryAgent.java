@@ -72,7 +72,7 @@ public class MemoryAgent implements IMemoryAgent {
             return;
         }
 
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
         MemoryContext memoryContext = MemoryContext.builder()
                 .userModel(userModel)
                 .investStep((scope, investAgent) -> doInvest(scope, investAgent, sessionSource))

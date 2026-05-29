@@ -69,7 +69,7 @@ public class FeedbackAgent implements IFeedbackAgent {
     public FeedbackResponse execute(FeedbackRequest request) {
         // 1. 构建用户模型
         String userId = contextUtil.getUserId();
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
 
         // 2. 读取 DB 数据快照并处理请求输入
         String sessionItemId = request.getSessionItemId();

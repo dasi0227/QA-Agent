@@ -17,7 +17,7 @@ public class FeedbackScoreCorrector {
             FeedbackResult.PERFECT, Set.of(100),
             FeedbackResult.CORRECT, Set.of(80, 90),
             FeedbackResult.DEFICIENT, Set.of(50, 60, 70),
-            FeedbackResult.WRONG, Set.of(0, 10, 20, 30, 40),
+            FeedbackResult.WRONG, Set.of(0, 20, 40),
             FeedbackResult.UNKNOWN, Set.of(0)
     );
 

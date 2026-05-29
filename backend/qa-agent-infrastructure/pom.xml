@@ -27,8 +27,8 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.github.haibiiin</groupId>
-            <artifactId>json-repair</artifactId>
+            <groupId>io.github.du00cs</groupId>
+            <artifactId>json-repairj</artifactId>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>

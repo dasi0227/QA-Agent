@@ -47,7 +47,7 @@ public class AssistAgent implements IAssistAgent {
     }
 
     private AssistResult doAssist(AssistContext context, String userId) {
-        ChatModel userModel = userLlmModelProvider.getUserLlmModel(userId);
+        ChatModel userModel = userLlmModelProvider.getUserLlmModel4Agent(userId);
         AssistSubAgent assistAgent = AiServices.builder(AssistSubAgent.class)
                 .chatModel(userModel)
                 .build();
