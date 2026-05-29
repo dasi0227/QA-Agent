@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { ArrowLeft, ArrowUp, History, Loader, Paperclip, Plus, Settings, StopCircle, X } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 
+import { ConfirmDialog } from "@/components/base/confirm-dialog";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { TextArea } from "@/components/base/field";
 import {
@@ -94,6 +95,7 @@ export function CreatePage() {
     const { showErrorDialog } = useGlobalErrorDialog();
 
     const [streamState, setStreamState] = useState<"idle" | "streaming" | "interrupted">(() => urlTaskId ? "streaming" : "idle");
+    const [abortConfirmOpen, setAbortConfirmOpen] = useState(false);
     const isStreaming = streamState === "streaming";
     const isInterrupted = streamState === "interrupted";
     const interruptedRef = useRef(false);
@@ -326,6 +328,7 @@ export function CreatePage() {
         } catch {
             // error handled by mutation
         }
+        setAbortConfirmOpen(false);
         setStreamState("interrupted");
     };
 
@@ -428,15 +431,9 @@ export function CreatePage() {
 
                                             {node.events.map((event, i) => (
                                                 <div key={i} className="sse-timeline__message fade-in">
-                                                    {event.message.trim() ? (
-                                                        <span className="sse-timeline__message-text">
-                                                            {event.message}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="sse-timeline__spinner">
-                                                            <Loader size={14} className="sse-timeline__spinner-icon" />
-                                                        </span>
-                                                    )}
+                                                    <span className="sse-timeline__message-text">
+                                                        {event.message?.trim() || "暂无消息"}
+                                                    </span>
                                                 </div>
                                             ))}
 
@@ -486,18 +483,21 @@ export function CreatePage() {
                         ) : null}
 
                         {/* Completion */}
-                        {isCompleted ? (
+                        {(() => {
+                            const grandTotal = sseEvents.length > 0 ? sseEvents[sseEvents.length - 1].totalTokens : 0;
+                            return isCompleted ? (
                             <div className="sse-timeline fade-in">
                                 <div className="sse-timeline__divider">
-                                    <span>生成完成</span>
+                                    <span>生成完成，总消耗 <span style={{ textTransform: "none" }}>{grandTotal} tokens</span></span>
                                 </div>
-                                <div className="sse-timeline__completed-link">
+                                <div className="sse-timeline__completed-link" style={{ marginTop: 16 }}>
                                     <Link to="/repository/qa-set" className="btn btn--soft">
                                         查看问答集
                                     </Link>
                                 </div>
                             </div>
-                        ) : null}
+                            ) : null;
+                        })()}
                     </div>
                 )}
 
@@ -553,7 +553,7 @@ export function CreatePage() {
                                     className="create-page__send-btn create-page__send-btn--abort"
                                     aria-label="中断生成"
                                     disabled={abortTask.isPending}
-                                    onClick={handleAbort}
+                                    onClick={() => setAbortConfirmOpen(true)}
                                 >
                                     <StopCircle size={20} strokeWidth={2.5} />
                                 </button>
@@ -603,6 +603,17 @@ export function CreatePage() {
                     onClose={() => setSettingsOpen(false)}
                 />
             ) : null}
+
+            <ConfirmDialog
+                open={abortConfirmOpen}
+                title="中断生成任务"
+                message="中断后当前生成进度将丢失，已生成的题目不会保存。确定要中断吗？"
+                confirmLabel="中断"
+                variant="danger"
+                loading={abortTask.isPending}
+                onConfirm={handleAbort}
+                onCancel={() => setAbortConfirmOpen(false)}
+            />
         </div>
     );
 }

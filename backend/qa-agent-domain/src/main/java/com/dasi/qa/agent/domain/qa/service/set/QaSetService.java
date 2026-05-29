@@ -142,9 +142,7 @@ public class QaSetService implements IQaSetService {
             throw new ApiException(ResultCode.BAD_REQUEST, "生成任务 ID 不能为空，请先创建生成任务");
         }
         String userId = contextUtil.getUserId();
-        log.info("【路由追踪】Service 调用 createQaSet: taskId={}, thread={}", request.getTaskId(), Thread.currentThread().getName());
         if (!agentRepository.tryClaimTask(request.getTaskId(), userId)) {
-            log.warn("【路由追踪】任务已被抢占，跳过重复执行: taskId={}", request.getTaskId());
             return;
         }
         validateDocumentFinished(request.getDocumentIds(), userId);

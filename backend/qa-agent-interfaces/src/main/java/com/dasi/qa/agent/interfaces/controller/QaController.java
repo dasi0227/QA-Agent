@@ -106,7 +106,6 @@ public class QaController {
             emitter.completeWithError(throwable);
         });
 
-        log.info("【路由追踪】Controller 收到 /qa/set/create 请求: taskId={}", request.getTaskId());
         Consumer<SseEvent> sseEventHandler = new SseEventHandler(emitter);
         qaSetService.createQaSet(request, sseEventHandler);
 

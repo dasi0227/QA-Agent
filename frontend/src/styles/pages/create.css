@@ -249,22 +249,23 @@
 }
 
 .create-page__send-btn--abort {
-  background: #ef4444;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: none;
-  color: #fff;
+  border: 1px solid rgba(143, 76, 57, 0.24);
+  background: rgba(143, 76, 57, 0.08);
+  color: #8f4c39;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: opacity 180ms ease;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
   flex-shrink: 0;
 }
 
 .create-page__send-btn--abort:hover {
-  opacity: 0.8;
+  background: rgba(143, 76, 57, 0.14);
+  border-color: rgba(143, 76, 57, 0.4);
 }
 
 

@@ -140,9 +140,10 @@ public class GenerateAgent implements IGenerateAgent {
                 }
             };
             ChatModel userModel = modelUtil.getAgentModel(userId, tokenListener);
+            ChatModel supervisorModel = modelUtil.getChatModel(userId);
 
             // 创建阶段总结器，负责在每个 Agent 调用成功后生成进度消息并推送 SSE
-            GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, userModel, eventPublisher, totalTokens);
+            GenerateSupervisor supervisor = new GenerateSupervisor(taskId, promptUtil, supervisorModel, eventPublisher, totalTokens);
 
             // 构建各阶段执行上下文
             PlanContext planContext = PlanContext.builder()
@@ -717,9 +718,9 @@ public class GenerateAgent implements IGenerateAgent {
                 .orElse("");
 
         // 5. 调用智能体
-        String summaryMessage;
+        String summaryMessage = null;
         try {
-            summaryMessage = summarizeAgent.summarize(
+            String response = summarizeAgent.summarize(
                     summarizeContext.getTaskId(),
                     summarizeContext.getRequest().getUserPrompt(),
                     summarizeContext.getRequest().getJobDescription(),
@@ -732,8 +733,14 @@ public class GenerateAgent implements IGenerateAgent {
                     tags,
                     jsonUtil.toJsonString(validatedResult)
             );
+            SummarizeResult result = jsonUtil.parseJsonObject(response, SummarizeResult.class);
+            if (result != null && result.getSummary() != null) {
+                summaryMessage = result.getSummary();
+            }
         } catch (Exception exception) {
             log.warn("【生成问答集】总结调用异常: taskId={}", summarizeContext.getTaskId(), exception);
+        }
+        if (summaryMessage == null || summaryMessage.isBlank()) {
             summaryMessage = fallbackSummarize(requiredCount, generatedCount, modules, tags);
         }
 

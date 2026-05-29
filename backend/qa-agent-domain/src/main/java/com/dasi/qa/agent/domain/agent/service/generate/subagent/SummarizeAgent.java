@@ -30,11 +30,10 @@ public interface SummarizeAgent {
             最终题目：{{qa}}
 
             输出要求：
-            1. 只输出 2-4 句中文自然语言。
-            2. 不要输出 JSON、Markdown、代码块、标题或编号。
-            3. 必须包含请求题数和实际通过题数。
-            4. 尽量体现模块名称和标签分布。
-            5. 如果通过率严重偏低（<30%），需提及此异常。
+            1. 只输出一个合法 JSON 对象，以 { 开头，以 } 结尾。
+            2. 不要输出 Markdown，不要使用 ```json 代码块。
+            3. 不要输出解释文字或任何非 JSON 内容。
+            4. summary 字段必须包含请求题数和实际通过题数，尽量体现模块名称和标签分布。
             """)
     @Agent
     String summarize(@V("taskId") String taskId,
