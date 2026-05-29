@@ -263,6 +263,7 @@ export function QuestionPage() {
             qaSetId,
             questions: batchQuestionList,
         });
+        emitDasiBubble("✅ 题目已批量创建，Dasi 正在后台补全内容，稍后刷新查看～");
         setBatchQuestionDrafts([""]);
         setCreateDialogOpen(false);
         setCreateMode("single");

@@ -278,6 +278,7 @@ export function PracticePage() {
 
     const handleAbandon = async () => {
         await abandonMutation.mutateAsync({ sessionId, durationSeconds });
+        emitDasiBubble("练习已放弃，任何时候都可以重新开始 💪");
         navigate("/quiz");
     };
 

@@ -146,6 +146,7 @@ export function DocumentPage() {
             id: displayDocument.id,
             fileName: `${nameOnly}${extension}`,
         });
+        emitDasiBubble("✅ 资料已重命名，保持命名规范有助于团队协作 📝");
         setDocumentEditorMode("view");
     };
 

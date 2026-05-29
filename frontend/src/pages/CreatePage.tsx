@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { ArrowLeft, ArrowUp, History, Loader, Paperclip, Plus, Settings, StopCircle, X } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 
+import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { TextArea } from "@/components/base/field";
 import {
     apiKeys,
@@ -246,9 +247,12 @@ export function CreatePage() {
     }, [sseEvents]);
 
     // Clear active task on completion
+    const completionBubbleFired = useRef(false);
     useEffect(() => {
-        if (isCompleted) {
+        if (isCompleted && !completionBubbleFired.current) {
+            completionBubbleFired.current = true;
             sessionStorage.removeItem(ACTIVE_TASK_KEY);
+            emitDasiBubble("🎉 问答集生成完成！点击查看结果吧～");
         }
     }, [isCompleted]);
 

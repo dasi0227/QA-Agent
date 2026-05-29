@@ -158,6 +158,7 @@ export function QASetPage() {
                 title,
                 description: emptySetDescriptionDraft.trim(),
             });
+            emitDasiBubble("📦 空题集已创建，点击进入题目表开始添加内容吧～");
             setCreateSetDialogOpen(false);
             setEmptySetFormOpen(false);
             setEmptySetTitleDraft("");

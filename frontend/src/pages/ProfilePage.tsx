@@ -292,6 +292,7 @@ export function ProfileInfoPage() {
             const file = new File([blob], "avatar.png", { type: "image/png" });
             setAvatarPreview(URL.createObjectURL(blob));
             await uploadAvatarMutation.mutateAsync(file);
+            emitDasiBubble("📷 头像已更新，帅气！");
         } catch {
             showErrorDialog({
                 title: "裁剪失败",
@@ -385,6 +386,7 @@ export function ProfileInfoPage() {
                         currentPassword: values.currentPassword,
                         newPassword: values.newPassword,
                     });
+                    emitDasiBubble("🔐 密码已更新，请妥善保管。");
                     passwordForm.reset(defaultPassword);
                 })}
             >
