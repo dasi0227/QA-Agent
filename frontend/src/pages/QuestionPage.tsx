@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { AlertTriangle, Info, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Info, Pencil, Plus, Trash2, X } from "lucide-react";
 import { BaseButton, ChoiceButton } from "@/components/base/button";
 import { TypeToConfirmDialog } from "@/components/base/type-to-confirm-dialog";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
@@ -59,13 +59,12 @@ function toQuestionItemDraft(qaSetEntry: QuestionItem): QuestionItemDraft {
     };
 }
 
-function sanitizeBatchQuestionDrafts(drafts: string[]) {
-    const normalized = drafts.map((question) => question.trim());
-    const nonEmpty = normalized.filter(Boolean);
-    if (nonEmpty.length === 0) {
-        return [""];
+function sanitizeBatchQuestionDrafts(drafts: { question: string; answer: string }[]) {
+    const filtered = drafts.filter((item) => item.question.trim());
+    if (filtered.length === 0) {
+        return [{ question: "", answer: "" }];
     }
-    return normalized;
+    return filtered;
 }
 
 export function QuestionPage() {
@@ -101,7 +100,11 @@ export function QuestionPage() {
     const [practiceDialogOpen, setPracticeDialogOpen] = useState(false);
     const [createMode, setCreateMode] = useState<"single" | "batch">("single");
     const [smartQuestionDraft, setSmartQuestionDraft] = useState("");
-    const [batchQuestionDrafts, setBatchQuestionDrafts] = useState<string[]>([""]);
+    const [smartAnswerDraft, setSmartAnswerDraft] = useState("");
+    const [batchQuestionDrafts, setBatchQuestionDrafts] = useState<{ question: string; answer: string }[]>(
+        () => [{ question: "", answer: "" }],
+    );
+    const [expandedAnswerIndex, setExpandedAnswerIndex] = useState<number | null>(null);
     const [batchTrackingIds, setBatchTrackingIds] = useState<string[]>([]);
     const [batchPollCount, setBatchPollCount] = useState(0);
     const [selectedModuleDraft, setSelectedModuleDraft] = useState<string[]>([]);
@@ -130,7 +133,7 @@ export function QuestionPage() {
         [selectedModuleDraft],
     );
     const batchQuestionList = useMemo(
-        () => batchQuestionDrafts.map((question) => question.trim()).filter(Boolean),
+        () => batchQuestionDrafts.filter((item) => item.question.trim()),
         [batchQuestionDrafts],
     );
     const trackedBatchItems = useMemo(
@@ -263,7 +266,7 @@ export function QuestionPage() {
     const closeCreateDialog = () => {
         if (createSmartQuestionItemMutation.isPending || createSmartQuestionItemsBatchMutation.isPending) return;
         setSmartQuestionDraft("");
-        setBatchQuestionDrafts([""]);
+        setBatchQuestionDrafts([{ question: "", answer: "" }]);
         setCreateMode("single");
         setCreateDialogOpen(false);
     };
@@ -271,21 +274,24 @@ export function QuestionPage() {
     const createSmartItem = async () => {
         const question = smartQuestionDraft.trim();
         if (!question) return;
-        const qaSetEntry = await createSmartQuestionItemMutation.mutateAsync({ qaSetId, question });
+        const answer = smartAnswerDraft.trim();
+        const qaSetEntry = await createSmartQuestionItemMutation.mutateAsync({ qaSetId, question, answer: answer || undefined });
         emitDasiBubble("✅ 题目已创建，Dasi 正在补全内容，稍后刷新查看。");
         setSmartQuestionDraft("");
+        setSmartAnswerDraft("");
         setCreateDialogOpen(false);
         navigate(`/repository/question?qaSetId=${qaSetId}&itemId=${qaSetEntry.id}`, { replace: true });
     };
 
     const createBatchItems = async () => {
         if (!batchQuestionList.length || batchQuestionList.length > MAX_BATCH_QUESTIONS) return;
-        const qaSetEntries = await createSmartQuestionItemsBatchMutation.mutateAsync({
-            qaSetId,
-            questions: batchQuestionList,
-        });
+        const items = batchQuestionList.map((item) => ({
+            question: item.question.trim(),
+            answer: item.answer.trim() || undefined,
+        }));
+        const qaSetEntries = await createSmartQuestionItemsBatchMutation.mutateAsync({ qaSetId, items });
         emitDasiBubble("✅ 题目已批量创建，Dasi 正在后台补全内容，稍后刷新查看～");
-        setBatchQuestionDrafts([""]);
+        setBatchQuestionDrafts([{ question: "", answer: "" }]);
         setCreateDialogOpen(false);
         setCreateMode("single");
         setBatchTrackingIds(qaSetEntries.map((item) => item.id));
@@ -369,9 +375,15 @@ export function QuestionPage() {
         setEditDialogOpen(false);
     };
 
-    const updateBatchQuestionDraft = (index: number, value: string) => {
-        setBatchQuestionDrafts((current) => current.map((question, questionIndex) => (
-            questionIndex === index ? value : question
+    const updateBatchQuestionDraft = (index: number, question: string) => {
+        setBatchQuestionDrafts((current) => current.map((item, i) => (
+            i === index ? { ...item, question } : item
+        )));
+    };
+
+    const updateBatchAnswerDraft = (index: number, answer: string) => {
+        setBatchQuestionDrafts((current) => current.map((item, i) => (
+            i === index ? { ...item, answer } : item
         )));
     };
 
@@ -380,16 +392,16 @@ export function QuestionPage() {
             if (current.length >= MAX_BATCH_QUESTIONS) {
                 return current;
             }
-            return [...current, ""];
+            return [...current, { question: "", answer: "" }];
         });
     };
 
     const removeBatchQuestionDraft = (index: number) => {
         setBatchQuestionDrafts((current) => {
             if (current.length === 1) {
-                return [""];
+                return [{ question: "", answer: "" }];
             }
-            return sanitizeBatchQuestionDrafts(current.filter((_, questionIndex) => questionIndex !== index));
+            return sanitizeBatchQuestionDrafts(current.filter((_, i) => i !== index));
         });
     };
 
@@ -723,66 +735,97 @@ export function QuestionPage() {
 
                         <div className="question-edit-dialog__body">
                             {createMode === "single" ? (
-                                <Field label="问题">
-                                    <TextArea
-                                        className="question-edit-dialog__textarea question-create-dialog__textarea"
-                                        value={smartQuestionDraft}
-                                        onChange={(event) => setSmartQuestionDraft(event.target.value)}
-                                        rows={5}
-                                        placeholder="输入题目"
-                                    />
-                                </Field>
+                                <>
+                                    <Field label="问题">
+                                        <TextArea
+                                            className="question-edit-dialog__textarea question-create-dialog__textarea"
+                                            value={smartQuestionDraft}
+                                            onChange={(event) => setSmartQuestionDraft(event.target.value)}
+                                            rows={5}
+                                            placeholder="输入题目"
+                                        />
+                                    </Field>
+                                    <Field label="标准答案（可选）">
+                                        <TextArea
+                                            className="question-edit-dialog__textarea question-create-dialog__textarea"
+                                            value={smartAnswerDraft}
+                                            onChange={(event) => setSmartAnswerDraft(event.target.value)}
+                                            rows={3}
+                                            placeholder="输入标准答案，留空则由 AI 自动生成"
+                                        />
+                                    </Field>
+                                </>
                             ) : (
                                 <Field label={`问题列表（${batchQuestionList.length}/${MAX_BATCH_QUESTIONS}）`}>
                                     <div className="question-create-dialog__batch-list">
-                                        {batchQuestionDrafts.map((question, index) => (
-                                            <div
-                                                key={`batch-question-${index}`}
-                                                className={cn(
-                                                    "question-create-dialog__batch-row",
-                                                    draggingBatchIndex === index && "question-create-dialog__batch-row--dragging",
-                                                )}
-                                                onDragOver={(event) => {
-                                                    event.preventDefault();
-                                                    if (draggingBatchIndex == null || draggingBatchIndex === index) {
-                                                        return;
-                                                    }
-                                                    moveBatchQuestionDraft(draggingBatchIndex, index);
-                                                    setDraggingBatchIndex(index);
-                                                }}
-                                                onDrop={(event) => {
-                                                    event.preventDefault();
-                                                    setDraggingBatchIndex(null);
-                                                }}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="question-create-dialog__order"
-                                                    draggable
-                                                    onDragStart={(event) => {
+                                        {batchQuestionDrafts.map((item, index) => (
+                                            <div key={`batch-question-${index}`}>
+                                                <div
+                                                    className={cn(
+                                                        "question-create-dialog__batch-row",
+                                                        draggingBatchIndex === index && "question-create-dialog__batch-row--dragging",
+                                                    )}
+                                                    onDragOver={(event) => {
+                                                        event.preventDefault();
+                                                        if (draggingBatchIndex == null || draggingBatchIndex === index) {
+                                                            return;
+                                                        }
+                                                        moveBatchQuestionDraft(draggingBatchIndex, index);
                                                         setDraggingBatchIndex(index);
-                                                        event.dataTransfer.effectAllowed = "move";
                                                     }}
-                                                    onDragEnd={() => setDraggingBatchIndex(null)}
-                                                    aria-label={`拖动排序，第 ${index + 1} 题`}
+                                                    onDrop={(event) => {
+                                                        event.preventDefault();
+                                                        setDraggingBatchIndex(null);
+                                                    }}
                                                 >
-                                                    {index + 1}
-                                                </button>
-                                                <TextInput
-                                                    className="question-create-dialog__input"
-                                                    value={question}
-                                                    onChange={(event) => updateBatchQuestionDraft(index, event.target.value)}
-                                                    placeholder={index === 0 ? "输入题目" : ""}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="question-create-dialog__row-action"
-                                                    onClick={() => removeBatchQuestionDraft(index)}
-                                                    aria-label={`删除第 ${index + 1} 道题`}
-                                                    disabled={batchQuestionDrafts.length === 1}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                    <button
+                                                        type="button"
+                                                        className="question-create-dialog__order"
+                                                        draggable
+                                                        onDragStart={(event) => {
+                                                            setDraggingBatchIndex(index);
+                                                            event.dataTransfer.effectAllowed = "move";
+                                                        }}
+                                                        onDragEnd={() => setDraggingBatchIndex(null)}
+                                                        aria-label={`拖动排序，第 ${index + 1} 题`}
+                                                    >
+                                                        {index + 1}
+                                                    </button>
+                                                    <TextInput
+                                                        className="question-create-dialog__input"
+                                                        value={item.question}
+                                                        onChange={(event) => updateBatchQuestionDraft(index, event.target.value)}
+                                                        placeholder={index === 0 ? "输入题目" : ""}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="question-create-dialog__row-action"
+                                                        onClick={() => setExpandedAnswerIndex(expandedAnswerIndex === index ? null : index)}
+                                                        aria-label={`编辑第 ${index + 1} 题答案`}
+                                                    >
+                                                        <Pencil size={14} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="question-create-dialog__row-action"
+                                                        onClick={() => removeBatchQuestionDraft(index)}
+                                                        aria-label={`删除第 ${index + 1} 道题`}
+                                                        disabled={batchQuestionDrafts.length === 1}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                {expandedAnswerIndex === index ? (
+                                                    <div style={{ marginTop: 6, marginBottom: 2 }}>
+                                                        <TextArea
+                                                            className="question-edit-dialog__textarea question-create-dialog__textarea"
+                                                            value={item.answer}
+                                                            onChange={(event) => updateBatchAnswerDraft(index, event.target.value)}
+                                                            rows={2}
+                                                            placeholder="标准答案（可选）"
+                                                        />
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         ))}
                                         <button

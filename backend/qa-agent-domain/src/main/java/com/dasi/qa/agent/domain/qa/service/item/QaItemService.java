@@ -5,6 +5,7 @@ import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemCompleteRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemDraft;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
@@ -86,27 +87,27 @@ public class QaItemService implements IQaItemService {
 
     @Override
     public List<QaItemResponse> createQaItems(CreateQaItemBatchRequest request) {
-        List<String> questions = request.getQuestions().stream()
-                .filter(StringUtils::hasText)
-                .map(String::trim)
+        List<QaItemDraft> items = request.getItems().stream()
+                .filter(item -> item != null && StringUtils.hasText(item.getQuestion()))
+                .map(item -> new QaItemDraft(item.getQuestion().trim(), item.getAnswer()))
                 .toList();
-        if (questions.isEmpty()) {
+        if (items.isEmpty()) {
             throw new ApiException(ResultCode.BAD_REQUEST, "请至少输入 1 道题目");
         }
-        if (questions.size() > MAX_CREATE_ITEM_NUM) {
+        if (items.size() > MAX_CREATE_ITEM_NUM) {
             throw new ApiException(ResultCode.BAD_REQUEST, "单次最多新增 20 道题目");
         }
         CreateQaItemBatchRequest normalizedRequest = CreateQaItemBatchRequest.builder()
                 .qaSetId(request.getQaSetId())
-                .questions(questions)
+                .items(items)
                 .build();
         String userId = contextUtil.getUserId();
-        for (String question : questions) {
-            if (repository.existsQaItemByQuestion(normalizedRequest.getQaSetId(), question, userId)) {
-                throw new ApiException(ResultCode.CONFLICT, "题目「" + question + "」已存在于此题集中");
+        for (QaItemDraft item : items) {
+            if (repository.existsQaItemByQuestion(normalizedRequest.getQaSetId(), item.getQuestion(), userId)) {
+                throw new ApiException(ResultCode.CONFLICT, "题目「" + item.getQuestion() + "」已存在于此题集中");
             }
         }
-        List<String> ids = questions.stream().map(question -> idUtil.nextId()).toList();
+        List<String> ids = items.stream().map(item -> idUtil.nextId()).toList();
         List<QaItemResponse> responses = repository.createQaItems(ids, normalizedRequest, userId);
         for (QaItemResponse response : responses) {
             applicationTaskExecutor.execute(() -> completeAgent.execute(response.getId(), userId));

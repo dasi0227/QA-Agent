@@ -214,11 +214,12 @@ export type UpdateQuestionItemInput = QuestionItemDraft & {
 export type CreateSmartQuestionItemInput = {
     qaSetId: string;
     question: string;
+    answer?: string;
 };
 
 export type CreateSmartQuestionItemBatchInput = {
     qaSetId: string;
-    questions: string[];
+    items: { question: string; answer?: string }[];
 };
 
 export type RetryCompleteQuestionItemInput = {

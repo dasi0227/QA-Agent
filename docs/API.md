@@ -287,8 +287,8 @@
 | GET | `/qa/item/detail?id=...` | 是 | `id` |
 | POST | `/qa/item/query` | 是 | `id?`, `qaSetId?`, `question?`, `knowledgeNote?`, `answer?`, `moduleTag?`, `difficulty?`, `keywords?`, `hint?`, `sourceReliable?`, `sourceChunkIdsJson?`, `completeStatus?`, `sortOrder?` |
 | POST | `/qa/item/update` | 是 | 同上，`id` 必填 |
-| POST | `/qa/item/create/single` | 是 | `qaSetId`, `question` |
-| POST | `/qa/item/create/batch` | 是 | `qaSetId`, `questions[]`，有效题目最多 50 道 |
+| POST | `/qa/item/create/single` | 是 | `qaSetId`, `question`, `answer?` |
+| POST | `/qa/item/create/batch` | 是 | `qaSetId`, `items[{ question, answer? }]`，最多 20 道 |
 | POST | `/qa/item/create` | 是 | `qaSetId`, `question`，兼容旧单题入口 |
 | POST | `/qa/item/complete` | 是 | `id`, `question`, `answer?` |
 | POST | `/qa/set/reindex` | 是 | `qaSetId`, `documentIds[]` |

@@ -16,6 +16,7 @@ import com.dasi.qa.agent.infrastructure.persistent.mapper.mysql.*;
 import com.dasi.qa.agent.infrastructure.persistent.entity.*;
 import com.dasi.qa.agent.types.dto.request.qa.CreateEmptyQaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemBatchRequest;
+import com.dasi.qa.agent.types.dto.request.qa.QaItemDraft;
 import com.dasi.qa.agent.types.dto.request.qa.QaItemRequest;
 import com.dasi.qa.agent.types.dto.request.qa.QaSetRequest;
 import com.dasi.qa.agent.types.dto.request.qa.CreateQaItemSingleRequest;
@@ -317,7 +318,7 @@ public class QaRepository implements IQaRepository {
                 .qaSetId(request.getQaSetId())
                 .question(request.getQuestion())
                 .knowledgeNote("")
-                .answer("")
+                .answer(request.getAnswer() != null ? request.getAnswer() : "")
                 .moduleTag("")
                 .difficulty("")
                 .keywords("")
@@ -348,7 +349,8 @@ public class QaRepository implements IQaRepository {
         if (!userId.equals(qaSet.getUserId())) {
             throw new ApiException(ResultCode.NOT_FOUND, "题集不存在");
         }
-        if (ids == null || ids.size() != request.getQuestions().size()) {
+        List<QaItemDraft> items = request.getItems();
+        if (ids == null || ids.size() != items.size()) {
             throw new ApiException(ResultCode.BAD_REQUEST, "批量创建题目的 ID 数量与题目数量不一致");
         }
         Integer maxSortOrder = qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
@@ -360,14 +362,15 @@ public class QaRepository implements IQaRepository {
                 .max(Integer::compareTo)
                 .orElse(0);
         List<QaItemResponse> responses = new java.util.ArrayList<>();
-        for (int i = 0; i < request.getQuestions().size(); i++) {
+        for (int i = 0; i < items.size(); i++) {
+            QaItemDraft draft = items.get(i);
             QaItem item = QaItem.builder()
                     .id(ids.get(i))
                     .userId(userId)
                     .qaSetId(request.getQaSetId())
-                    .question(request.getQuestions().get(i))
+                    .question(draft.getQuestion())
                     .knowledgeNote("")
-                    .answer("")
+                    .answer(draft.getAnswer() != null ? draft.getAnswer() : "")
                     .moduleTag("")
                     .difficulty("")
                     .keywords("")
@@ -383,7 +386,7 @@ public class QaRepository implements IQaRepository {
         }
         qaSetMapper.update(null,
                 new LambdaUpdateWrapper<QaSet>()
-                        .setSql("question_count = question_count + " + request.getQuestions().size())
+                        .setSql("question_count = question_count + " + items.size())
                         .set(QaSet::getUpdatedAt, LocalDateTime.now())
                         .eq(QaSet::getId, request.getQaSetId())
                         .eq(QaSet::getUserId, userId));

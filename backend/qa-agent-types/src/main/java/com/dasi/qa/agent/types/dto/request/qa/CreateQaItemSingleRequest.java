@@ -17,4 +17,6 @@ public class CreateQaItemSingleRequest {
 
     @NotBlank
     private String question;
+
+    private String answer;
 }
