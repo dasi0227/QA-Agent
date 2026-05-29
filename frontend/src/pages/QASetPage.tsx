@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { FileUp, FolderPlus, Sparkles, X } from "lucide-react";
 import type { DocumentRecord } from "@/lib/api/types";
-import { ConfirmDialog } from "@/components/base/confirm-dialog";
+import { TypeToConfirmDialog } from "@/components/base/type-to-confirm-dialog";
 import { BaseButton, LinkButton } from "@/components/base/button";
 import { GlassCard } from "@/components/base/card";
 import { Field, TextArea } from "@/components/base/field";
@@ -51,7 +51,7 @@ function formatCompactDateTime(value?: string) {
 }
 
 export function QASetPage() {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const [setTitleDraft, setSetTitleDraft] = useState("");
     const [setDescriptionDraft, setSetDescriptionDraft] = useState("");
@@ -382,18 +382,18 @@ export function QASetPage() {
                                     <BaseButton
                                         variant="soft"
                                         type="button"
-                                        disabled={deleteQuestionSetMutation.isPending}
-                                        onClick={() => setDeleteSetDialogOpen(true)}
-                                    >
-                                        {deleteQuestionSetMutation.isPending ? "删除中" : "删除问答集"}
-                                    </BaseButton>
-                                    <BaseButton
-                                        variant="soft"
-                                        type="button"
                                         disabled={exportQuestionSetMutation.isPending}
                                         onClick={exportSelectedSet}
                                     >
                                         {exportQuestionSetMutation.isPending ? "导出中" : "导出问答集"}
+                                    </BaseButton>
+                                    <BaseButton
+                                        variant="soft"
+                                        type="button"
+                                        disabled={deleteQuestionSetMutation.isPending}
+                                        onClick={() => setDeleteSetDialogOpen(true)}
+                                    >
+                                        {deleteQuestionSetMutation.isPending ? "删除中" : "删除问答集"}
                                     </BaseButton>
                                 </div>
                                 <div className="repository-workspace">
@@ -455,26 +455,22 @@ export function QASetPage() {
                 </GlassCard>
             </div>
 
-            <ConfirmDialog
+            <TypeToConfirmDialog
                 open={deleteSetDialogOpen}
-                title="⚠️ 删除问答集"
-                variant="danger"
-                message={
-                    <>
-                        <p style={{ margin: 0 }}>确定要删除问答集「{selectedSetQuery.data?.title}」吗？</p>
-                        <p style={{ margin: "10px 0 0", color: "#8f4c39", fontSize: 13, fontWeight: 600 }}>
-                            会同步删除所有题目和做题记录，请考虑后谨慎删除。
-                        </p>
-                    </>
-                }
+                title="删除问答集"
+                message={`该问答集包含 ${selectedSetQuery.data?.questionCount ?? 0} 道题目，${selectedSetQuery.data?.practiceCount ?? 0} 轮练习记录。删除后将同步清除所有题目和练习记录，不可恢复。`}
+                confirmText={`我确认删除【${selectedSetQuery.data?.title ?? ""}】`}
                 confirmLabel="删除"
                 loading={deleteQuestionSetMutation.isPending}
                 onConfirm={async () => {
                     if (!selectedSetQuery.data) return;
-                    await deleteQuestionSetMutation.mutateAsync(selectedSetQuery.data.id);
+                    const deletedId = selectedSetQuery.data.id;
+                    const remaining = (questionSetsQuery.data ?? []).filter((s) => s.id !== deletedId);
+                    const nextUrl = remaining[0] ? `/repository/qa-set?qaSetId=${remaining[0].id}` : `/repository/qa-set`;
+                    navigate(nextUrl, { replace: true });
+                    await deleteQuestionSetMutation.mutateAsync(deletedId);
                     emitDasiBubble("题集已删除 🗑️");
                     setDeleteSetDialogOpen(false);
-                    navigate("/repository/qa-set", { replace: true });
                 }}
                 onCancel={() => setDeleteSetDialogOpen(false)}
             />

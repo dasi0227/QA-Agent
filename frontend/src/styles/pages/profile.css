@@ -32,7 +32,7 @@
 .profile-settings {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
-  min-height: min(720px, calc(100vh - 180px));
+  height: min(720px, calc(100vh - 180px));
   border: 1px solid rgba(23, 22, 20, 0.08);
   border-radius: 34px;
   background: rgba(255, 255, 255, 0.54);
@@ -117,6 +117,7 @@
 .profile-settings__content {
   min-width: 0;
   padding: 34px;
+  padding-top: 36px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
@@ -583,6 +584,7 @@
   gap: 10px;
   min-height: 0;
   overflow-y: auto;
+  padding-top: 2px;
   padding-right: 4px;
   scrollbar-width: none;
 }

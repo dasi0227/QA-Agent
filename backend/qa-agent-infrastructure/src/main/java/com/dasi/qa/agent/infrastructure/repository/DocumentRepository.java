@@ -1,6 +1,6 @@
 package com.dasi.qa.agent.infrastructure.repository;
 
-import static com.dasi.qa.agent.types.constant.StringConstant.DB_DELETED;
+
 import static com.dasi.qa.agent.types.constant.StringConstant.DB_USER_ID;
 
 import cn.hutool.core.bean.BeanUtil;
@@ -92,8 +92,7 @@ public class DocumentRepository implements IDocumentRepository {
     public boolean existsSourceDocumentByFileName(String fileName, String userId) {
         LambdaQueryWrapper<SourceDocument> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SourceDocument::getFileName, fileName)
-                .eq(SourceDocument::getUserId, userId)
-                .eq(SourceDocument::getDeleted, false);
+                .eq(SourceDocument::getUserId, userId);
         return sourceDocumentMapper.selectCount(wrapper) > 0;
     }
 
@@ -128,18 +127,7 @@ public class DocumentRepository implements IDocumentRepository {
         if (!userId.equals(entity.getUserId())) {
             throw new ApiException(ResultCode.NOT_FOUND, "资料不存在");
         }
-        if (entity.getReferenceCount() != null && entity.getReferenceCount() > 0) {
-            List<String> qaSetIds = qaSetDocumentRefMapper.selectList(
-                    new LambdaQueryWrapper<QaSetDocumentRef>().eq(QaSetDocumentRef::getDocumentId, id))
-                    .stream().map(QaSetDocumentRef::getQaSetId).distinct().toList();
-            String titles = qaSetMapper.selectBatchIds(qaSetIds).stream()
-                    .map(QaSet::getTitle).filter(StringUtils::hasText)
-                    .reduce((a, b) -> a + "、 " + b).orElse("");
-            throw new ApiException(ResultCode.RESOURCE_IN_USE,
-                    "当前资料仍被以下问答集引用，无法删除：" + titles);
-        }
-        entity.setDeleted(true);
-        sourceDocumentMapper.updateById(entity);
+        sourceDocumentMapper.deleteById(id);
     }
 
     @Override
@@ -220,6 +208,14 @@ public class DocumentRepository implements IDocumentRepository {
     }
 
     @Override
+    public List<String> getChunkIdsByDocumentId(String documentId) {
+        return documentChunkMapper.selectList(
+                new LambdaQueryWrapper<DocumentChunk>()
+                        .eq(DocumentChunk::getDocumentId, documentId))
+                .stream().map(DocumentChunk::getId).toList();
+    }
+
+    @Override
     @Transactional(transactionManager = "mysqlTransactionManager")
     @CacheEvict(cacheNames = RedisConstant.DOCUMENT_CHUNK_CACHE, allEntries = true)
     public void deleteDocumentChunksByDocumentId(String documentId) {
@@ -252,7 +248,6 @@ public class DocumentRepository implements IDocumentRepository {
     public List<SourceDocumentResponse> listFinishedDocuments(String userId) {
         LambdaQueryWrapper<SourceDocument> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SourceDocument::getUserId, userId)
-                .eq(SourceDocument::getDeleted, false)
                 .eq(SourceDocument::getIndexStatus, IndexStatus.FINISHED.name())
                 .orderByDesc(SourceDocument::getCreatedAt);
         return sourceDocumentMapper.selectList(wrapper).stream()
@@ -416,9 +411,6 @@ public class DocumentRepository implements IDocumentRepository {
         queryWrapper.allEq(snakeMap, false);
         if (ReflectUtil.getField(entityType, "userId") != null) {
             queryWrapper.eq(DB_USER_ID, userId);
-        }
-        if (ReflectUtil.getField(entityType, "deleted") != null) {
-            queryWrapper.eq(DB_DELETED, false);
         }
         queryWrapper.orderByDesc("created_at");
         return mapper.selectList(queryWrapper).stream()

@@ -484,6 +484,41 @@ public class QaRepository implements IQaRepository {
     }
 
     @Override
+    @CacheEvict(cacheNames = RedisConstant.QA_ITEM_CACHE, allEntries = true)
+    public void removeOrphanChunkRefs(List<String> deadChunkIds, String userId) {
+        if (deadChunkIds == null || deadChunkIds.isEmpty()) {
+            return;
+        }
+        List<QaItem> items = qaItemMapper.selectList(new LambdaQueryWrapper<QaItem>()
+                .eq(QaItem::getUserId, userId)
+                .isNotNull(QaItem::getSourceChunkIdsJson)
+                .ne(QaItem::getSourceChunkIdsJson, "[]"));
+        for (QaItem item : items) {
+            List<String> current = JSON.parseArray(item.getSourceChunkIdsJson(), String.class);
+            if (current == null || current.isEmpty()) {
+                continue;
+            }
+            List<String> cleaned = current.stream()
+                    .filter(id -> !deadChunkIds.contains(id))
+                    .toList();
+            if (cleaned.size() != current.size()) {
+                item.setSourceChunkIdsJson(JSON.toJSONString(cleaned));
+                if (cleaned.isEmpty()) {
+                    item.setSourceReliable(false);
+                }
+                item.setUpdatedAt(LocalDateTime.now());
+                qaItemMapper.updateById(item);
+            }
+        }
+    }
+
+    @Override
+    public void deleteDocumentRefsByDocumentId(String documentId) {
+        qaSetDocumentRefMapper.delete(new LambdaQueryWrapper<QaSetDocumentRef>()
+                .eq(QaSetDocumentRef::getDocumentId, documentId));
+    }
+
+    @Override
     @CacheEvict(cacheNames = {RedisConstant.QA_ITEM_CACHE, RedisConstant.QA_SET_CACHE}, allEntries = true)
     public void deleteQaItem(String id, String userId) {
         QaItem item = requireQaItem(id, userId);

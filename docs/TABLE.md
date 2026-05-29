@@ -104,7 +104,6 @@
 | `raw_content` | `LONGTEXT` | 原始正文 |
 | `index_status` | `VARCHAR(32)` | `INDEXING` / `FINISHED` / `UNSOLVED` |
 | `reference_count` | `INT` | 被题集引用次数 |
-| `deleted` | `TINYINT(1)` | 软删除标记 |
 | `created_at` | `DATETIME` | 创建时间 |
 | `updated_at` | `DATETIME` | 更新时间 |
 

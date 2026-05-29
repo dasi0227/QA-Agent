@@ -32,8 +32,6 @@ public class SourceDocument {
 
     private Integer referenceCount;
     
-    private Boolean deleted;
-    
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;

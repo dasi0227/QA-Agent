@@ -3,6 +3,7 @@ package com.dasi.qa.agent.domain.document.service.crud;
 import com.dasi.qa.agent.domain.document.model.IndexStatus;
 import com.dasi.qa.agent.domain.document.repository.IDocumentRepository;
 import com.dasi.qa.agent.domain.document.service.rag.index.IIndexService;
+import com.dasi.qa.agent.domain.qa.repository.IQaRepository;
 import com.dasi.qa.agent.domain.util.IContextUtil;
 import com.dasi.qa.agent.domain.util.IIdUtil;
 import com.dasi.qa.agent.domain.util.IMqUtil;
@@ -25,17 +26,20 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
     private final IDocumentRepository repository;
     private final IContextUtil contextUtil;
     private final IIndexService indexService;
+    private final IQaRepository qaRepository;
     private final IIdUtil idUtil;
     private final IMqUtil mqUtil;
 
     public DocumentCrudCrudService(IDocumentRepository repository,
                                    IContextUtil contextUtil,
                                    IIndexService indexService,
+                                   IQaRepository qaRepository,
                                    IIdUtil idUtil,
                                    IMqUtil mqUtil) {
         this.repository = repository;
         this.contextUtil = contextUtil;
         this.indexService = indexService;
+        this.qaRepository = qaRepository;
         this.idUtil = idUtil;
         this.mqUtil = mqUtil;
     }
@@ -80,7 +84,11 @@ public class DocumentCrudCrudService implements IDocumentCrudService {
 
     @Override
     public void deleteSourceDocument(String id) {
-        repository.deleteSourceDocument(id, contextUtil.getUserId());
+        String userId = contextUtil.getUserId();
+        List<String> chunkIds = repository.getChunkIdsByDocumentId(id);
+        qaRepository.removeOrphanChunkRefs(chunkIds, userId);
+        qaRepository.deleteDocumentRefsByDocumentId(id);
+        repository.deleteSourceDocument(id, userId);
         indexService.remove(id);
     }
 

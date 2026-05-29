@@ -20,5 +20,4 @@ public class SourceDocumentResponse extends BaseResponse {
     private String rawContent;
     private String indexStatus;
     private Integer referenceCount;
-    private Boolean deleted;
 }

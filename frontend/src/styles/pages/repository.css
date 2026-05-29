@@ -674,6 +674,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding-top: 2px;
   padding-right: 6px;
   margin-right: -6px;
   overscroll-behavior: contain;
@@ -1309,4 +1310,68 @@
   border-color: #b7854a;
   background: #b7854a;
   box-shadow: inset 0 0 0 4px #fffaf2;
+}
+
+/* ── 输入确认弹窗 ── */
+
+.type-to-confirm-card {
+  width: min(440px, 90vw);
+  background: #f6f2ea;
+  border-radius: 34px;
+  padding: 24px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 28px 90px rgba(77, 63, 40, 0.12);
+}
+
+.type-to-confirm-card__body {
+  display: grid;
+  gap: 18px;
+}
+
+.type-to-confirm-card__message {
+  margin: 0;
+  color: #8f4c39;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.type-to-confirm-card__field {
+  display: grid;
+  gap: 8px;
+}
+
+.type-to-confirm-card__hint {
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+.type-to-confirm-card__hint strong {
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.type-to-confirm-card__input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(23, 22, 20, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.54);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.type-to-confirm-card__input:focus {
+  border-color: rgba(143, 76, 57, 0.4);
+  box-shadow: 0 0 0 3px rgba(143, 76, 57, 0.08);
+}
+
+.type-to-confirm-card__input::placeholder {
+  color: var(--ink-faint);
 }

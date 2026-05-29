@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { GlassCard } from "@/components/base/card";
-import { ConfirmDialog } from "@/components/base/confirm-dialog";
+import { TypeToConfirmDialog } from "@/components/base/type-to-confirm-dialog";
 import {
+    apiKeys,
     useDeleteDocumentMutation,
     useDocumentQuery,
     useDocumentsQuery,
@@ -290,16 +291,7 @@ export function DocumentPage() {
                                             variant="outline"
                                             type="button"
                                             disabled={deleteDocumentMutation.isPending}
-                                            onClick={() => {
-                                                if (selectedDocumentUseCount > 0) {
-                                                    showErrorDialog({
-                                                        title: "资料正在被引用",
-                                                        message: `当前资料已被 ${selectedDocumentUseCount} 个问答集引用，暂不允许删除。请先移除引用后再删除。`,
-                                                    });
-                                                    return;
-                                                }
-                                                setDeleteDocDialogOpen(true);
-                                            }}
+                                            onClick={() => setDeleteDocDialogOpen(true)}
                                         >
                                             {deleteDocumentMutation.isPending ? "删除中" : "删除资料"}
                                         </BaseButton>
@@ -321,34 +313,22 @@ export function DocumentPage() {
                 </GlassCard>
             </div>
 
-            <ConfirmDialog
+            <TypeToConfirmDialog
                 open={deleteDocDialogOpen}
-                title="⚠️ 删除资料"
-                variant="danger"
+                title="删除资料"
                 message={
-                    <>
-                        <p style={{ margin: 0 }}>
-                            确定要删除资料「
-                            {displayDocument
-                                ? (splitDocumentFileName(displayDocument.fileName).baseName || displayDocument.fileName)
-                                : ""}
-                            」吗？
-                        </p>
-                        <p style={{ margin: "10px 0 0", color: "#8f4c39", fontSize: 13, fontWeight: 600 }}>
-                            删除后资料将从系统中移除，关联的问答集可能受到影响。
-                        </p>
-                    </>
+                    selectedDocumentUseCount > 0
+                        ? `该资料被 ${selectedDocumentUseCount} 个问答集引用。强制删除后，相关题目的证据切片将被清空。`
+                        : "删除后资料及相关索引将被永久移除，不可恢复。"
                 }
+                confirmText={`我确认删除【${displayDocument?.fileName ?? ""}】`}
                 confirmLabel="删除"
                 loading={deleteDocumentMutation.isPending}
                 onConfirm={async () => {
                     if (!displayDocument) return;
                     await deleteDocumentMutation.mutateAsync(displayDocument.id);
                     emitDasiBubble("资料已移除，相关索引也会同步清理 🗑️");
-                    setDeleteDocDialogOpen(false);
-                    setActiveDocumentId("");
-                    setDocumentNameDraft("");
-                    setDocumentEditorMode("view");
+                    navigate("/repository/document", { replace: true });
                 }}
                 onCancel={() => setDeleteDocDialogOpen(false)}
             />

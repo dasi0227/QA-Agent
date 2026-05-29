@@ -120,7 +120,6 @@ export type DocumentRecord = {
     rawContent: string;
     indexStatus: string;
     referenceCount: number;
-    deleted: boolean;
     createdAt?: string;
     updatedAt?: string;
 };

@@ -54,5 +54,9 @@ public interface IQaRepository {
 
     void updateQaItemEvidenceFields(String itemId, String userId, List<String> chunkIds, boolean hasEvidence);
 
+    void removeOrphanChunkRefs(List<String> deadChunkIds, String userId);
+
+    void deleteDocumentRefsByDocumentId(String documentId);
+
     void deleteQaItem(String id, String userId);
 }

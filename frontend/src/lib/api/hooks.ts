@@ -249,7 +249,6 @@ export function normalizeDocument(raw: unknown): DocumentRecord {
         rawContent: toStringValue(pick(raw, "rawContent", "raw_content")),
         indexStatus: toStringValue(pick(raw, "indexStatus", "index_status"), "UNSOLVED"),
         referenceCount: toNumberValue(pick(raw, "referenceCount", "reference_count")),
-        deleted: toBooleanValue(pick(raw, "deleted")),
         createdAt: toStringValue(pick(raw, "createdAt", "created_at")),
         updatedAt: toStringValue(pick(raw, "updatedAt", "updated_at")),
     };

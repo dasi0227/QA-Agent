@@ -10,5 +10,5 @@ public class StringConstant {
 
     public static final String DB_USER_ID = "user_id";
 
-    public static final String DB_DELETED = "deleted";
+
 }

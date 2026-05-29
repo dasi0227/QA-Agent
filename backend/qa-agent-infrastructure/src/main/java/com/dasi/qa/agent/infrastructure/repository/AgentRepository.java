@@ -338,8 +338,7 @@ public class AgentRepository implements IAgentRepository {
         List<SourceDocument> documents = sourceDocumentMapper.selectList(
                 new LambdaQueryWrapper<SourceDocument>()
                         .in(SourceDocument::getId, documentIds)
-                        .eq(SourceDocument::getUserId, userId)
-                        .eq(SourceDocument::getDeleted, false));
+                        .eq(SourceDocument::getUserId, userId));
         StringBuilder sb = new StringBuilder();
         for (SourceDocument doc : documents) {
             sb.append("# ").append(doc.getFileName()).append("\n");

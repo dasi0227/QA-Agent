@@ -787,7 +787,7 @@ export function ProfileConfigPage() {
                     onClick={() => form.setValue("allowReferMemory", !allowReferMemory, { shouldDirty: true })}
                 >
                     <span className="profile-switch__copy">
-                        <strong>参考记忆规划</strong>
+                        <strong>参考记忆</strong>
                         <small>允许生成规划参考长期记忆，调整模块题量、难度起点和检索方向。</small>
                     </span>
                     <span className="profile-switch__track" aria-hidden="true">
@@ -814,7 +814,7 @@ export function ProfileConfigPage() {
                 >
                     <span className="profile-switch__copy">
                         <strong>错误回退</strong>
-                        <small>审校未通过时，允许使用 LLM 补充通用知识进行回退修订。</small>
+                        <small>LLM 出现错误未知错误时，允许使用 FALLBACK 处理而不是直接返回错误。</small>
                     </span>
                     <span className="profile-switch__track" aria-hidden="true">
                         <span className="profile-switch__thumb" />

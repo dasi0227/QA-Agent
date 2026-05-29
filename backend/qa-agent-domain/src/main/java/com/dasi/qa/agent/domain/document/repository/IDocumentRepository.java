@@ -37,6 +37,8 @@ public interface IDocumentRepository {
 
     void replaceDocumentChunks(String documentId, String userId, List<ChunkDraft> drafts);
 
+    List<String> getChunkIdsByDocumentId(String documentId);
+
     void deleteDocumentChunksByDocumentId(String documentId);
 
     List<DocumentChunkResponse> batchQueryDocumentChunk(List<String> chunkIds);
