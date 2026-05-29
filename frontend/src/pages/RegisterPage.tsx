@@ -16,8 +16,8 @@ const registerSchema = z
     .object({
         name: z.string().min(1, "请输入用户名"),
         email: z.string().email("请输入有效邮箱"),
-        password: z.string().min(8, "密码至少 8 位"),
-        confirmPassword: z.string().min(8, "请再次输入密码"),
+        password: z.string().min(6, "密码至少 6 位"),
+        confirmPassword: z.string().min(6, "请再次输入密码"),
         remember: z.boolean().optional(),
     })
     .refine((value) => value.password === value.confirmPassword, {
@@ -217,7 +217,7 @@ export function RegisterPage() {
                             <TextInput placeholder="qa-agent@example.com" {...form.register("email")} />
                         </Field>
                         <Field label="密码" error={form.formState.errors.password?.message}>
-                            <TextInput type="password" placeholder="请输入密码，至少 8 位" {...form.register("password")} />
+                            <TextInput type="password" placeholder="请输入密码，至少 6 位" {...form.register("password")} />
                         </Field>
                         <Field label="确认密码" error={form.formState.errors.confirmPassword?.message}>
                             <TextInput type="password" placeholder="再输入一次" {...form.register("confirmPassword")} />

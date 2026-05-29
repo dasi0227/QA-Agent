@@ -70,6 +70,7 @@ public class PracticeRepository implements IPracticeRepository {
             throw new ApiException(ResultCode.NOT_FOUND, "当前题集中没有可练习的题目");
         }
         if ("RANDOM".equals(request.getMode())) {
+            qaItems = new ArrayList<>(qaItems);
             Collections.shuffle(qaItems);
         }
         LocalDateTime now = LocalDateTime.now();

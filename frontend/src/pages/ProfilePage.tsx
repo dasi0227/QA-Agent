@@ -45,7 +45,7 @@ const agentSchema = z.object({
 
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, "请输入当前密码"),
-    newPassword: z.string().min(8, "新密码至少 8 位"),
+    newPassword: z.string().min(6, "新密码至少 6 位"),
     confirmPassword: z.string().min(1, "请再次输入新密码"),
 }).superRefine((value, context) => {
     if (value.currentPassword === value.newPassword) {
