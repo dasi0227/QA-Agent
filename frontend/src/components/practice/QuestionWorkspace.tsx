@@ -5,6 +5,7 @@ import type { PracticeFeedbackMode, PracticeFlowItem } from "@/lib/api/types";
 import { BaseButton } from "@/components/base/button";
 import { TextArea } from "@/components/base/field";
 import { Tag } from "@/components/base/tag";
+import { MarkdownRenderer } from "@/lib/markdown";
 import { QuestionFeedbackPanel } from "./QuestionFeedbackPanel";
 type QuestionWorkspaceProps = {
     item: PracticeFlowItem;
@@ -126,7 +127,7 @@ export function QuestionWorkspace({
             {showFeedback && item.standardAnswer ? (
                 <section className="review-answer-block">
                     <span>参考答案</span>
-                    <p>{item.standardAnswer}</p>
+                    <MarkdownRenderer content={item.standardAnswer} />
                 </section>
             ) : null}
 

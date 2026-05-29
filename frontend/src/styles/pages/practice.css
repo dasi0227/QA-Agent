@@ -562,6 +562,10 @@
   white-space: pre-wrap;
 }
 
+.review-answer-block .document-markdown p {
+  white-space: normal;
+}
+
 
 
 

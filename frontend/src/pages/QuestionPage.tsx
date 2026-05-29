@@ -7,6 +7,7 @@ import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { useGlobalErrorDialog } from "@/lib/error/ErrorDialogProvider";
 import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea, TextInput } from "@/components/base/field";
+import { MarkdownRenderer } from "@/lib/markdown";
 import { Tag } from "@/components/base/tag";
 import {
     parseDelimitedValues,
@@ -540,7 +541,7 @@ export function QuestionPage() {
                                             </div>
                                             <div className="question-detail-section__body question-detail-section__body--expanded">
                                                 <h2>标准回答</h2>
-                                                <p>{activeItem.answer || "暂无标准回答"}</p>
+                                                <MarkdownRenderer content={activeItem.answer || ""} emptyLabel="暂无标准回答" />
                                             </div>
                                         </section>
 
@@ -550,7 +551,7 @@ export function QuestionPage() {
                                             </div>
                                             <div className="question-detail-section__body question-detail-section__body--expanded">
                                                 <h2>知识点</h2>
-                                                <p>{activeItem.knowledgeNote || "暂无知识点"}</p>
+                                                <MarkdownRenderer content={activeItem.knowledgeNote || ""} emptyLabel="暂无知识点" />
                                             </div>
                                         </section>
 

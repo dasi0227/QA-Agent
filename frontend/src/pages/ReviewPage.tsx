@@ -6,6 +6,7 @@ import { AnswerCard } from "@/components/practice/AnswerCard";
 import { PracticeLayout } from "@/components/practice/PracticeLayout";
 import { QuestionFeedbackPanel } from "@/components/practice/QuestionFeedbackPanel";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { MarkdownRenderer } from "@/lib/markdown";
 import { usePracticeDetailQuery } from "@/lib/api/hooks";
 
 function clampIndex(index: number, total: number) {
@@ -113,7 +114,7 @@ export function ReviewPage() {
             {currentItem.standardAnswer ? (
                 <section className="review-answer-block">
                     <span>参考答案</span>
-                    <p>{currentItem.standardAnswer}</p>
+                    <MarkdownRenderer content={currentItem.standardAnswer} />
                 </section>
             ) : null}
 
