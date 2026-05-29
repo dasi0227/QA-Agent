@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
-import { BaseButton } from "@/components/base/button";
+import { BaseButton, ChoiceButton } from "@/components/base/button";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
 import { GlassCard } from "@/components/base/card";
 import { Field, Select, TextArea, TextInput } from "@/components/base/field";
@@ -106,6 +106,8 @@ export function QuestionPage() {
     const [selectedEvidenceChunkId, setSelectedEvidenceChunkId] = useState("");
     const [draggingBatchIndex, setDraggingBatchIndex] = useState<number | null>(null);
     const [selectedPracticeItemIds, setSelectedPracticeItemIds] = useState<string[]>([]);
+    const [practiceMode, setPracticeMode] = useState<"SEQUENTIAL" | "RANDOM">("SEQUENTIAL");
+    const [practiceFeedbackMode, setPracticeFeedbackMode] = useState<"ITEM_BY_ITEM" | "AFTER_ALL">("ITEM_BY_ITEM");
 
     const keywordList = useMemo(() => parseDelimitedValues(activeItem?.keywords), [activeItem?.keywords]);
     const moduleTagList = useMemo(() => parseDelimitedValues(activeItem?.moduleTag), [activeItem?.moduleTag]);
@@ -313,8 +315,8 @@ export function QuestionPage() {
         }
         const detail = await startSelectedPracticeMutation.mutateAsync({
             qaSetId,
-            mode: "SEQUENTIAL",
-            feedbackMode: "ITEM_BY_ITEM",
+            mode: practiceMode,
+            feedbackMode: practiceFeedbackMode,
             itemIds: normalized,
         });
         setPracticeDialogOpen(false);
@@ -843,6 +845,18 @@ export function QuestionPage() {
                                     </button>
                                 );
                             })}
+                        </div>
+                        <div className="question-practice-dialog__mode-row">
+                            <div className="question-practice-dialog__mode-group">
+                                <span className="question-practice-dialog__mode-label">练习模式</span>
+                                <ChoiceButton selected={practiceMode === "SEQUENTIAL"} onClick={() => setPracticeMode("SEQUENTIAL")}>顺序</ChoiceButton>
+                                <ChoiceButton selected={practiceMode === "RANDOM"} onClick={() => setPracticeMode("RANDOM")}>随机</ChoiceButton>
+                            </div>
+                            <div className="question-practice-dialog__mode-group">
+                                <span className="question-practice-dialog__mode-label">反馈模式</span>
+                                <ChoiceButton selected={practiceFeedbackMode === "ITEM_BY_ITEM"} onClick={() => setPracticeFeedbackMode("ITEM_BY_ITEM")}>逐题</ChoiceButton>
+                                <ChoiceButton selected={practiceFeedbackMode === "AFTER_ALL"} onClick={() => setPracticeFeedbackMode("AFTER_ALL")}>整轮</ChoiceButton>
+                            </div>
                         </div>
                         <div className="modal-card__footer">
                             <div className="question-practice-dialog__footer">

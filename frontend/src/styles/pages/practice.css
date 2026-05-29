@@ -60,6 +60,7 @@
   font-family: var(--font-serif);
   font-size: clamp(30px, 4vw, 48px);
   letter-spacing: 0;
+  text-align: center;
 }
 
 

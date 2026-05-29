@@ -999,6 +999,27 @@
 }
 
 
+.question-practice-dialog__mode-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 0 4px;
+  border-top: 1px solid rgba(23, 22, 20, 0.06);
+}
+
+.question-practice-dialog__mode-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.question-practice-dialog__mode-label {
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .question-practice-dialog__footer {
   display: flex;
   align-items: center;
