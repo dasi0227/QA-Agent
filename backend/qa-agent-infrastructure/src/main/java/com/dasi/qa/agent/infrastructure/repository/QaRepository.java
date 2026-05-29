@@ -596,7 +596,7 @@ public class QaRepository implements IQaRepository {
         if (ReflectUtil.getField(entityType, "userId") != null) {
             queryWrapper.eq(DB_USER_ID, userId);
         }
-        queryWrapper.orderByDesc("created_at");
+        queryWrapper.orderByAsc("sort_order").orderByAsc("created_at");
         return mapper.selectList(queryWrapper).stream().map(entity -> toResponse(entity, responseType)).toList();
     }
 

@@ -1053,8 +1053,7 @@
 
 .question-edit-dialog__textarea {
   min-height: 128px;
-  height: 128px;
-  resize: none;
+  resize: vertical;
   overflow-y: auto;
 }
 
