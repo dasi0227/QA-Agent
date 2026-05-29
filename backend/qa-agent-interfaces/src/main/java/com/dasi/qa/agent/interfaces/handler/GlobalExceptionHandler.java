@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
@@ -117,6 +118,13 @@ public class GlobalExceptionHandler {
     public Result<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException exception) {
         log.error("【全局异常】请求方法不支持: error={}", exception.getMessage(), exception);
         return Result.fail(ResultCode.BAD_REQUEST.getCode(), "当前接口不支持该请求方法");
+    }
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public Result<Void> handleAsyncRequestNotUsable(AsyncRequestNotUsableException exception) {
+        log.warn("【全局异常】客户端已断开: error={}", exception.getMessage());
+        return null;
     }
 
     @ExceptionHandler(Exception.class)

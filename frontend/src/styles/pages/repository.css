@@ -895,6 +895,7 @@
   justify-content: flex-start;
   text-align: left;
   min-width: 0;
+  cursor: pointer;
 }
 
 
@@ -1272,6 +1273,7 @@
   align-items: center;
   border: 0;
   background: transparent;
+  cursor: pointer;
   color: inherit;
   font: inherit;
   text-align: left;

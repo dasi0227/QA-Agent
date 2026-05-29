@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useDeferredValue, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { BaseButton } from "@/components/base/button";
 import { emitDasiBubble } from "@/components/dasi/DasiChatWidget";
@@ -74,7 +74,7 @@ export function DocumentPage() {
             setLastDocument(selectedDocumentQuery.data);
         }
     }, [selectedDocumentQuery.data]);
-    const displayDocument = selectedDocumentQuery.data ?? lastDocument;
+    const displayDocument = useDeferredValue(selectedDocumentQuery.data ?? lastDocument);
     const isDocumentLoading = selectedDocumentQuery.isLoading && !displayDocument;
 
     const hasDocuments = (documentsQuery.data?.length ?? 0) > 0;
@@ -202,7 +202,7 @@ export function DocumentPage() {
                                 </div>
                             ) : null}
                             {documentsQuery.data?.map((qaSetEntry) => {
-                                const isActive = qaSetEntry.id === activeDocumentIdValue;
+                                const isActive = qaSetEntry.id === (displayDocument?.id ?? activeDocumentIdValue);
                                 const displayFileName = splitDocumentFileName(qaSetEntry.fileName).baseName || qaSetEntry.fileName;
                                 return (
                                     <button
