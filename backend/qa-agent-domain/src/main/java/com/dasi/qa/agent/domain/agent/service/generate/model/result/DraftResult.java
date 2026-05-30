@@ -24,7 +24,7 @@ public class DraftResult {
     private String knowledgeNote;
 
     @Description("题目分类标签，从候选标签池选取 1-2 个，逗号分隔")
-    private String tag;
+    private String moduleTag;
 
     @Description("题目难度，必须是 EASY / MEDIUM / HARD 之一")
     private String difficulty;

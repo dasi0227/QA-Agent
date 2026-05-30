@@ -711,7 +711,7 @@ public class GenerateAgent implements IGenerateAgent {
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
         String tags = validatedResult.stream()
-                .map(DraftResult::getTag)
+                .map(DraftResult::getModuleTag)
                 .filter(StringUtils::hasText)
                 .distinct()
                 .reduce((a, b) -> a + ", " + b)
@@ -769,7 +769,7 @@ public class GenerateAgent implements IGenerateAgent {
                     .question(planItem.getModule() + " 的核心问题 " + (i + 1))
                     .knowledgeNote(evidence)
                     .answer(evidence)
-                    .tag(planItem.getModule())
+                    .moduleTag(planItem.getModule())
                     .difficulty("MEDIUM")
                     .sourceReliable(StringUtils.hasText(evidence) && sourceChunkIds != null && !sourceChunkIds.isEmpty())
                     .sourceChunkIds(sourceChunkIds)

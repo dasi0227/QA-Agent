@@ -383,7 +383,7 @@ public class AgentRepository implements IAgentRepository {
             item.setQuestion(draftResult.getQuestion());
             item.setKnowledgeNote(draftResult.getKnowledgeNote());
             item.setAnswer(draftResult.getAnswer());
-            item.setModuleTag(draftResult.getTag());
+            item.setModuleTag(draftResult.getModuleTag());
             item.setDifficulty(draftResult.getDifficulty());
             item.setKeywords("");
             item.setHint("");
@@ -936,8 +936,8 @@ public class AgentRepository implements IAgentRepository {
     private List<String> moduleTags(List<DraftResult> draftResults) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (DraftResult draftResult : draftResults) {
-            if (StringUtils.hasText(draftResult.getTag())) {
-                for (String tag : draftResult.getTag().split(",")) {
+            if (StringUtils.hasText(draftResult.getModuleTag())) {
+                for (String tag : draftResult.getModuleTag().split(",")) {
                     String trimmed = tag.trim();
                     if (!trimmed.isEmpty()) {
                         tags.add(trimmed);
