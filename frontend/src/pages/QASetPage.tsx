@@ -245,17 +245,17 @@ export function QASetPage() {
                                 variant="soft"
                                 type="button"
                                 className="sidebar__upload-btn"
-                                onClick={async () => {
+                                onClick={() => {
                                     setImportError("");
-                                    const result = await llmHealthQuery.refetch();
-                                    if (result.isError) {
-                                        showErrorDialog({
-                                            title: "LLM 接入未配置",
-                                            message: "请先在个人设置中填写 LLM 配置信息。",
-                                        });
-                                        return;
-                                    }
                                     setCreateSetDialogOpen(true);
+                                    llmHealthQuery.refetch().then((result) => {
+                                        if (result.isError) {
+                                            showErrorDialog({
+                                                title: "LLM 接入未配置",
+                                                message: "请先在个人设置中填写 LLM 配置信息。",
+                                            });
+                                        }
+                                    });
                                 }}
                             >
                                 新增题集

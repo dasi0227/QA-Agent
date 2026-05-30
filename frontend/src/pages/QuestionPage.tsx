@@ -447,16 +447,16 @@ export function QuestionPage() {
                                 <button
                                     type="button"
                                     className="sidebar__upload-btn"
-                                    onClick={async () => {
-                                        const result = await llmHealthQuery.refetch();
-                                        if (result.isError) {
-                                            showErrorDialog({
-                                                title: "LLM 接入未配置",
-                                                message: "AI 补全功能需要配置 LLM，请先在个人设置中填写 Base URL、API Key 和 Model Name。",
-                                            });
-                                            return;
-                                        }
+                                    onClick={() => {
                                         setCreateDialogOpen(true);
+                                        llmHealthQuery.refetch().then((result) => {
+                                            if (result.isError) {
+                                                showErrorDialog({
+                                                    title: "LLM 接入未配置",
+                                                    message: "AI 补全功能需要配置 LLM，请先在个人设置中填写 Base URL、API Key 和 Model Name。",
+                                                });
+                                            }
+                                        });
                                     }}
                                 >
                                     新增题目
