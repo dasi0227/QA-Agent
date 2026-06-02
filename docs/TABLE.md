@@ -2,8 +2,8 @@
 
 本文以以下代码为准：
 
-- MySQL DDL：`backend/qa-agent-application/src/main/resources/sql/table.sql`
-- PostgreSQL DDL：`backend/qa-agent-application/src/main/resources/sql/seed_postgres.sql`
+- MySQL DDL：`backend/sql/init_mysql.sql`
+- PostgreSQL DDL：`backend/sql/init_postgres.sql`
 - Entity：`backend/qa-agent-infrastructure/src/main/java/com/dasi/qa/agent/infrastructure/persistent/entity/`
 
 当前正式表结构为 **12 张 MySQL 表 + 1 张 PostgreSQL 检索表**。
