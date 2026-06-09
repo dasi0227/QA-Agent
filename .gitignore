@@ -47,11 +47,11 @@ __pycache__/
 venv/
 
 # Mine
-TODO.md
-口播.md
-CLAUDE.md
-AGENTS.md
 .superpowers/
 .claude/
-decks/
-软件著作权申请资料/
+dasi/
+*.md
+!README.md
+!docs/
+!docs/*.md
+!docs/**/*.md
