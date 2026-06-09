@@ -100,6 +100,7 @@ export function CreatePage() {
     const isInterrupted = streamState === "interrupted";
     const interruptedRef = useRef(false);
     const currentTaskIdRef = useRef<string>("");
+    const isRecoveryView = useRef(false);
     const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
     const [streamError, setStreamError] = useState("");
     const [snapshot, setSnapshot] = useState<{
@@ -120,6 +121,7 @@ export function CreatePage() {
         if (!recoveryTaskId || !taskMessagesQuery.data) return;
         const events = parseTaskMessagesToEvents(taskMessagesQuery.data);
         if (events.length > 0) {
+            isRecoveryView.current = true;
             setSseEvents(events);
             if (events[events.length - 1].isCompleted
                 || /完成|COMPLETED|失败|FAILED/i.test(events[events.length - 1].stage)) {
@@ -203,6 +205,7 @@ export function CreatePage() {
     // - disappears (back to /create): reset to idle form
     useEffect(() => {
         if (urlTaskId) {
+            isRecoveryView.current = false;
             setStreamState("streaming");
             setSseEvents([]);
             setStreamError("");
@@ -248,13 +251,15 @@ export function CreatePage() {
         }
     }, [sseEvents]);
 
-    // Clear active task on completion
+    // Clear active task on completion（仅实时 SSE 完成时切回 idle，恢复历史任务不切换）
     const completionBubbleFired = useRef(false);
     useEffect(() => {
         if (isCompleted && !completionBubbleFired.current) {
             completionBubbleFired.current = true;
             sessionStorage.removeItem(ACTIVE_TASK_KEY);
-            setStreamState("idle");
+            if (!isRecoveryView.current) {
+                setStreamState("idle");
+            }
             emitDasiBubble("🎉 问答集生成完成！点击查看结果吧～");
         }
     }, [isCompleted]);
