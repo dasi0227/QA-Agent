@@ -9,7 +9,9 @@
 ![Kafka](https://img.shields.io/badge/Kafka-3.7-231F20?style=flat-square&logo=apachekafka&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-QA_Agent 是一个面向技术面试准备的个人资料驱动训练工作台。它把用户已有的 Markdown 笔记、项目总结和复习资料沉淀为可管理、可生成、可练习、可反馈、可评估、可记忆的问答资产。
+<p><strong><font size="5">QA_Agent 是一个面向技术面试准备的个人资料驱动训练工作台。它把用户已有的 Markdown 笔记、项目总结和复习资料沉淀为可管理、可生成、可练习、可反馈、可评估、可记忆的问答资产。</font></strong></p>
+
+![](image/主页.png)
 
 ## 项目概览
 
@@ -24,6 +26,13 @@ QA_Agent 的核心不是让模型自由发挥，而是让模型围绕用户资�
 | Agent | LangChain4J, Agent DAG, Server-Sent Events |
 | RAG | DashScope Embedding, PostgreSQL pgvector, zhparser, Hybrid Retrieval |
 | 基础设施 | MySQL, PostgreSQL, Redis, Kafka, XXL-JOB |
+
+<p align="center"><strong>⭐ GitHub Star 变化趋势</strong></p>
+<p align="center">
+  <a href="https://star-history.com/#dasi0227/QA-Agent&Date">
+    <img src="https://api.star-history.com/svg?repos=dasi0227/QA-Agent&type=Date" alt="QA-Agent Star History Chart" width="760" />
+  </a>
+</p>
 
 ## 核心能力
 
@@ -112,6 +121,88 @@ QA_Agent/
    npm run dev
    ```
 
+## 运行截图
+
+<table>
+  <tr>
+    <td align="center">
+      <p>登录后进入系统</p>
+      <img src="image/登陆.png" alt="登录页面" />
+    </td>
+    <td align="center">
+      <p>主页总览训练入口</p>
+      <img src="image/主页.png" alt="主页" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <p>管理个人信息与配置</p>
+      <img src="image/个人.png" alt="个人设置" />
+    </td>
+    <td align="center">
+      <p>资料库管理学习材料</p>
+      <img src="image/资料.png" alt="资料页面" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <p>新建问答集任务</p>
+      <img src="image/创建.png" alt="创建页面" />
+    </td>
+    <td align="center">
+      <p>查看题集仓库列表</p>
+      <img src="image/仓库.png" alt="仓库页面" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <p>浏览题目与详情</p>
+      <img src="image/题目.png" alt="题目页面" />
+    </td>
+    <td align="center">
+      <p>执行题目测试流程</p>
+      <img src="image/测试.png" alt="测试页面" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <p>进入练习作答</p>
+      <img src="image/练习.png" alt="练习页面" />
+    </td>
+    <td align="center">
+      <p>查看答题反馈</p>
+      <img src="image/反馈.png" alt="反馈页面" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <p>查看能力评估结果</p>
+      <img src="image/评估.png" alt="评估页面" />
+    </td>
+    <td align="center">
+      <p>沉淀长期记忆</p>
+      <img src="image/记忆.png" alt="记忆页面" />
+    </td>
+  </tr>
+</table>
+
 ## 版权声明
 
-本项目遵循 MIT 协议开源。项目中的 Prompt 文件、`.dasi` 题集文件和 `.sql` 数据库脚本不在本仓库开源范围内，如需获取请关注小红书账号 **dasi0227** 私信获取。
+本项目采用 MIT License 开源，允许任何个人或组织在遵守许可证条款的前提下使用、复制、修改、合并与发布本项目代码，但作者不对其适用性或潜在风险承担担保责任。
+
+<div align="center">
+  <p><strong><font size="6">🚨🚨🚨 资源说明 🚨🚨🚨</font></strong></p>
+  <p><strong><font size="5">以下文件类型不在本仓库开源范围内</font></strong></p>
+
+  <table align="center">
+    <tr>
+      <td align="center"><strong><font size="4">❗ <code>.txt</code> 提示词文件</font></strong></td>
+      <td align="center"><strong><font size="4">❗ <code>.dasi</code> 题集文件</font></strong></td>
+      <td align="center"><strong><font size="4">❗ <code>.sql</code> 数据库文件</font></strong></td>
+    </tr>
+  </table>
+
+  <p><strong><font size="5">如需获取，请关注小红书账号</font></strong></p>
+  <p><strong><font size="7" color="#ff2d55">dasi0227</font></strong></p>
+  <p><strong><font size="5">私信联系</font></strong></p>
+</div>
