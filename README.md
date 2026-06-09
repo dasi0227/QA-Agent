@@ -1,4 +1,4 @@
-# QA_Agent
+# QA-Agent
 
 ![Java](https://img.shields.io/badge/Java-17-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)
@@ -9,15 +9,15 @@
 ![Kafka](https://img.shields.io/badge/Kafka-3.7-231F20?style=flat-square&logo=apachekafka&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-<p><strong><font size="5">QA_Agent 是一个面向技术面试准备的个人资料驱动训练工作台。它把用户已有的 Markdown 笔记、项目总结和复习资料沉淀为可管理、可生成、可练习、可反馈、可评估、可记忆的问答资产。</font></strong></p>
+<p><strong><font size="5">QA-Agent 是一个面向技术面试准备的个人资料驱动训练工作台。它把用户已有的 Markdown 笔记、项目总结和复习资料沉淀为可管理、可生成、可练习、可反馈、可评估、可记忆的问答资产。</font></strong></p>
 
 ![](image/主页.png)
 
 ## 项目概览
 
-普通 AI 聊天很容易停留在一次性问答，普通题库又很难贴合个人真实经历。QA_Agent 关注的是另一条路径：先让资料成为稳定资产，再围绕资产建立训练闭环，最后用 Agent、RAG 和 Memory 提升生成质量与长期训练效果。
+普通 AI 聊天很容易停留在一次性问答，普通题库又很难贴合个人真实经历。QA-Agent 关注的是另一条路径：先让资料成为稳定资产，再围绕资产建立训练闭环，最后用 Agent、RAG 和 Memory 提升生成质量与长期训练效果。
 
-QA_Agent 的核心不是让模型自由发挥，而是让模型围绕用户资料、求职画像、题集资产和练习记录工作。一次生成不是终点，题集可以继续维护，题目可以继续补全，练习可以继续复盘，记忆可以进入下一轮生成与训练。
+QA-Agent 的核心不是让模型自由发挥，而是让模型围绕用户资料、求职画像、题集资产和练习记录工作。一次生成不是终点，题集可以继续维护，题目可以继续补全，练习可以继续复盘，记忆可以进入下一轮生成与训练。
 
 | 领域 | 技术 |
 | --- | --- |
@@ -62,7 +62,7 @@ flowchart LR
 ## 项目结构
 
 ```text
-QA_Agent/
+QA-Agent/
 ├── frontend/                       # React 前端工作台
 │   ├── src/pages/                  # 页面入口：资料库、题集、练习、结果、登录与用户设置
 │   ├── src/components/             # 通用组件、布局组件、练习组件和 Dasi 对话组件
@@ -202,7 +202,13 @@ QA_Agent/
     </tr>
   </table>
 
-  <p><strong><font size="5">如需获取，请关注小红书账号</font></strong></p>
-  <p><strong><font size="7" color="#ff2d55">dasi0227</font></strong></p>
+  <p><strong><font size="5">如需获取，请关注</font></strong></p>
+  <p>
+    <img
+      src="https://img.shields.io/badge/%E5%B0%8F%E7%BA%A2%E4%B9%A6-dasi0227-FF2442?style=flat-square"
+      alt="小红书 dasi0227"
+      height="56"
+    />
+  </p>
   <p><strong><font size="5">私信联系</font></strong></p>
 </div>
