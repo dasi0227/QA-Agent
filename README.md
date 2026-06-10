@@ -27,13 +27,6 @@ QA-Agent 的核心不是让模型自由发挥，而是让模型围绕用户资�
 | RAG | DashScope Embedding, PostgreSQL pgvector, zhparser, Hybrid Retrieval |
 | 基础设施 | MySQL, PostgreSQL, Redis, Kafka, XXL-JOB |
 
-<p align="center"><strong>⭐ GitHub Star 变化趋势</strong></p>
-<p align="center">
-  <a href="https://star-history.com/#dasi0227/QA-Agent&Date">
-    <img src="https://api.star-history.com/svg?repos=dasi0227/QA-Agent&type=Date" alt="QA-Agent Star History Chart" width="760" />
-  </a>
-</p>
-
 ## 核心能力
 
 - **个人画像**：维护目标岗位、目标领域、表达风格和模型配置，让 Agent 拥有稳定的用户上下文。
@@ -198,7 +191,6 @@ QA-Agent/
     <tr>
       <td align="center"><strong><font size="4">❗ <code>.txt</code> 提示词文件</font></strong></td>
       <td align="center"><strong><font size="4">❗ <code>.dasi</code> 题集文件</font></strong></td>
-      <td align="center"><strong><font size="4">❗ <code>.sql</code> 数据库文件</font></strong></td>
     </tr>
   </table>
 
